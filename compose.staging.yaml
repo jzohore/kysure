@@ -39,6 +39,9 @@ services:
       MESSENGER_TRANSPORT_DSN: '${MESSENGER_TRANSPORT_DSN}'
       MAILER_DSN: 'smtp://mailpit-staging:1025'
       GOTENBERG_URL: 'http://gotenberg-staging:3000/forms/chromium/convert/html'
+      # Verrou anti-concurrence des tâches planifiées : local au conteneur worker,
+      # suffisant tant qu'une seule instance de worker consomme les messages.
+      LOCK_DSN: 'flock'
       # Analytique Umami : le <script> n'est rendu que si les deux sont non vides.
       UMAMI_SCRIPT_URL: 'https://analytics.staging.kysure.fr/script.js'
       UMAMI_WEBSITE_ID: '${UMAMI_WEBSITE_ID}'
@@ -68,6 +71,9 @@ services:
       MESSENGER_TRANSPORT_DSN: '${MESSENGER_TRANSPORT_DSN}'
       MAILER_DSN: 'smtp://mailpit-staging:1025'
       GOTENBERG_URL: 'http://gotenberg-staging:3000/forms/chromium/convert/html'
+      # Le worker exécute les tâches planifiées (scheduler_cron) : c'est ici que
+      # le verrou anti-concurrence protège contre une double exécution.
+      LOCK_DSN: 'flock'
     logging: *default-logging
     deploy:
       resources:

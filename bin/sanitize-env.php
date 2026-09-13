@@ -59,6 +59,7 @@ $safeValueKeys = [
     'CADDY_MERCURE_URL',
     'CADDY_MERCURE_PUBLIC_URL',
     'MAILER_DSN',
+    'LOCK_DSN',
 
     // KYSURE Company Defaults
     'KYSURE_NAME',

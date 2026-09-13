@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Admin\Twig;
 
 use App\Application\Workspace\DTO\Request\SuspendWorkspaceRequest;
+use App\Application\Workspace\UseCase\ReactivateWorkspaceUseCase;
 use App\Application\Workspace\UseCase\SuspendWorkspaceUseCase;
 use App\Domain\User\Repository\AdminRepositoryInterface;
 use App\Domain\Workspace\Entity\Workspace;
@@ -40,6 +41,7 @@ class WorkspaceSuspendedComponent extends AbstractController
         private readonly WorkspaceRepositoryInterface $workspaceRepository,
         private readonly LoggerInterface $logger,
         private readonly SuspendWorkspaceUseCase $suspendWorkspaceUseCase,
+        private readonly ReactivateWorkspaceUseCase $reactivateWorkspaceUseCase,
         private readonly AdminRepositoryInterface $adminRepository,
     ) {
     }
@@ -49,6 +51,11 @@ class WorkspaceSuspendedComponent extends AbstractController
         Assert::notNull($this->slugId);
 
         return $this->workspaceRepository->getBySlug($this->slugId);
+    }
+
+    public function isWorkspaceActive(): bool
+    {
+        return $this->getWorkspace()->isActive;
     }
 
     protected function instantiateForm(): FormInterface
@@ -88,7 +95,7 @@ class WorkspaceSuspendedComponent extends AbstractController
             ]);
 
             // En cas d'erreur métier, on ne redirige pas, on laisse le composant afficher l'erreur
-            return $this->redirectToRoute('admin_workspace_settings', ['slugId' => $this->slugId]);
+            return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
         } catch (\Throwable $e) {
             // 🛡️ SECOPS STRICT : On masque l'erreur technique au client final !
             $this->addFlash(
@@ -105,6 +112,34 @@ class WorkspaceSuspendedComponent extends AbstractController
         }
 
         // Action de redirection UX (force un rechargement de page complet)
-        return $this->redirectToRoute('admin_workspace_settings', ['slugId' => $this->slugId]);
+        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+    }
+
+    #[LiveAction]
+    public function reactivate(): RedirectResponse
+    {
+        Assert::notNull($this->adminEmail);
+        $admin = $this->adminRepository->findByEmail($this->adminEmail);
+        Assert::notNull($admin);
+
+        try {
+            ($this->reactivateWorkspaceUseCase)($this->getWorkspace(), $admin->getUserIdentifier(), trim($admin->getFullName()));
+
+            $this->addFlash('success', 'Le cabinet a bien été réactivé.');
+        } catch (\Throwable $e) {
+            $this->addFlash(
+                'error',
+                'Une erreur technique est survenue. Veuillez réessayer plus tard.',
+            );
+
+            $this->logger->critical('[Workspace] Crash critique lors de la réactivation du cabinet', [
+                'workspace_slug' => $this->slugId,
+                'user' => $this->getUser()?->getUserIdentifier(),
+                'exception_message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+
+        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
     }
 }

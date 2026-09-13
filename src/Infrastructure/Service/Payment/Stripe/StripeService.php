@@ -129,6 +129,21 @@ readonly class StripeService
     }
 
     /**
+     * Annule une résiliation programmée (sans coupon de fidélité associé).
+     */
+    public function uncancelSubscription(string $stripeSubscriptionId): void
+    {
+        try {
+            Stripe::setApiKey($this->stripeSecretKey);
+            Subscription::update($stripeSubscriptionId, [
+                'cancel_at_period_end' => false,
+            ]);
+        } catch (ApiErrorException $e) {
+            throw new \RuntimeException('Impossible d\'annuler la résiliation sur Stripe : ' . $e->getMessage(), $e->getCode(), $e);
+        }
+    }
+
+    /**
      * Suspend l'abonnement : plus de facture émise tant que la pause dure.
      */
     public function pauseSubscription(string $stripeSubscriptionId): void

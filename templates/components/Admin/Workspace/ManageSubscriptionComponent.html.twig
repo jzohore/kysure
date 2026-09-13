@@ -1,0 +1,88 @@
+<div {{ attributes }}>
+    {% if not this.hasActiveSubscription %}
+        <p class="text-sm text-slate-400">Aucun abonnement Stripe actif pour ce cabinet.</p>
+    {% else %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+            {# --- SIÈGES --- #}
+            <div>
+                <label for="sub-seats" class="text-xs text-slate-500 block mb-1">Sièges facturés</label>
+                <div class="flex items-center gap-2">
+                    <input type="number" id="sub-seats" min="{{ this.seatsFloor }}" data-model="seats" value="{{ seats ?? this.currentSeats }}"
+                           class="w-24 rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+                    <button type="button"
+                            data-action="live#action"
+                            data-live-action-param="updateSeats"
+                            class="text-xs font-medium text-slate-600 hover:text-slate-900">
+                        Mettre à jour
+                    </button>
+                </div>
+                <p class="mt-1 text-[11px] text-slate-400">
+                    {{ this.usedSeats }} siège{{ this.usedSeats > 1 ? 's' : '' }} déjà occupé{{ this.usedSeats > 1 ? 's' : '' }} (membres + invitations en attente) — plancher : {{ this.seatsFloor }}.
+                </p>
+            </div>
+
+            {# --- PAUSE / REPRISE --- #}
+            <div>
+                <span class="text-xs text-slate-500 block mb-1">Facturation</span>
+                {% if this.isPaused %}
+                    <button type="button"
+                            data-action="live#action"
+                            data-live-action-param="resume"
+                            class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-900">
+                        <twig:ux:icon name="tabler:player-play" class="size-3.5" aria-hidden="true" />
+                        Reprendre l'abonnement
+                    </button>
+                {% else %}
+                    <button type="button"
+                            data-action="live#action"
+                            data-live-action-param="pause"
+                            class="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 hover:text-amber-900">
+                        <twig:ux:icon name="tabler:player-pause" class="size-3.5" aria-hidden="true" />
+                        Suspendre la facturation
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        {# --- RÉSILIATION --- #}
+        <div class="mt-6 pt-4 border-t border-slate-100">
+            {% if this.isCancelPending %}
+                <div class="flex items-center justify-between gap-4">
+                    <p class="text-xs text-rose-600 font-medium">Résiliation déjà programmée en fin de période.</p>
+                    <button type="button"
+                            data-action="live#action"
+                            data-live-action-param="undoCancel"
+                            class="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-900">
+                        <twig:ux:icon name="tabler:rotate-2" class="size-3.5" aria-hidden="true" />
+                        Annuler la résiliation
+                    </button>
+                </div>
+            {% else %}
+                <label for="sub-cancel-reason" class="text-xs text-slate-500 block mb-1">Programmer une résiliation (motif obligatoire)</label>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="sub-cancel-reason" data-model="cancelReason" value="{{ cancelReason }}"
+                           placeholder="Ex. demande du client"
+                           class="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+                    <button type="button"
+                            data-action="live#action"
+                            data-live-action-param="cancel"
+                            class="shrink-0 text-xs font-medium text-rose-600 hover:text-rose-800">
+                        Programmer la résiliation
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+
+        {# --- FORCE SYNC --- #}
+        <div class="mt-4">
+            <button type="button"
+                    data-action="live#action"
+                    data-live-action-param="forceSync"
+                    class="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-700">
+                <twig:ux:icon name="tabler:refresh" class="size-3.5" aria-hidden="true" />
+                Resynchroniser avec Stripe
+            </button>
+        </div>
+    {% endif %}
+</div>

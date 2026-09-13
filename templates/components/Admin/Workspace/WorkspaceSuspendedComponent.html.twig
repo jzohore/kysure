@@ -1,38 +1,54 @@
 <div {{ attributes }}>
-    <div data-controller="form-dirty"
-         data-action="input->form-dirty#check change->form-dirty#check">
+    {% if this.isWorkspaceActive %}
+        <div data-controller="form-dirty"
+             data-action="input->form-dirty#check change->form-dirty#check">
 
-        {{ form_start(form, {
-            attr: {
-                novalidate: true,
-                'data-action': 'live#action:prevent',
-                'data-live-action-param': 'save',
-            }
-        }) }}
-        <div class="mb-5">
-            {# Section Données AMF #}
-            {{ form_row(form.suspensionReason) }}
+            {{ form_start(form, {
+                attr: {
+                    novalidate: true,
+                    'data-action': 'live#action:prevent',
+                    'data-live-action-param': 'save',
+                }
+            }) }}
+            <div class="mb-5">
+                {# Section Données AMF #}
+                {{ form_row(form.suspensionReason) }}
+            </div>
+
+            {# Footer de la carte #}
+            <div class="flex items-center justify-end">
+                <twig:Button as="button"
+                             type="submit"
+                             variant="warning"
+                             class="w-full sm:w-auto px-8 transition-all duration-200"
+                             data-form-dirty-target="submitButton">
+
+                    <twig:ux:icon name="tabler:pause" class="size-4" aria-hidden="true" />
+                    <span data-loading="action(save)|hide">Suspendre le cabinet</span>
+
+                    {# Texte affiché PENDANT la requête AJAX #}
+                    <span data-loading="action(save)|show" class="hidden items-center gap-2">
+                        <twig:ux:icon name="tabler:loader" class="size-4 animate-spin opacity-70" aria-hidden="true" /> Validation...
+                    </span>
+
+                </twig:Button>
+            </div>
+
+            {{ form_end(form) }}
         </div>
-
-        {# Footer de la carte #}
-        <div class="flex items-center justify-end">
-            <twig:Button as="button"
-                         type="submit"
-                         variant="warning"
-                         class="w-full sm:w-auto px-8 transition-all duration-200"
-                         data-form-dirty-target="submitButton">
-
-                <twig:ux:icon name="tabler:pause" class="size-4" aria-hidden="true" />
-                <span data-loading="action(save)|hide">Suspendre le cabinet</span>
-
-                {# Texte affiché PENDANT la requête AJAX #}
-                <span data-loading="action(save)|show" class="hidden items-center gap-2">
-                    <i class="fas fa-circle-notch fa-spin opacity-70"></i> Validation...
-                </span>
-
-            </twig:Button>
-        </div>
-
-        {{ form_end(form) }}
-    </div>
+    {% else %}
+        <button type="button"
+                data-action="live#action"
+                data-live-action-param="reactivate"
+                class="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600 outline-none text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-wait">
+            <span data-loading="action(reactivate)|hide" class="flex items-center gap-2">
+                <twig:ux:icon name="tabler:play" class="size-4" aria-hidden="true" />
+                Réactiver le cabinet
+            </span>
+            <span data-loading="action(reactivate)|show" class="hidden items-center gap-2">
+                <twig:ux:icon name="tabler:loader" class="size-4 animate-spin opacity-70" aria-hidden="true" />
+                Réactivation...
+            </span>
+        </button>
+    {% endif %}
 </div>

@@ -79,4 +79,9 @@ framework:
             'App\Infrastructure\Compliance\Message\GenerateDerPdfMessage': async_heavy
             # Tes commandes de conformité lourdes
 
+            # --- TÂCHES PLANIFIÉES (déclenchement manuel depuis le back-office) ---
+            # Le déclenchement automatique passe par le transport `scheduler_cron`
+            # (symfony/scheduler), consommé lui aussi par `messenger:consume --all`.
+            'App\Infrastructure\Scheduler\Message\RunCronJobMessage': async_main
+
             # Tout le reste est synchrone par défaut (ou à définir ici)

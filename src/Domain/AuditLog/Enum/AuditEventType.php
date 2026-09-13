@@ -25,6 +25,7 @@ enum AuditEventType: string
     case WORKSPACE_CREATED = 'workspace.created';
     case WORKSPACE_UPDATED = 'workspace.updated';
     case WORKSPACE_SUSPENDED = 'workspace.suspended';
+    case WORKSPACE_REACTIVATED = 'workspace.reactivated';
     case WORKSPACE_INVITATION_SENT = 'workspace.invitation_sent';
     case WORKSPACE_INVITATION_RESENT = 'workspace.invitation_resent';
     case WORKSPACE_INVITATION_ACCEPTED = 'workspace.invitation_accepted';
@@ -103,6 +104,8 @@ enum AuditEventType: string
     case SUBSCRIPTION_PAUSED = 'billing.subscription_paused';
     case SUBSCRIPTION_RESUMED = 'billing.subscription_resumed';
     case SUBSCRIPTION_RETENTION_OFFER_CLAIMED = 'billing.retention_offer_claimed';
+    case SUBSCRIPTION_SEATS_UPDATED = 'billing.subscription_seats_updated';
+    case SUBSCRIPTION_CANCELLATION_REVOKED = 'billing.subscription_cancellation_revoked';
 
     // --- ÉQUIPE KYSURE (BACK-OFFICE) ---
     case ADMIN_ACCOUNT_CREATED = 'team.admin_account_created';
@@ -112,6 +115,12 @@ enum AuditEventType: string
     case ADMIN_ACCOUNT_REACTIVATED = 'team.admin_account_reactivated';
     case ADMIN_ACCOUNT_ARCHIVED = 'team.admin_account_archived';
     case ADMIN_ACCOUNT_DELETED = 'team.admin_account_deleted';
+
+    // --- TÂCHES PLANIFIÉES (CRON) ---
+    case CRON_DEFINITION_ENABLED = 'ops.cron_enabled';
+    case CRON_DEFINITION_DISABLED = 'ops.cron_disabled';
+    case CRON_JOB_TRIGGERED_MANUALLY = 'ops.cron_triggered_manually';
+    case CRON_FREQUENCY_CHANGED = 'ops.cron_frequency_changed';
 
     /**
      * Libellé explicite en français pour l'affichage dans les journaux d'audit.
@@ -139,10 +148,17 @@ enum AuditEventType: string
             self::ADMIN_ACCOUNT_ARCHIVED => 'Archivage d\'un compte de l\'équipe KYSURE',
             self::ADMIN_ACCOUNT_DELETED => 'Suppression définitive d\'un compte de l\'équipe KYSURE',
 
+            // Tâches planifiées
+            self::CRON_DEFINITION_ENABLED => 'Activation d\'une tâche planifiée',
+            self::CRON_DEFINITION_DISABLED => 'Désactivation d\'une tâche planifiée',
+            self::CRON_JOB_TRIGGERED_MANUALLY => 'Déclenchement manuel d\'une tâche planifiée',
+            self::CRON_FREQUENCY_CHANGED => 'Changement de fréquence d\'une tâche planifiée',
+
             // Workspace
             self::WORKSPACE_CREATED => 'Création du cabinet',
             self::WORKSPACE_UPDATED => 'Modification de la fiche du cabinet',
             self::WORKSPACE_SUSPENDED => 'Suspension du cabinet',
+            self::WORKSPACE_REACTIVATED => 'Réactivation du cabinet',
             self::WORKSPACE_INVITATION_SENT => 'Invitation d\'un collaborateur envoyée',
             self::WORKSPACE_INVITATION_RESENT => 'Invitation de collaborateur renvoyée',
             self::WORKSPACE_INVITATION_ACCEPTED => 'Invitation acceptée — accès accordé',
@@ -217,6 +233,8 @@ enum AuditEventType: string
             self::SUBSCRIPTION_PAUSED => 'Suspension de l\'abonnement',
             self::SUBSCRIPTION_RESUMED => 'Reprise de l\'abonnement',
             self::SUBSCRIPTION_RETENTION_OFFER_CLAIMED => 'Offre de fidélité appliquée',
+            self::SUBSCRIPTION_SEATS_UPDATED => 'Ajustement du nombre de sièges facturés',
+            self::SUBSCRIPTION_CANCELLATION_REVOKED => 'Annulation de la résiliation programmée',
         };
     }
 
@@ -239,6 +257,7 @@ enum AuditEventType: string
             self::WORKSPACE_CREATED,
             self::WORKSPACE_UPDATED,
             self::WORKSPACE_SUSPENDED,
+            self::WORKSPACE_REACTIVATED,
             self::WORKSPACE_INVITATION_SENT,
             self::WORKSPACE_INVITATION_RESENT,
             self::WORKSPACE_INVITATION_ACCEPTED,
@@ -302,7 +321,9 @@ enum AuditEventType: string
             self::SUBSCRIPTION_TRIAL_EXTENDED,
             self::SUBSCRIPTION_PAUSED,
             self::SUBSCRIPTION_RESUMED,
-            self::SUBSCRIPTION_RETENTION_OFFER_CLAIMED => 'Abonnement',
+            self::SUBSCRIPTION_RETENTION_OFFER_CLAIMED,
+            self::SUBSCRIPTION_SEATS_UPDATED,
+            self::SUBSCRIPTION_CANCELLATION_REVOKED => 'Abonnement',
 
             self::ADMIN_ACCOUNT_CREATED,
             self::ADMIN_ACCOUNT_PROFILE_UPDATED,
@@ -311,6 +332,11 @@ enum AuditEventType: string
             self::ADMIN_ACCOUNT_REACTIVATED,
             self::ADMIN_ACCOUNT_ARCHIVED,
             self::ADMIN_ACCOUNT_DELETED => 'Équipe KYSURE',
+
+            self::CRON_DEFINITION_ENABLED,
+            self::CRON_DEFINITION_DISABLED,
+            self::CRON_JOB_TRIGGERED_MANUALLY,
+            self::CRON_FREQUENCY_CHANGED => 'Tâches planifiées',
         };
     }
 
@@ -327,6 +353,7 @@ enum AuditEventType: string
             self::ORIAS_CHECK_SUCCESS,
             self::SIRET_CHECK_SUCCESS,
             self::WORKSPACE_INVITATION_ACCEPTED,
+            self::WORKSPACE_REACTIVATED,
             self::SUBSCRIPTION_ACTIVATED => 'bg-emerald-50 text-emerald-700 border-emerald-200',
 
             self::SUSPICIOUS_LOGIN_ATTEMPT,
@@ -388,7 +415,11 @@ enum AuditEventType: string
             self::USER_MAGIC_LINK_REQUESTED,
             self::USER_LOGGED_OUT,
             self::KYC_DOCUMENT_OCR_PROCESSED,
-            self::ONBOARDING_COMPLETED => false,
+            self::ONBOARDING_COMPLETED,
+            self::CRON_DEFINITION_ENABLED,
+            self::CRON_DEFINITION_DISABLED,
+            self::CRON_JOB_TRIGGERED_MANUALLY,
+            self::CRON_FREQUENCY_CHANGED => false,
             // La connexion support DOIT être visible du cabinet : c'est ce qui lui
             // permet de répondre à « qui a ouvert ce dossier, quand, pourquoi ».
             default => true,

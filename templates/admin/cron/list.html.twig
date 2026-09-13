@@ -1,0 +1,13 @@
+{% extends '@admin/base_admin.html.twig' %}
+
+{% block title %}{{ page_title }} | {{ company_name }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Tâches planifiées</h1>
+        <p class="text-sm text-slate-500 mt-1">Purges RGPD et automatisations récurrentes : historique, activation, déclenchement manuel.</p>
+    </div>
+
+    <twig:AdminCronListComponent />
+{% endblock %}

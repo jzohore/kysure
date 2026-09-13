@@ -37,6 +37,9 @@ final readonly class WorkspaceDetailsDto
         public ?\DateTimeImmutable $subscriptionStart,
         public ?\DateTimeImmutable $subscriptionEnd,
         public bool $subscriptionCancelAtPeriodEnd,
+        public int $subscriptionSeatsCount,
+        /** Prix par siège, en euros, lu en direct sur Stripe. */
+        public ?float $subscriptionBasePrice,
 
         // --- DONNÉES DU PROFIL RÉGLEMENTAIRE (KYC du Cabinet) ---
         public ?string $oriasNumber,
@@ -47,6 +50,10 @@ final readonly class WorkspaceDetailsDto
         public bool $isIndependent,
         public bool $isValidOrias,
 
+        // --- QUOTAS ---
+        public int $trialDossiersRemaining,
+        public int $remainingMeetingMinutes,
+
         // --- SUPPORT ---
         public int $openTicketsCount,
         public int $closedTicketsCount,
@@ -56,7 +63,7 @@ final readonly class WorkspaceDetailsDto
     ) {
     }
 
-    public static function fromEntity(Workspace $workspace): self
+    public static function fromEntity(Workspace $workspace, ?float $subscriptionBasePrice = null): self
     {
         $openTickets = $workspace->supportThread->filter(
             static fn (SupportThread $thread): bool => SupportThreadStatus::OPEN === $thread->status
@@ -99,6 +106,9 @@ final readonly class WorkspaceDetailsDto
             subscriptionEnd: $workspace->subscription?->currentPeriodEnd,
             // 🪄 Le '??' protège du null, on met donc une flèche simple '->'
             subscriptionCancelAtPeriodEnd: $workspace->subscription->cancelAtPeriodEnd ?? false,
+            // 🪄 Le '??' protège du null, on met donc une flèche simple '->'
+            subscriptionSeatsCount: $workspace->subscription->seatsCount ?? 0,
+            subscriptionBasePrice: $subscriptionBasePrice,
 
             // --- Mapping du Profil Réglementaire ---
             // Le '?' est OBLIGATOIRE ici car il n'y a pas de '??' à la fin
@@ -111,6 +121,9 @@ final readonly class WorkspaceDetailsDto
             // 🪄 Le '??' protège du null, on met donc une flèche simple '->'
             isIndependent: $workspace->regulatoryProfile->isIndependent ?? true,
             isValidOrias: $workspace->regulatoryProfile->isValidOrias ?? false,
+
+            trialDossiersRemaining: $workspace->trialDossiersRemaining,
+            remainingMeetingMinutes: $workspace->remainingMeetingMinutes(),
 
             openTicketsCount: $openTickets,
             closedTicketsCount: $closedTickets,

@@ -1,0 +1,32 @@
+<div {{ attributes }} class="space-y-4">
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label for="quota-dossiers" class="mb-1 block text-xs font-semibold text-slate-500">Dossiers d'essai</label>
+            <input type="number" id="quota-dossiers" min="0" data-model="dossiers" value="{{ dossiers }}"
+                   class="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+        </div>
+        <div>
+            <label for="quota-minutes" class="mb-1 block text-xs font-semibold text-slate-500">Minutes d'entretien</label>
+            <input type="number" id="quota-minutes" min="0" data-model="minutes" value="{{ minutes }}"
+                   class="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+        </div>
+    </div>
+
+    <div>
+        <label for="quota-reason" class="mb-1 block text-xs font-semibold text-slate-500">Motif (obligatoire)</label>
+        <input type="text" id="quota-reason" data-model="reason" value="{{ reason }}"
+               placeholder="Ex. geste commercial suite à incident support"
+               class="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+    </div>
+
+    <button type="button"
+            data-action="live#action"
+            data-live-action-param="grant"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">
+        <span data-loading="action(grant)|hide">Créditer le cabinet</span>
+        <span data-loading="action(grant)|show" class="hidden items-center gap-2">
+            <twig:ux:icon name="lucide:loader-2" class="size-4 animate-spin" aria-hidden="true" />
+            Envoi…
+        </span>
+    </button>
+</div>

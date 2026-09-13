@@ -292,6 +292,18 @@ class Subscription
         $this->reason = $reason;
     }
 
+    /** Annule une résiliation programmée (le client reste, sans offre de fidélité associée). */
+    public function cancelScheduledCancellation(): void
+    {
+        if (!$this->cancelAtPeriodEnd) {
+            throw new \DomainException('Aucune résiliation n\'est programmée pour cet abonnement.');
+        }
+
+        $this->cancelAtPeriodEnd = false;
+        $this->reason = null;
+        $this->updateAt = now();
+    }
+
     public function markAsTerminate(): void
     {
         $this->cancelAtPeriodEnd = false;
