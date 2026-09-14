@@ -1,0 +1,19 @@
+{% extends 'emails/base.html.twig' %}
+
+{% block title %}Réponse à votre ticket : {{ ticket_title }} ({{ company_name }}){% endblock %}
+
+{% block content %}
+    <h1>Vous avez une nouvelle réponse</h1>
+
+    <p>Bonjour {{ recipient_first_name }},</p>
+
+    <p>Notre équipe support a répondu à votre ticket <strong>« {{ ticket_title }} »</strong>.</p>
+
+    <div class="btn-container">
+        <a href="{{ ticket_url }}" class="btn">Voir la réponse</a>
+    </div>
+{% endblock %}
+
+{% block footer_text %}
+    <p>Notification automatique générée suite à une réponse de l'équipe support {{ company_name }}.</p>
+{% endblock %}

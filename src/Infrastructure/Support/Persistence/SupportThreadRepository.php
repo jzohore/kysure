@@ -124,6 +124,24 @@ readonly class SupportThreadRepository implements SupportThreadRepositoryInterfa
         return new Pagerfanta(new QueryAdapter($qb));
     }
 
+    /**
+     * @return Pagerfanta<SupportThread>
+     */
+    public function getPaginatedSupportForWorkspace(Workspace $workspace, ?SupportThreadStatus $statusFilter = null): Pagerfanta
+    {
+        $qb = $this->repository->createQueryBuilder('st')
+            ->where('st.workspace = :workspace')
+            ->setParameter('workspace', $workspace)
+            ->orderBy('st.updatedAt', 'DESC');
+
+        if ($statusFilter instanceof SupportThreadStatus) {
+            $qb->andWhere('st.status = :status')
+                ->setParameter('status', $statusFilter);
+        }
+
+        return new Pagerfanta(new QueryAdapter($qb));
+    }
+
     public function countAllOpenTickets(): int
     {
         return (int) $this->repository->createQueryBuilder('st')

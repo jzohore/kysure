@@ -40,6 +40,14 @@
                         </twig:Button>
                         <input type="hidden" name="_token" value="{{ csrf_token('support-resolve') }}">
                     </form>
+                {% else %}
+                    <form action="{{ path('app_support_reopen',{slugId: thread.slugId}) }}" method="POST" onsubmit="return confirm('Rouvrir ce ticket ?');">
+                        <twig:Button type="submit" variant="outline" class="px-4 py-2 text-sm font-bold rounded-xl transition-all">
+                            <twig:ux:icon name="tabler:rotate-2" class="mr-2 size-4" />
+                            Rouvrir le ticket
+                        </twig:Button>
+                        <input type="hidden" name="_token" value="{{ csrf_token('support-reopen') }}">
+                    </form>
                 {% endif %}
             </div>
         </div>

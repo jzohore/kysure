@@ -1,0 +1,76 @@
+<div {{ attributes }}>
+    {% set items = this.threads %}
+
+    <div class="flex items-center justify-between gap-4 mb-4">
+        <h2 class="text-lg font-semibold text-slate-900">Vos tickets</h2>
+
+        <div class="relative w-full sm:w-48">
+            <select data-model="statusFilter"
+                    aria-label="Filtrer par statut"
+                    class="block w-full pl-3 pr-8 py-1.5 border border-slate-200 rounded-lg leading-5 bg-white text-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors shadow-sm appearance-none cursor-pointer">
+                <option value="">Tous les statuts</option>
+                {% for status in this.availableStatuses %}
+                    <option value="{{ status.value }}" {% if this.statusFilter == status %}selected{% endif %}>
+                        {{ status.label }}
+                    </option>
+                {% endfor %}
+            </select>
+            <div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-slate-400">
+                <twig:ux:icon name="tabler:chevron-down" class="size-3.5" />
+            </div>
+        </div>
+    </div>
+
+    {% if items is empty %}
+        <div class="border border-dashed border-slate-200 bg-slate-50/50 rounded-xl py-10 text-center">
+            <p class="text-sm font-medium text-slate-600">
+                {% if this.statusFilter %}
+                    Aucun ticket avec ce statut.
+                {% else %}
+                    Vous n'avez pas encore contacté le support.
+                {% endif %}
+            </p>
+        </div>
+    {% else %}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100">
+            {% for thread in items %}
+                <a href="{{ path('app_support_show', {slugId: thread.slugId}) }}"
+                   class="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors group">
+                    <div class="flex items-center gap-3 min-w-0">
+                        {{ ux_icon('lucide:folder-check', { class: 'size-4 text-violet-500 shrink-0' }) }}
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-slate-900 truncate">{{ thread.categoryTitle }} · {{ thread.topicTitle }}</p>
+                            <p class="text-xs text-slate-400">Mis à jour le {{ thread.updatedAt|format_datetime(locale: 'fr') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase {{ thread.status.badgeClasses }}">
+                            {{ thread.status.label }}
+                        </span>
+                        {{ ux_icon('lucide:chevron-right', { class: 'size-4 text-slate-300 group-hover:text-violet-500 transition-colors' }) }}
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+
+        {% if items.hasPreviousPage or items.hasNextPage %}
+            <div class="flex items-center justify-between mt-3">
+                <button type="button"
+                        data-action="live#action"
+                        data-live-action-param="previousPage"
+                        class="text-xs font-medium text-slate-500 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                        {% if not items.hasPreviousPage %}disabled{% endif %}>
+                    ← Précédent
+                </button>
+                <span class="text-xs text-slate-400">Page {{ items.currentPage }} / {{ items.nbPages }}</span>
+                <button type="button"
+                        data-action="live#action"
+                        data-live-action-param="nextPage"
+                        class="text-xs font-medium text-slate-500 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                        {% if not items.hasNextPage %}disabled{% endif %}>
+                    Suivant →
+                </button>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>

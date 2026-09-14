@@ -8,7 +8,9 @@ use App\Domain\Shared\Port\RealTimeNotifierInterface;
 use App\Domain\Support\Entity\SupportMessage;
 use App\Domain\Support\Entity\SupportThread;
 use App\Domain\Support\Enum\SupportSenderType;
+use App\Domain\Support\Event\SupportThreadRepliedByAdminEvent;
 use App\Domain\Support\Repository\SupportThreadRepositoryInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Use Case : Permet d'ajouter un nouveau message à un fil de discussion existant.
@@ -19,6 +21,7 @@ readonly class ReplyToSupportThreadUseCase
     public function __construct(
         private SupportThreadRepositoryInterface $threadRepository,
         private RealTimeNotifierInterface $notifier,
+        private EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
@@ -48,5 +51,11 @@ readonly class ReplyToSupportThreadUseCase
             topic: 'user_stats_' . $thread->user->slugId,
             payload: ['action' => 'stats_updated']
         );
+
+        // Le client n'est pas forcément sur l'app quand l'admin répond : sans
+        // email, il ne le saurait qu'en revenant plus tard voir le badge Mercure.
+        if (SupportSenderType::ADMIN === $senderType) {
+            $this->eventDispatcher->dispatch(new SupportThreadRepliedByAdminEvent($thread));
+        }
     }
 }

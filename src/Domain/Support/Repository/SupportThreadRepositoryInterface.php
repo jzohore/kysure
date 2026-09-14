@@ -45,6 +45,13 @@ interface SupportThreadRepositoryInterface
      */
     public function getPaginatedSupport(?string $search = null, ?SupportThreadStatus $statusFilter = null): Pagerfanta;
 
+    /**
+     * Historique des tickets d'un cabinet (ouverts + résolus), pour la page "Mes tickets" côté client.
+     *
+     * @return Pagerfanta<SupportThread>
+     */
+    public function getPaginatedSupportForWorkspace(Workspace $workspace, ?SupportThreadStatus $statusFilter = null): Pagerfanta;
+
     public function refresh(SupportThread $thread): void;
 
     /**
