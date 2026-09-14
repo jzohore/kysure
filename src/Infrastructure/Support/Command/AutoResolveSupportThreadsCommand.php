@@ -28,14 +28,10 @@ final class AutoResolveSupportThreadsCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('Exécution de la tâche : Clôture automatique des tickets inactifs');
 
-        // On définit la durée métier ici : 2 heures (P T 2 H)
-        // $inactivityPeriod = new \DateInterval('PT2H');
-        new \DateInterval('PT5M');
-
         try {
             $count = $this->autoResolveUseCase->execute(
-                new \DateInterval('PT5M'), // 1 heure 50 minutes d'inactivité
-                new \DateInterval('PT1M')    // 10 minutes de délai après l'avertissement
+                new \DateInterval('PT2H'),  // Avertissement après 2 heures d'inactivité côté client
+                new \DateInterval('PT30M'), // Clôture 30 minutes après l'avertissement si toujours sans réponse
             );
 
             if ($count['resolved'] > 0 || $count['warned'] > 0) {

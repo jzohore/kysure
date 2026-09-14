@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Support\Controller;
 
 use App\Domain\Support\Entity\SupportThread;
+use App\Infrastructure\Support\Voter\SupportThreadVoter;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,7 +19,6 @@ use Twig\Error\SyntaxError;
 
 #[AsController]
 #[Route(path: '/app/billing/support/{slugId}', name: 'app_support_show', methods: ['GET', 'POST'])]
-#[IsGranted('ROLE_SUPER_ADMIN')]
 readonly class SupportShowController
 {
     public function __construct(
@@ -31,6 +31,7 @@ readonly class SupportShowController
      * @throws SyntaxError
      * @throws LoaderError
      */
+    #[IsGranted(SupportThreadVoter::VIEW, subject: 'thread')]
     public function __invoke(
         #[MapEntity(mapping: ['slugId' => 'slugId'])]
         SupportThread $thread,
