@@ -37,3 +37,6 @@ phpstan.neon
 
 # Claude Code — réglages perso (hooks locaux)
 .claude/settings.local.json
+
+# Graphify — graphe de code local, régénérable (graphify update)
+src/graphify-out/

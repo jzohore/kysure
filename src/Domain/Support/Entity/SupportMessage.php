@@ -35,6 +35,19 @@ class SupportMessage
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     public private(set) \DateTimeImmutable $createdAt;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    public private(set) ?string $attachmentStoragePath = null;
+
+    #[Encrypted]
+    #[ORM\Column(length: 255, nullable: true)]
+    public private(set) ?string $attachmentFilename = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    public private(set) ?string $attachmentMimeType = null;
+
+    #[ORM\Column(nullable: true)]
+    public private(set) ?int $attachmentSize = null;
+
     private function __construct(#[ORM\ManyToOne(targetEntity: SupportThread::class, inversedBy: 'messages')]
         #[ORM\JoinColumn(nullable: false)]
         public private(set) SupportThread $thread, #[ORM\Column(type: 'string', enumType: SupportSenderType::class)]
@@ -64,5 +77,18 @@ class SupportMessage
         if (!$this->readAt instanceof \DateTimeImmutable) {
             $this->readAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         }
+    }
+
+    public function attachFile(string $storagePath, string $filename, string $mimeType, int $size): void
+    {
+        $this->attachmentStoragePath = $storagePath;
+        $this->attachmentFilename = $filename;
+        $this->attachmentMimeType = $mimeType;
+        $this->attachmentSize = $size;
+    }
+
+    public function hasAttachment(): bool
+    {
+        return null !== $this->attachmentStoragePath;
     }
 }

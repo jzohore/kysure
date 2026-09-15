@@ -167,7 +167,6 @@ final class SupportChatComponent
         );
 
         // On vide le champ de texte après l'envoi
-
         $this->message = '';
         $responder->emit('message_sent');
     }

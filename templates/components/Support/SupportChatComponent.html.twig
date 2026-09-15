@@ -5,7 +5,8 @@
 
 <div {{ attributes.defaults({
     'data-controller': 'chat-widget mercure-sync',
-    'data-mercure-sync-topic-value': topic
+    'data-mercure-sync-topic-value': topic,
+    'data-action': 'live:render->live#$render'
 }) }} class="fixed bottom-6 right-6 z-50 flex flex-col items-end font-sans pointer-events-none"> {# 🪄 L'ingrédient magique est ici #}
     {# ========================================================= #}
     {# 1. LA FENÊTRE DE CHAT (WIDGET) #}
@@ -99,7 +100,17 @@
                             {% set isClient = msg.senderType.value == 'client' %}
                             <div class="flex flex-col {{ isClient ? 'items-end' : 'items-start' }} w-full">
                                 <div class="max-w-[85%] p-3 rounded-2xl text-sm shadow-sm {{ isClient ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none' }}">
-                                    {{ msg.content|raw|nl2br }}
+                                    {% if msg.content is not empty %}
+                                        {{ msg.content|raw|nl2br }}
+                                    {% endif %}
+                                    {% if msg.hasAttachment %}
+                                        <a href="{{ path('app_support_attachment_download', {slugId: thread.slugId, messageSlugId: msg.slugId}) }}"
+                                           target="_blank" rel="noopener"
+                                           class="mt-1 flex items-center gap-1.5 text-xs underline {{ isClient ? 'text-slate-200' : 'text-slate-500' }}">
+                                            {{ ux_icon('lucide:paperclip', { class: 'size-3' }) }}
+                                            {{ msg.attachmentFilename }}
+                                        </a>
+                                    {% endif %}
                                 </div>
                                 <span class="text-[9px] text-slate-400 mt-1 px-1">
                                     {{ msg.createdAt|date('H:i') }}
@@ -119,17 +130,33 @@
                         Discussion clôturée
                     </div>
                 {% else %}
-                    <form data-action="live#action:prevent" data-live-action-param="sendMessage" class="flex items-center gap-2">
-                        <textarea data-model="norender|message"
-                                  rows="1"
-                                  placeholder="Écrivez votre message..."
-                                  class="flex-1 bg-slate-50 border-0 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-slate-900 resize-none overflow-hidden"
-                                  data-action="keydown.enter->live#action:prevent"
-                                  data-live-action-param="sendMessage"></textarea>
-                        <button type="submit" class="p-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-lg active:scale-95">
-                            {{ ux_icon('lucide:send', { class: 'size-4' }) }}
-                        </button>
-                    </form>
+                    <div data-controller="support-attachment"
+                         data-support-attachment-url-value="{{ path('app_support_attachment_upload') }}">
+                        <p data-support-attachment-target="error" class="hidden text-xs text-rose-600 mb-2"></p>
+                        <form data-action="live#action:prevent" data-live-action-param="sendMessage" class="flex items-center gap-2">
+                            <input type="hidden" data-support-attachment-target="category" value="{{ this.category ? this.category.value : '' }}">
+                            <input type="hidden" data-support-attachment-target="topic" value="{{ this.topic ? this.topic.value : '' }}">
+                            <label data-support-attachment-target="trigger" class="p-2 text-slate-400 hover:text-slate-700 cursor-pointer shrink-0" title="Joindre un fichier (PDF, JPG, PNG — 10 Mo max) — envoi immédiat">
+                                <input type="file" data-support-attachment-target="input"
+                                       data-action="change->support-attachment#upload"
+                                       accept="application/pdf,image/jpeg,image/png" class="hidden">
+                                {{ ux_icon('lucide:paperclip', { class: 'size-4' }) }}
+                            </label>
+                            <textarea data-support-attachment-target="message"
+                                      data-model="norender|message"
+                                      rows="1"
+                                      placeholder="Écrivez votre message..."
+                                      class="flex-1 bg-slate-50 border-0 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-slate-900 resize-none overflow-hidden"
+                                      data-action="keydown.enter->live#action:prevent"
+                                      data-live-action-param="sendMessage"></textarea>
+                            <button type="submit"
+                                    data-loading="addAttribute(disabled)"
+                                    class="relative p-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-lg active:scale-95 disabled:opacity-60">
+                                <span data-loading="hide">{{ ux_icon('lucide:send', { class: 'size-4' }) }}</span>
+                                <span class="hidden" data-loading="show">{{ ux_icon('lucide:loader-2', { class: 'size-4 animate-spin' }) }}</span>
+                            </button>
+                        </form>
+                    </div>
                 {% endif %}
             </div>
         {% endif %}

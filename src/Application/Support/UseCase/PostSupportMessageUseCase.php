@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Support\UseCase;
 
+use App\Application\Support\Service\SupportAttachmentValidator;
+use App\Domain\Port\DocumentStorageInterface;
 use App\Domain\Shared\Port\RealTimeNotifierInterface;
 use App\Domain\Support\Entity\SupportMessage;
 use App\Domain\Support\Entity\SupportThread;
@@ -11,11 +13,13 @@ use App\Domain\Support\Enum\SupportCategory;
 use App\Domain\Support\Enum\SupportSenderType;
 use App\Domain\Support\Enum\SupportTopic;
 use App\Domain\Support\Event\SupportThreadCreatedEvent;
+use App\Domain\Support\Exception\InvalidSupportAttachmentException;
 use App\Domain\Support\Repository\SupportThreadRepositoryInterface;
 use App\Domain\User\Entity\User;
 use App\Domain\Workspace\Entity\Workspace;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly class PostSupportMessageUseCase
 {
@@ -24,6 +28,7 @@ readonly class PostSupportMessageUseCase
         private EntityManagerInterface $entityManager,
         private RealTimeNotifierInterface $notifier,
         private EventDispatcherInterface $eventDispatcher,
+        private DocumentStorageInterface $documentStorage,
     ) {
     }
 
@@ -32,6 +37,7 @@ readonly class PostSupportMessageUseCase
      * @param string|null $urlContext L'URL où se trouvait le client (pour le contexte)
      *
      * @throws \DateMalformedStringException
+     * @throws InvalidSupportAttachmentException
      */
     public function execute(
         Workspace $workspace,
@@ -40,7 +46,12 @@ readonly class PostSupportMessageUseCase
         SupportCategory $category,
         SupportTopic $topic,
         ?string $urlContext = null,
+        ?UploadedFile $attachment = null,
     ): void {
+        if ($attachment instanceof UploadedFile) {
+            SupportAttachmentValidator::assertValid($attachment);
+        }
+
         $managedWorkspace = $this->entityManager->find(Workspace::class, (string) $workspace->id);
         $managedUser = $this->entityManager->find(User::class, (string) $user->id);
 
@@ -60,7 +71,12 @@ readonly class PostSupportMessageUseCase
         }
 
         // 2. Ajout du message du client
-        SupportMessage::write($activeThread, SupportSenderType::CLIENT, $content);
+        $clientMessage = SupportMessage::write($activeThread, SupportSenderType::CLIENT, $content);
+
+        if ($attachment instanceof UploadedFile) {
+            $storagePath = $this->documentStorage->store($attachment, 'support_threads/' . $activeThread->slugId);
+            $clientMessage->attachFile($storagePath, $attachment->getClientOriginalName(), (string) $attachment->getMimeType(), (int) $attachment->getSize());
+        }
 
         // 3. 🪄 AUTO-RÉPONSE (Réassurance immédiate)
         // Si c'est un nouveau ticket, on injecte immédiatement un message système pour rassurer le client.

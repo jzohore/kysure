@@ -57,6 +57,9 @@ enum ErrorCode: string
     // Audit
     case AUDIT_NOT_FOUND = 'AUDIT_NOT_FOUND';
 
+    // Support
+    case INVALID_SUPPORT_ATTACHMENT = 'INVALID_SUPPORT_ATTACHMENT';
+
     /**
      * Retourne un message d'erreur clair, institutionnel et adapté au domaine LCB-FT / CGP.
      */
@@ -112,6 +115,9 @@ enum ErrorCode: string
 
             // Traçabilité & Audits
             self::AUDIT_NOT_FOUND => 'La piste d\'audit ou le rapport de vérification demandé est introuvable.',
+
+            // Support
+            self::INVALID_SUPPORT_ATTACHMENT => 'Ce fichier ne peut pas être joint au ticket (format ou taille non autorisés).',
         };
     }
 }

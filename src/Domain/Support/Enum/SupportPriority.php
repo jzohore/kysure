@@ -24,4 +24,16 @@ enum SupportPriority: string
             self::URGENT => 'bg-rose-100 text-rose-700',
         };
     }
+
+    /**
+     * Délai de première réponse promis au client selon la priorité — sert à calculer
+     * `SupportThread::$dueAt`. NORMAL reprend la promesse marketing existante (2h).
+     */
+    public function getResponseDelay(): \DateInterval
+    {
+        return match ($this) {
+            self::NORMAL => new \DateInterval('PT2H'),
+            self::URGENT => new \DateInterval('PT30M'),
+        };
+    }
 }

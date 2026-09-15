@@ -117,6 +117,12 @@
                                     <span class="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-bold {{ thread.status.badgeClasses }}">
                                         {{ thread.status.label }}
                                     </span>
+                                    {% if thread.isOverdue %}
+                                        <span class="ml-1 inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-bold bg-rose-100 text-rose-700" title="Échéance de première réponse dépassée">
+                                            <twig:ux:icon name="tabler:alert-triangle" class="size-3" aria-hidden="true" />
+                                            En retard
+                                        </span>
+                                    {% endif %}
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <twig:Button as="a" href="{{ path('admin_support_show', {slugId: thread.slugId}) }}"

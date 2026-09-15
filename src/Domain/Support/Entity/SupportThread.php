@@ -53,6 +53,12 @@ class SupportThread
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     public private(set) \DateTimeImmutable $updatedAt;
 
+    /**
+     * Échéance de première réponse (SLA), calculée depuis createdAt selon la priorité.
+     */
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    public private(set) \DateTimeImmutable $dueAt;
+
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     public private(set) bool $closureWarningSent = false;
 
@@ -81,6 +87,7 @@ class SupportThread
         $this->slugId = $this->generate_ulid_prefixed('sup_thr_');
         $this->createdAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $this->updatedAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $this->dueAt = $this->createdAt->add($this->priority->getResponseDelay());
     }
 
     /**
@@ -151,6 +158,16 @@ class SupportThread
     public function changePriority(SupportPriority $priority): void
     {
         $this->priority = $priority;
+        // L'échéance SLA suit la nouvelle priorité, toujours depuis la création du ticket.
+        $this->dueAt = $this->createdAt->add($priority->getResponseDelay());
+    }
+
+    /**
+     * Le ticket a dépassé son échéance de première réponse sans être résolu.
+     */
+    public function isOverdue(): bool
+    {
+        return SupportThreadStatus::OPEN === $this->status && new \DateTimeImmutable('now', new \DateTimeZone('UTC')) > $this->dueAt;
     }
 
     public function markClosureWarningAsSent(): void

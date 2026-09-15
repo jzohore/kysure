@@ -2,7 +2,8 @@
 
 <div {{ attributes.defaults({
     'data-controller': 'mercure-sync',
-    'data-mercure-sync-topic-value': mercure('support_thread_' ~ this.thread.slugId)
+    'data-mercure-sync-topic-value': mercure('support_thread_' ~ this.thread.slugId),
+    'data-action': 'live:render->live#$render'
 }) }} class="bg-white border border-slate-200 rounded-md shadow-sm overflow-hidden flex flex-col h-[600px]">
 
     {# ZONE DE MESSAGES #}
@@ -19,7 +20,16 @@
                     </div>
                     <div class="space-y-1">
                         <div class="p-4 bg-white border border-slate-200 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 leading-relaxed">
-                            {{ msg.content|raw|nl2br }}
+                            {% if msg.content is not empty %}
+                                {{ msg.content|raw|nl2br }}
+                            {% endif %}
+                            {% if msg.hasAttachment %}
+                                <a href="{{ path('admin_support_attachment_download', {slugId: this.thread.slugId, messageSlugId: msg.slugId}) }}"
+                                   target="_blank" rel="noopener"
+                                   class="mt-1 flex items-center gap-1.5 text-xs text-slate-500 underline">
+                                    {{ ux_icon('lucide:paperclip', { class: 'size-3' }) }} {{ msg.attachmentFilename }}
+                                </a>
+                            {% endif %}
                         </div>
                         <span class="text-[10px] text-slate-400 ml-1">
                             {{ this.thread.user.firstName }} &bull; {{ msg.createdAt|date('H:i') }}
@@ -34,7 +44,16 @@
                     </div>
                     <div class="space-y-1">
                         <div class="p-4 bg-violet-600 text-white rounded-2xl rounded-tr-none shadow-sm text-sm leading-relaxed text-left">
-                            {{ msg.content|raw|nl2br }}
+                            {% if msg.content is not empty %}
+                                {{ msg.content|raw|nl2br }}
+                            {% endif %}
+                            {% if msg.hasAttachment %}
+                                <a href="{{ path('admin_support_attachment_download', {slugId: this.thread.slugId, messageSlugId: msg.slugId}) }}"
+                                   target="_blank" rel="noopener"
+                                   class="mt-1 flex items-center gap-1.5 text-xs text-violet-100 underline">
+                                    {{ ux_icon('lucide:paperclip', { class: 'size-3' }) }} {{ msg.attachmentFilename }}
+                                </a>
+                            {% endif %}
                         </div>
                         <div class="flex items-center justify-end gap-1">
                             {% if msg.readAt %}
@@ -53,17 +72,31 @@
     {# ZONE DE RÉPONSE #}
     <div class="p-4 bg-white border-t border-slate-100">
         {% if this.thread.status.value == 'open' %}
-            <form data-action="live#action:prevent" data-live-action-param="sendMessage" class="flex items-center gap-2">
-                        <textarea data-model="norender|message"
-                                  rows="1"
-                                  placeholder="Écrivez votre message..."
-                                  class="flex-1 bg-slate-50 border-0 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-slate-900 resize-none overflow-hidden"
-                                  data-action="keydown.enter->live#action:prevent"
-                                  data-live-action-param="sendMessage"></textarea>
-                <button type="submit" class="p-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-lg active:scale-95">
-                    {{ ux_icon('lucide:send', { class: 'size-4' }) }}
-                </button>
-            </form>
+            <div data-controller="support-attachment"
+                 data-support-attachment-url-value="{{ path('admin_support_attachment_upload', {slugId: this.thread.slugId}) }}">
+                <p data-support-attachment-target="error" class="hidden text-xs text-rose-600 mb-2"></p>
+                <form data-action="live#action:prevent" data-live-action-param="sendMessage" class="flex items-center gap-2">
+                    <label data-support-attachment-target="trigger" class="p-2 text-slate-400 hover:text-slate-700 cursor-pointer shrink-0" title="Joindre un fichier (PDF, JPG, PNG — 10 Mo max) — envoi immédiat">
+                        <input type="file" data-support-attachment-target="input"
+                               data-action="change->support-attachment#upload"
+                               accept="application/pdf,image/jpeg,image/png" class="hidden">
+                        {{ ux_icon('lucide:paperclip', { class: 'size-4' }) }}
+                    </label>
+                            <textarea data-support-attachment-target="message"
+                                      data-model="norender|message"
+                                      rows="1"
+                                      placeholder="Écrivez votre message..."
+                                      class="flex-1 bg-slate-50 border-0 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-slate-900 resize-none overflow-hidden"
+                                      data-action="keydown.enter->live#action:prevent"
+                                      data-live-action-param="sendMessage"></textarea>
+                    <button type="submit"
+                            data-loading="addAttribute(disabled)"
+                            class="relative p-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-lg active:scale-95 disabled:opacity-60">
+                        <span data-loading="hide">{{ ux_icon('lucide:send', { class: 'size-4' }) }}</span>
+                        <span class="hidden" data-loading="show">{{ ux_icon('lucide:loader-2', { class: 'size-4 animate-spin' }) }}</span>
+                    </button>
+                </form>
+            </div>
         {% else %}
             <div class="text-center py-4 text-emerald-600 bg-emerald-50 rounded-2xl text-sm font-medium">
                 Ce ticket a été marqué comme résolu.
