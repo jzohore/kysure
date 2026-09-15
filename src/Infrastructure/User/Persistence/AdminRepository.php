@@ -94,6 +94,19 @@ readonly class AdminRepository implements AdminRepositoryInterface
         return $pager;
     }
 
+    /**
+     * @return Admin[]
+     */
+    public function findAllActive(): array
+    {
+        return $this->repository->createQueryBuilder('a')
+            ->where('a.isActif = true')
+            ->andWhere('a.archivedAt IS NULL')
+            ->orderBy('a.firstName', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function countActiveSuperAdmins(): int
     {
         $sql = <<<'SQL'

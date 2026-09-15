@@ -24,6 +24,7 @@ use Webmozart\Assert\Assert;
 #[AsLiveComponent(
     name: 'WorkspaceEditComponent',
     template: 'components/Admin/Workspace/WorkspaceEditComponent.html.twig',
+    route: 'admin_ux_live_component',
 )]
 class WorkspaceEditComponent extends AbstractController
 {

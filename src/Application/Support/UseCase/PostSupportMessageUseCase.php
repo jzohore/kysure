@@ -10,10 +10,12 @@ use App\Domain\Support\Entity\SupportThread;
 use App\Domain\Support\Enum\SupportCategory;
 use App\Domain\Support\Enum\SupportSenderType;
 use App\Domain\Support\Enum\SupportTopic;
+use App\Domain\Support\Event\SupportThreadCreatedEvent;
 use App\Domain\Support\Repository\SupportThreadRepositoryInterface;
 use App\Domain\User\Entity\User;
 use App\Domain\Workspace\Entity\Workspace;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 readonly class PostSupportMessageUseCase
 {
@@ -21,6 +23,7 @@ readonly class PostSupportMessageUseCase
         private SupportThreadRepositoryInterface $threadRepository,
         private EntityManagerInterface $entityManager,
         private RealTimeNotifierInterface $notifier,
+        private EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
@@ -75,6 +78,10 @@ readonly class PostSupportMessageUseCase
         $activeThread->markAsReadByClient();
         // 4. On sauvegarde et on flush
         $this->threadRepository->save($activeThread);
+
+        if ($isNewTicket) {
+            $this->eventDispatcher->dispatch(new SupportThreadCreatedEvent($activeThread));
+        }
 
         $this->notifier->notify(
             topic: 'support_thread_' . $activeThread->slugId,

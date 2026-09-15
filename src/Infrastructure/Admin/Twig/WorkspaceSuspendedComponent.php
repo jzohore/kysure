@@ -25,6 +25,7 @@ use Webmozart\Assert\Assert;
 #[AsLiveComponent(
     name: 'WorkspaceSuspendedComponent',
     template: 'components/Admin/Workspace/WorkspaceSuspendedComponent.html.twig',
+    route: 'admin_ux_live_component',
 )]
 class WorkspaceSuspendedComponent extends AbstractController
 {

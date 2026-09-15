@@ -14,7 +14,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 #[AsLiveComponent(
     name: 'WorkspacesListComponent',
-    template: 'components/Admin/Workspace/WorkspacesListComponent.html.twig'
+    template: 'components/Admin/Workspace/WorkspacesListComponent.html.twig',
+    route: 'admin_ux_live_component',
 )]
 class WorkspacesListComponent
 {

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Domain\Support\Entity;
 
 use App\Domain\Support\Enum\SupportCategory;
+use App\Domain\Support\Enum\SupportPriority;
 use App\Domain\Support\Enum\SupportSenderType;
 use App\Domain\Support\Enum\SupportThreadStatus;
 use App\Domain\Support\Enum\SupportTopic;
+use App\Domain\User\Entity\Admin;
 use App\Domain\User\Entity\User;
 use App\Domain\Workspace\Entity\Workspace;
 use App\Infrastructure\Trait\GenerateSlugPrefixedTrait;
@@ -53,6 +55,13 @@ class SupportThread
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     public private(set) bool $closureWarningSent = false;
+
+    #[ORM\Column(type: 'string', enumType: SupportPriority::class, options: ['default' => 'normal'])]
+    public private(set) SupportPriority $priority = SupportPriority::NORMAL;
+
+    #[ORM\ManyToOne(targetEntity: Admin::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    public private(set) ?Admin $assignedTo = null;
 
     /**
      * Constructeur privé pour forcer l'utilisation de la factory method.
@@ -132,6 +141,16 @@ class SupportThread
     public function getCategoryTitle(): string
     {
         return SupportCategory::from($this->category)->getTitle();
+    }
+
+    public function assignTo(?Admin $admin): void
+    {
+        $this->assignedTo = $admin;
+    }
+
+    public function changePriority(SupportPriority $priority): void
+    {
+        $this->priority = $priority;
     }
 
     public function markClosureWarningAsSent(): void

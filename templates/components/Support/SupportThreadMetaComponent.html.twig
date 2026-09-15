@@ -1,0 +1,28 @@
+<div {{ attributes }} class="space-y-4">
+    <div>
+        <label for="thread-priority" class="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1.5">Priorité</label>
+        <select id="thread-priority"
+                data-model="selectedPriority"
+                data-action="change->live#action"
+                data-live-action-param="changePriority"
+                class="block w-full py-2 px-3 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer">
+            {% for priority in this.availablePriorities %}
+                <option value="{{ priority.value }}" {% if selectedPriority == priority.value %}selected{% endif %}>{{ priority.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label for="thread-assignee" class="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-1.5">Assigné à</label>
+        <select id="thread-assignee"
+                data-model="selectedAdminId"
+                data-action="change->live#action"
+                data-live-action-param="assign"
+                class="block w-full py-2 px-3 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer">
+            <option value="">Non assigné</option>
+            {% for admin in this.availableAdmins %}
+                <option value="{{ admin.id }}" {% if selectedAdminId == admin.id %}selected{% endif %}>{{ admin.firstName }} {{ admin.lastName }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>

@@ -107,6 +107,12 @@ enum AuditEventType: string
     case SUBSCRIPTION_SEATS_UPDATED = 'billing.subscription_seats_updated';
     case SUBSCRIPTION_CANCELLATION_REVOKED = 'billing.subscription_cancellation_revoked';
 
+    // --- SUPPORT & TICKETS ---
+    case SUPPORT_TICKET_CREATED = 'support.ticket_created';
+    case SUPPORT_TICKET_RESOLVED = 'support.ticket_resolved';
+    case SUPPORT_TICKET_REOPENED = 'support.ticket_reopened';
+    case SUPPORT_TICKET_ASSIGNED = 'support.ticket_assigned';
+
     // --- ÉQUIPE KYSURE (BACK-OFFICE) ---
     case ADMIN_ACCOUNT_CREATED = 'team.admin_account_created';
     case ADMIN_ACCOUNT_PROFILE_UPDATED = 'team.admin_account_profile_updated';
@@ -235,6 +241,12 @@ enum AuditEventType: string
             self::SUBSCRIPTION_RETENTION_OFFER_CLAIMED => 'Offre de fidélité appliquée',
             self::SUBSCRIPTION_SEATS_UPDATED => 'Ajustement du nombre de sièges facturés',
             self::SUBSCRIPTION_CANCELLATION_REVOKED => 'Annulation de la résiliation programmée',
+
+            // Support
+            self::SUPPORT_TICKET_CREATED => 'Ouverture d\'un ticket de support',
+            self::SUPPORT_TICKET_RESOLVED => 'Résolution d\'un ticket de support',
+            self::SUPPORT_TICKET_REOPENED => 'Réouverture d\'un ticket de support',
+            self::SUPPORT_TICKET_ASSIGNED => 'Assignation d\'un ticket de support',
         };
     }
 
@@ -324,6 +336,11 @@ enum AuditEventType: string
             self::SUBSCRIPTION_RETENTION_OFFER_CLAIMED,
             self::SUBSCRIPTION_SEATS_UPDATED,
             self::SUBSCRIPTION_CANCELLATION_REVOKED => 'Abonnement',
+
+            self::SUPPORT_TICKET_CREATED,
+            self::SUPPORT_TICKET_RESOLVED,
+            self::SUPPORT_TICKET_REOPENED,
+            self::SUPPORT_TICKET_ASSIGNED => 'Support & Tickets',
 
             self::ADMIN_ACCOUNT_CREATED,
             self::ADMIN_ACCOUNT_PROFILE_UPDATED,
@@ -419,7 +436,10 @@ enum AuditEventType: string
             self::CRON_DEFINITION_ENABLED,
             self::CRON_DEFINITION_DISABLED,
             self::CRON_JOB_TRIGGERED_MANUALLY,
-            self::CRON_FREQUENCY_CHANGED => false,
+            self::CRON_FREQUENCY_CHANGED,
+            // Assigner un ticket à un opérateur KYSURE est un détail de routage interne,
+            // pas une information utile au cabinet (contrairement à la création/résolution).
+            self::SUPPORT_TICKET_ASSIGNED => false,
             // La connexion support DOIT être visible du cabinet : c'est ce qui lui
             // permet de répondre à « qui a ouvert ce dossier, quand, pourquoi ».
             default => true,

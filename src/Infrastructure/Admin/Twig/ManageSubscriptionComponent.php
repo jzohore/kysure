@@ -40,6 +40,7 @@ use Webmozart\Assert\Assert;
 #[AsLiveComponent(
     name: 'ManageSubscriptionComponent',
     template: 'components/Admin/Workspace/ManageSubscriptionComponent.html.twig',
+    route: 'admin_ux_live_component',
 )]
 #[IsGranted('ROLE_SUPER_ADMIN')]
 class ManageSubscriptionComponent extends AbstractController

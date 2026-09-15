@@ -20,6 +20,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 #[AsLiveComponent(
     name: 'AdminSubscriptionsListComponent',
     template: 'components/Admin/Subscription/AdminSubscriptionsListComponent.html.twig',
+    route: 'admin_ux_live_component',
 )]
 class AdminSubscriptionsListComponent
 {

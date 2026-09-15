@@ -19,6 +19,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 #[AsLiveComponent(
     name: 'AdminComplianceFoldersListComponent',
     template: 'components/Admin/Compliance/AdminComplianceFoldersListComponent.html.twig',
+    route: 'admin_ux_live_component',
 )]
 class AdminComplianceFoldersListComponent
 {

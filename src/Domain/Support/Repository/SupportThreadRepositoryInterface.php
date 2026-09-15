@@ -41,9 +41,21 @@ interface SupportThreadRepositoryInterface
     public function countAllOpenTickets(): int;
 
     /**
+     * @param string $sortBy  'priority' (défaut, urgent en tête) | 'createdAt' | 'updatedAt'
+     * @param string $sortDir 'ASC' | 'DESC'
+     *
      * @return Pagerfanta<SupportThread>
      */
-    public function getPaginatedSupport(?string $search = null, ?SupportThreadStatus $statusFilter = null): Pagerfanta;
+    public function getPaginatedSupport(
+        ?string $search = null,
+        ?SupportThreadStatus $statusFilter = null,
+        ?string $categoryFilter = null,
+        ?\DateTimeImmutable $fromDate = null,
+        ?\DateTimeImmutable $toDate = null,
+        ?string $assignedToAdminId = null,
+        string $sortBy = 'priority',
+        string $sortDir = 'DESC',
+    ): Pagerfanta;
 
     /**
      * Historique des tickets d'un cabinet (ouverts + résolus), pour la page "Mes tickets" côté client.

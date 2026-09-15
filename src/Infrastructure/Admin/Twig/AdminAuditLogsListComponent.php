@@ -21,6 +21,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 #[AsLiveComponent(
     name: 'AdminAuditLogsListComponent',
     template: 'components/Admin/AuditLog/AdminAuditLogsListComponent.html.twig',
+    route: 'admin_ux_live_component',
 )]
 class AdminAuditLogsListComponent
 {

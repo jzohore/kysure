@@ -17,7 +17,8 @@ use Symfony\UX\LiveComponent\LiveResponder;
 
 #[AsLiveComponent(
     name: 'AdminSupportChatComponent',
-    template: 'components/Support/AdminSupportChatComponent.html.twig'
+    template: 'components/Support/AdminSupportChatComponent.html.twig',
+    route: 'admin_ux_live_component',
 )]
 class AdminSupportChatComponent
 {

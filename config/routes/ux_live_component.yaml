@@ -13,3 +13,12 @@ live_component_portal:
     resource: '@LiveComponentBundle/config/routes.php'
     prefix: '/portal/_components'
     name_prefix: 'portal_'
+
+# Composants du back-office (ROLE_ADMIN / ROLE_SUPER_ADMIN). Même raison que
+# ci-dessus : servis sous /admin pour passer par le firewall `admin`, sinon la
+# LiveAction tombe sur `main` où l'Admin n'a pas de session.
+# Les composants concernés déclarent `route: 'admin_ux_live_component'`.
+live_component_admin:
+    resource: '@LiveComponentBundle/config/routes.php'
+    prefix: '/admin/_components'
+    name_prefix: 'admin_'

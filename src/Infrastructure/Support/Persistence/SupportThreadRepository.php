@@ -50,7 +50,7 @@ readonly class SupportThreadRepository implements SupportThreadRepositoryInterfa
 
     public function findById(Uuid $id): ?SupportThread
     {
-        return $this->find($id);
+        return $this->repository->find($id);
     }
 
     public function save(SupportThread $thread): void
@@ -101,15 +101,22 @@ readonly class SupportThreadRepository implements SupportThreadRepositoryInterfa
     /**
      * @return Pagerfanta<SupportThread>
      */
-    public function getPaginatedSupport(?string $search = null, ?SupportThreadStatus $statusFilter = null): Pagerfanta
-    {
+    public function getPaginatedSupport(
+        ?string $search = null,
+        ?SupportThreadStatus $statusFilter = null,
+        ?string $categoryFilter = null,
+        ?\DateTimeImmutable $fromDate = null,
+        ?\DateTimeImmutable $toDate = null,
+        ?string $assignedToAdminId = null,
+        string $sortBy = 'priority',
+        string $sortDir = 'DESC',
+    ): Pagerfanta {
         $qb = $this->repository->createQueryBuilder('st')
             // Optimisation : Chargement des relations pour éviter le N+1
-            ->select('st', 'workspace', 'user')
+            ->select('st', 'workspace', 'user', 'assignedTo')
             ->leftJoin('st.workspace', 'workspace')
             ->leftJoin('st.user', 'user')
-            // UX : Les derniers tickets mis à jour (réponses) remontent en premier
-            ->orderBy('st.updatedAt', 'DESC');
+            ->leftJoin('st.assignedTo', 'assignedTo');
 
         if (!in_array($search, [null, '', '0'], true)) {
             $qb->andWhere('st.topic LIKE :search OR st.category LIKE :search OR user.email LIKE :search OR user.firstName LIKE :search')
@@ -119,6 +126,40 @@ readonly class SupportThreadRepository implements SupportThreadRepositoryInterfa
         if ($statusFilter instanceof SupportThreadStatus) {
             $qb->andWhere('st.status = :status')
                 ->setParameter('status', $statusFilter); // Doctrine transforme automatiquement l'Enum en string grâce à enumType
+        }
+
+        if (!in_array($categoryFilter, [null, '', '0'], true)) {
+            $qb->andWhere('st.category = :category')
+                ->setParameter('category', $categoryFilter);
+        }
+
+        if ($fromDate instanceof \DateTimeImmutable) {
+            $qb->andWhere('st.createdAt >= :fromDate')
+                ->setParameter('fromDate', $fromDate);
+        }
+
+        if ($toDate instanceof \DateTimeImmutable) {
+            $qb->andWhere('st.createdAt <= :toDate')
+                ->setParameter('toDate', $toDate);
+        }
+
+        if (!in_array($assignedToAdminId, [null, '', '0'], true)) {
+            $qb->andWhere('assignedTo.id = :assignedToId')
+                ->setParameter('assignedToId', $assignedToAdminId);
+        }
+
+        // Liste blanche stricte : $sortBy vient d'un LiveProp exposé côté client, jamais interpolé tel quel dans le DQL.
+        $sortField = match ($sortBy) {
+            'createdAt' => 'st.createdAt',
+            'priority' => 'st.priority',
+            default => 'st.updatedAt',
+        };
+        $direction = 'ASC' === strtoupper($sortDir) ? 'ASC' : 'DESC';
+        $qb->orderBy($sortField, $direction);
+
+        if ('st.priority' === $sortField) {
+            // Les tickets urgents remontent en tête ; l'activité récente départage le reste.
+            $qb->addOrderBy('st.updatedAt', 'DESC');
         }
 
         return new Pagerfanta(new QueryAdapter($qb));

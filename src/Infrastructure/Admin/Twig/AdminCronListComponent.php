@@ -31,6 +31,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 #[AsLiveComponent(
     name: 'AdminCronListComponent',
     template: 'components/Admin/Cron/AdminCronListComponent.html.twig',
+    route: 'admin_ux_live_component',
 )]
 final class AdminCronListComponent
 {

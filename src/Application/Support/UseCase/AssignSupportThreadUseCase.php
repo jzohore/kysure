@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Application\Support\UseCase;
 
 use App\Domain\Support\Entity\SupportThread;
-use App\Domain\Support\Event\SupportThreadResolvedEvent;
+use App\Domain\Support\Event\SupportThreadAssignedEvent;
 use App\Domain\Support\Repository\SupportThreadRepositoryInterface;
+use App\Domain\User\Entity\Admin;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
-final readonly class MarkAResolveUseCase
+final readonly class AssignSupportThreadUseCase
 {
     public function __construct(
         private SupportThreadRepositoryInterface $threadRepository,
@@ -17,11 +18,13 @@ final readonly class MarkAResolveUseCase
     ) {
     }
 
-    public function execute(SupportThread $thread): void
+    /**
+     * @param Admin|null $admin null = désassigne le ticket
+     */
+    public function execute(SupportThread $thread, ?Admin $admin): void
     {
-        // Si c't l'Admin qui lit, on marque les messages du CLIENT comme lus.
-        $thread->resolve();
+        $thread->assignTo($admin);
         $this->threadRepository->save($thread);
-        $this->eventDispatcher->dispatch(new SupportThreadResolvedEvent($thread));
+        $this->eventDispatcher->dispatch(new SupportThreadAssignedEvent($thread, $admin));
     }
 }

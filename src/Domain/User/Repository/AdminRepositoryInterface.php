@@ -37,4 +37,11 @@ interface AdminRepositoryInterface
      * Sert de garde-fou : on ne retire jamais le dernier administrateur.
      */
     public function countActiveSuperAdmins(): int;
+
+    /**
+     * Membres actifs de l'équipe KYSURE (ni suspendus ni archivés), pour les listes d'assignation.
+     *
+     * @return Admin[]
+     */
+    public function findAllActive(): array;
 }

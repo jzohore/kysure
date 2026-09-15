@@ -27,6 +27,7 @@ use Webmozart\Assert\Assert;
 #[AsLiveComponent(
     name: 'GrantWorkspaceQuotaComponent',
     template: 'components/Admin/Workspace/GrantWorkspaceQuotaComponent.html.twig',
+    route: 'admin_ux_live_component',
 )]
 class GrantWorkspaceQuotaComponent extends AbstractController
 {

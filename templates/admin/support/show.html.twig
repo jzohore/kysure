@@ -14,112 +14,145 @@
     <div class="max-w-7xl mx-auto space-y-6">
 
         {# --- HEADER --- #}
-        <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-4">
-                <a href="{{ path('app_support_list') }}" class="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-600 transition-colors">
+                <a href="{{ path(is_granted('ROLE_SUPER_ADMIN') ? 'admin_support_list' : 'app_support_list') }}" class="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
                     {{ ux_icon('lucide:arrow-left', { class: 'size-5' }) }}
                 </a>
                 <div>
-                    <h1 class="text-xl font-black text-slate-900 leading-tight">{{ thread.categoryTitle }} : {{ thread.topicTitle }}</h1>
+                    <h1 class="text-xl font-semibold text-slate-900 tracking-tight">{{ thread.categoryTitle }} : {{ thread.topicTitle }}</h1>
                     <div class="flex items-center gap-2 mt-1">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase {{ thread.status.badgeClasses }}">
-                        {{ thread.status.label }}
-                    </span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase {{ thread.status.badgeClasses }}">
+                            {{ thread.status.label }}
+                        </span>
                         <span class="text-xs text-slate-400">Ouvert le {{ thread.createdAt|format_datetime(locale: 'fr') }}</span>
                     </div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
-
-                {% if thread.status.value == 'open' %}
-                    <form action="{{ path('app_support_mark_as_resolve',{slugId: thread.slugId}) }}" method="POST" onsubmit="return confirm('Confirmer la résolution du ticket ?');">
-                        <twig:Button type="submit"  class="px-4 py-2 text-sm font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition-all">
-                            Marquer comme résolu
-                            <twig:ux:icon name="tabler:arrow-right" class="ml-2 size-4" />
-                        </twig:Button>
-                        <input type="hidden" name="_token" value="{{ csrf_token('support-resolve') }}">
-                    </form>
-                {% else %}
-                    <form action="{{ path('app_support_reopen',{slugId: thread.slugId}) }}" method="POST" onsubmit="return confirm('Rouvrir ce ticket ?');">
-                        <twig:Button type="submit" variant="outline" class="px-4 py-2 text-sm font-bold rounded-xl transition-all">
-                            <twig:ux:icon name="tabler:rotate-2" class="mr-2 size-4" />
-                            Rouvrir le ticket
-                        </twig:Button>
-                        <input type="hidden" name="_token" value="{{ csrf_token('support-reopen') }}">
-                    </form>
-                {% endif %}
-            </div>
+            {% if is_granted('ROLE_SUPER_ADMIN') %}
+                <div class="flex items-center gap-3">
+                    {% if thread.status.value == 'open' %}
+                        <twig:AlertDialog id="resolve-ticket">
+                            <twig:AlertDialog:Trigger>
+                                <twig:Button type="button" class="text-sm" {{ ...trigger_attrs }}>Marquer comme résolu</twig:Button>
+                            </twig:AlertDialog:Trigger>
+                            <twig:AlertDialog:Content>
+                                <form method="post" action="{{ path('admin_support_mark_as_resolve', {slugId: thread.slugId}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('support-resolve') }}">
+                                    <twig:AlertDialog:Header>
+                                        <twig:AlertDialog:Title>Confirmer la résolution du ticket ?</twig:AlertDialog:Title>
+                                        <twig:AlertDialog:Description>
+                                            Le cabinet ne pourra plus répondre tant que le ticket n'est pas rouvert.
+                                        </twig:AlertDialog:Description>
+                                    </twig:AlertDialog:Header>
+                                    <twig:AlertDialog:Footer>
+                                        <twig:AlertDialog:Cancel>Annuler</twig:AlertDialog:Cancel>
+                                        <twig:AlertDialog:Action type="submit">Marquer comme résolu</twig:AlertDialog:Action>
+                                    </twig:AlertDialog:Footer>
+                                </form>
+                            </twig:AlertDialog:Content>
+                        </twig:AlertDialog>
+                    {% else %}
+                        <twig:AlertDialog id="reopen-ticket">
+                            <twig:AlertDialog:Trigger>
+                                <twig:Button type="button" variant="outline" class="text-sm" {{ ...trigger_attrs }}>
+                                    <twig:ux:icon name="tabler:rotate-2" class="mr-1.5 size-4" />
+                                    Rouvrir le ticket
+                                </twig:Button>
+                            </twig:AlertDialog:Trigger>
+                            <twig:AlertDialog:Content>
+                                <form method="post" action="{{ path('admin_support_reopen', {slugId: thread.slugId}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('support-reopen') }}">
+                                    <twig:AlertDialog:Header>
+                                        <twig:AlertDialog:Title>Rouvrir ce ticket ?</twig:AlertDialog:Title>
+                                        <twig:AlertDialog:Description>
+                                            Le cabinet pourra de nouveau échanger avec le support sur ce ticket.
+                                        </twig:AlertDialog:Description>
+                                    </twig:AlertDialog:Header>
+                                    <twig:AlertDialog:Footer>
+                                        <twig:AlertDialog:Cancel>Annuler</twig:AlertDialog:Cancel>
+                                        <twig:AlertDialog:Action type="submit">Rouvrir</twig:AlertDialog:Action>
+                                    </twig:AlertDialog:Footer>
+                                </form>
+                            </twig:AlertDialog:Content>
+                        </twig:AlertDialog>
+                    {% endif %}
+                </div>
+            {% endif %}
         </div>
 
         {# --- MAIN LAYOUT --- #}
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
             {# COLONNE GAUCHE : LE CHAT #}
-            <div class="lg:col-span-8 space-y-6">
+            <div class="lg:col-span-8">
                 <twig:AdminSupportChatComponent thread="{{ thread }}"></twig:AdminSupportChatComponent>
             </div>
 
-            {# COLONNE DROITE : INFOS CLIENT #}
-            <aside class="lg:col-span-4 space-y-6">
+            {# COLONNE DROITE : PANNEAU UNIQUE, SECTIONS À DIVIDER #}
+            <aside class="lg:col-span-4 bg-white border border-slate-200 rounded-xl divide-y divide-slate-200">
 
-                {# Fiche Client #}
-                <div class="bg-white border border-slate-200 rounded-md p-6 shadow-sm">
-                    <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Informations Client</h2>
+                {% if is_granted('ROLE_SUPER_ADMIN') %}
+                    <section class="p-5">
+                        <h2 class="text-sm font-semibold text-slate-900 pb-3 border-b border-slate-200">Gestion interne</h2>
+                        <div class="pt-4">
+                            <twig:SupportThreadMetaComponent thread="{{ thread }}" />
+                        </div>
+                    </section>
+                {% endif %}
 
-                    <div class="space-y-4">
+                <section class="p-5">
+                    <h2 class="text-sm font-semibold text-slate-900 pb-3 border-b border-slate-200">Cabinet</h2>
+                    <div class="pt-4 space-y-3">
                         <div class="flex items-center gap-3">
-                            <div class="size-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                                {{ ux_icon('lucide:building-2', { class: 'size-5 text-slate-500' }) }}
+                            <div class="size-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                                {{ ux_icon('lucide:building-2', { class: 'size-4 text-slate-500' }) }}
                             </div>
-                            <div>
-                                <p class="text-sm font-bold text-slate-900">{{ thread.workspace.name }}</p>
-                                <p class="text-[11px] text-slate-500">Workspace ID: {{ thread.workspace.slugId|slice(0,8) }}</p>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-slate-900 truncate">{{ thread.workspace.name }}</p>
+                                <p class="text-xs text-slate-400">{{ thread.workspace.slugId }}</p>
                             </div>
                         </div>
-
-                        <div class="pt-4 border-t border-slate-100 space-y-3">
+                        <dl class="pt-2 space-y-2">
                             <div class="flex justify-between items-center">
-                                <span class="text-xs text-slate-500">Contact principal</span>
-                                <span class="text-xs font-bold text-slate-900">{{ thread.user.firstName }} {{ thread.user.lastName|default('') }}</span>
+                                <dt class="text-xs text-slate-500">Contact principal</dt>
+                                <dd class="text-xs font-medium text-slate-900">{{ thread.user.firstName }} {{ thread.user.lastName|default('') }}</dd>
                             </div>
                             <div class="flex justify-between items-center">
-                                <span class="text-xs text-slate-500">Création compte</span>
-                                <span class="text-xs font-medium text-slate-700">{{ thread.user.createdAt|format_datetime(locale: 'fr') }}</span>
+                                <dt class="text-xs text-slate-500">Création compte</dt>
+                                <dd class="text-xs font-medium text-slate-700">{{ thread.user.createdAt|format_datetime(locale: 'fr') }}</dd>
                             </div>
-                        </div>
+                        </dl>
+                        <a href="{{ path('admin_workspace_details', {slugId: thread.workspace.slugId}) }}"
+                           class="mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-50 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-100 transition-colors border border-slate-100">
+                            {{ ux_icon('lucide:external-link', { class: 'size-3' }) }}
+                            Voir l'espace client
+                        </a>
                     </div>
+                </section>
 
-                    <a href="#" class="mt-6 w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-100 transition-all border border-slate-100">
-                        {{ ux_icon('lucide:external-link', { class: 'size-3' }) }}
-                        Voir l'espace client
-                    </a>
-                </div>
-
-                {# Métadonnées du Ticket #}
-                <div class="bg-slate-900 rounded-md p-6 text-white shadow-xl shadow-slate-200">
-                    <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Détails Techniques</h2>
-                    <div class="space-y-4">
-                        <div class="flex flex-col gap-1">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase">Catégorie</span>
-                            <div class="flex items-center gap-2">
-                                {# On peut dynamiser l'icône selon la catégorie #}
-                                {{ ux_icon('lucide:folder-check', { class: 'size-4 text-violet-400' }) }}
-                                <span class="text-sm font-medium capitalize">{{ thread.category }}</span>
-                            </div>
+                <section class="p-5">
+                    <h2 class="text-sm font-semibold text-slate-900 pb-3 border-b border-slate-200">Détails techniques</h2>
+                    <dl class="pt-4 space-y-3">
+                        <div>
+                            <dt class="text-xs text-slate-500">Catégorie</dt>
+                            <dd class="mt-0.5 text-sm font-medium text-slate-900">{{ thread.getCategoryTitle }}</dd>
                         </div>
-                        <div class="flex flex-col gap-1">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase">Contexte / Origine</span>
-                            {% if thread.urlContext %}
-                                <a href="{{ thread.urlContext }}" target="_blank" class="text-sm font-medium text-violet-300 hover:text-violet-100 truncate break-all">
-                                    {{ thread.urlContext }}
-                                </a>
-                            {% else %}
-                                <span class="text-sm font-medium text-slate-400">Non spécifié</span>
-                            {% endif %}
+                        <div>
+                            <dt class="text-xs text-slate-500">Contexte / Origine</dt>
+                            <dd class="mt-0.5">
+                                {% if thread.urlContext %}
+                                    <a href="{{ thread.urlContext }}" target="_blank" rel="noopener" class="text-sm font-medium text-violet-700 hover:text-violet-900 break-all">
+                                        {{ thread.urlContext }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-sm text-slate-400">Non spécifié</span>
+                                {% endif %}
+                            </dd>
                         </div>
-                    </div>
-                </div>
+                    </dl>
+                </section>
             </aside>
 
         </div>
