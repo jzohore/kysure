@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Domain\Suitability\Enum;
 
 use App\Domain\Suitability\Enum\AssessmentAnswerType;
+use App\Domain\Suitability\Enum\AssessmentDimension;
 use App\Domain\Suitability\Enum\QuestionKey;
 use PHPUnit\Framework\TestCase;
 
@@ -50,5 +51,18 @@ final class QuestionKeyTest extends TestCase
         ));
 
         self::assertCount(5, $dimensions);
+    }
+
+    public function testForDimensionPartitionsAllQuestionsWithoutOverlapOrGap(): void
+    {
+        $grouped = [];
+        foreach (AssessmentDimension::cases() as $dimension) {
+            foreach (QuestionKey::forDimension($dimension) as $key) {
+                self::assertSame($dimension, $key->getDimension());
+                $grouped[] = $key;
+            }
+        }
+
+        self::assertEqualsCanonicalizing(QuestionKey::cases(), $grouped);
     }
 }

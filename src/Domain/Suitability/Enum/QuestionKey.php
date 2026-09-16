@@ -213,4 +213,19 @@ enum QuestionKey: string
             default => null,
         };
     }
+
+    /**
+     * Les questions d'une dimension, dans l'ordre de {@see self::cases()}. Sert à grouper
+     * l'assistant client par écran (une dimension = un écran) plutôt qu'une question = un
+     * écran, pour raccourcir le parcours perçu sans retirer une seule question.
+     *
+     * @return list<self>
+     */
+    public static function forDimension(AssessmentDimension $dimension): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            static fn (self $key): bool => $key->getDimension() === $dimension,
+        ));
+    }
 }

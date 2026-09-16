@@ -8,6 +8,7 @@ use App\Application\Suitability\UseCase\RecordAssessmentAnswerUseCase;
 use App\Application\Suitability\UseCase\SubmitAssessmentUseCase;
 use App\Domain\Suitability\Entity\InvestorProfileAssessment;
 use App\Domain\Suitability\Enum\AssessmentAnswerType;
+use App\Domain\Suitability\Enum\AssessmentDimension;
 use App\Domain\Suitability\Enum\QuestionKey;
 use App\Domain\Suitability\Repository\InvestorProfileAssessmentRepositoryInterface;
 use App\Domain\User\Entity\Client;
@@ -22,8 +23,10 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * Assistant client, une question à la fois (§3 du cahier des charges). Pilote sa progression
- * uniquement sur {@see QuestionKey::cases()} : ajouter/retirer une question ne demande aucun
+ * Assistant client, une dimension à la fois (une dizaine d'écrans grand maximum plutôt qu'une
+ * question = un écran — regrouper réduit le nombre de clics perçu comme long sans retirer une
+ * seule question du §3). Pilote sa progression uniquement sur {@see AssessmentDimension::cases()}
+ * et {@see QuestionKey::forDimension()} : ajouter/retirer une question ne demande aucun
  * changement ici, seulement dans l'enum. Chaque réponse est sauvegardée immédiatement
  * (RecordAssessmentAnswerUseCase) pour permettre la reprise de session.
  */
@@ -41,14 +44,21 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
     public string $assessmentSlugId;
 
     #[LiveProp(writable: true)]
-    public int $currentIndex = 0;
+    public int $currentDimensionIndex = 0;
 
+    /**
+     * Valeurs brutes (chaînes) en cours de saisie pour l'écran courant, indexées par
+     * {@see QuestionKey::value}. Toutes les questions sauf {@see QuestionKey::EXPERIENCE_PRODUCTS_HELD}
+     * (choix multiple, porté séparément par {@see self::$productsHeld}).
+     *
+     * @var array<string, string|null>
+     */
     #[LiveProp(writable: true)]
-    public ?string $rawValue = null;
+    public array $answers = [];
 
     /** @var list<string> */
     #[LiveProp(writable: true)]
-    public array $rawMultiValues = [];
+    public array $productsHeld = [];
 
     public function __construct(
         private readonly InvestorProfileAssessmentRepositoryInterface $assessmentRepository,
@@ -62,27 +72,30 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
     public function mount(string $assessmentSlugId): void
     {
         $this->assessmentSlugId = $assessmentSlugId;
-        $this->syncRawValueFromCurrentAnswer();
+        $this->syncAnswersFromStored();
     }
 
-    public function getCurrentQuestion(): QuestionKey
+    public function getCurrentDimension(): AssessmentDimension
     {
-        return $this->orderedQuestions()[$this->currentIndex];
+        return AssessmentDimension::cases()[$this->currentDimensionIndex];
     }
 
-    public function getTotalQuestions(): int
+    /**
+     * @return list<QuestionKey>
+     */
+    public function getCurrentQuestions(): array
     {
-        return \count($this->orderedQuestions());
+        return QuestionKey::forDimension($this->getCurrentDimension());
+    }
+
+    public function getTotalDimensions(): int
+    {
+        return \count(AssessmentDimension::cases());
     }
 
     public function getProgressPercent(): int
     {
-        return (int) round(($this->currentIndex + 1) / $this->getTotalQuestions() * 100);
-    }
-
-    public function getAnswerTypeName(): string
-    {
-        return $this->getCurrentQuestion()->answerType()->name;
+        return (int) round(($this->currentDimensionIndex + 1) / $this->getTotalDimensions() * 100);
     }
 
     #[LiveAction]
@@ -90,9 +103,9 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
     {
         $this->clearLiveFlash();
 
-        if ($this->currentIndex > 0) {
-            --$this->currentIndex;
-            $this->syncRawValueFromCurrentAnswer();
+        if ($this->currentDimensionIndex > 0) {
+            --$this->currentDimensionIndex;
+            $this->syncAnswersFromStored();
         }
     }
 
@@ -102,18 +115,22 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
         $this->clearLiveFlash();
 
         $assessment = $this->loadAssessment();
-        $key = $this->getCurrentQuestion();
-        $value = $this->castRawValue($key);
+        $questions = $this->getCurrentQuestions();
 
-        if ($key->isRequired() && !$this->isAnswered($key, $value)) {
-            $this->addLiveFlash('error', 'Merci de répondre avant de continuer.');
+        foreach ($questions as $key) {
+            $value = $this->castRawValue($key);
+            if ($key->isRequired() && !$this->isAnswered($key, $value)) {
+                $this->addLiveFlash('error', 'Merci de répondre à toutes les questions avant de continuer.');
 
-            return null;
+                return null;
+            }
         }
 
-        ($this->recordAnswerUseCase)($assessment, $key, $value, $this->currentClient());
+        foreach ($questions as $key) {
+            ($this->recordAnswerUseCase)($assessment, $key, $this->castRawValue($key), $this->currentClient());
+        }
 
-        if ($this->currentIndex + 1 >= $this->getTotalQuestions()) {
+        if ($this->currentDimensionIndex + 1 >= $this->getTotalDimensions()) {
             ($this->submitUseCase)($assessment);
 
             $this->logger->info('Questionnaire profil investisseur soumis.', ['assessment_slug_id' => $assessment->slugId]);
@@ -121,25 +138,30 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
             return new RedirectResponse($this->urlGenerator->generate('app_portal_investor_profile_done'));
         }
 
-        ++$this->currentIndex;
-        $this->syncRawValueFromCurrentAnswer();
+        ++$this->currentDimensionIndex;
+        $this->syncAnswersFromStored();
 
         return null;
     }
 
     private function castRawValue(QuestionKey $key): mixed
     {
+        if (QuestionKey::EXPERIENCE_PRODUCTS_HELD === $key) {
+            return $this->productsHeld;
+        }
+
+        $raw = $this->answers[$key->value] ?? null;
+
         return match ($key->answerType()) {
-            AssessmentAnswerType::SINGLE_CHOICE_INT => null !== $this->rawValue && '' !== $this->rawValue ? (int) $this->rawValue : null,
-            AssessmentAnswerType::SINGLE_CHOICE_STRING, AssessmentAnswerType::TEXT => '' !== $this->rawValue ? $this->rawValue : null,
-            AssessmentAnswerType::MULTI_CHOICE_STRING => $this->rawMultiValues,
-            AssessmentAnswerType::INTEGER => null !== $this->rawValue && '' !== $this->rawValue ? (int) $this->rawValue : null,
-            AssessmentAnswerType::DECIMAL => null !== $this->rawValue && '' !== $this->rawValue ? (float) $this->rawValue : null,
-            AssessmentAnswerType::BOOLEAN => match ($this->rawValue) {
+            AssessmentAnswerType::SINGLE_CHOICE_INT, AssessmentAnswerType::INTEGER => null !== $raw && '' !== $raw ? (int) $raw : null,
+            AssessmentAnswerType::SINGLE_CHOICE_STRING, AssessmentAnswerType::TEXT => null !== $raw && '' !== $raw ? $raw : null,
+            AssessmentAnswerType::DECIMAL => null !== $raw && '' !== $raw ? (float) $raw : null,
+            AssessmentAnswerType::BOOLEAN => match ($raw) {
                 '1' => true,
                 '0' => false,
                 default => null,
             },
+            AssessmentAnswerType::MULTI_CHOICE_STRING => $this->productsHeld,
         };
     }
 
@@ -151,27 +173,27 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
         };
     }
 
-    private function syncRawValueFromCurrentAnswer(): void
+    private function syncAnswersFromStored(): void
     {
         $assessment = $this->loadAssessment();
-        $key = $this->getCurrentQuestion();
-        $stored = $assessment->getAnswerValue($key);
 
-        if (AssessmentAnswerType::MULTI_CHOICE_STRING === $key->answerType()) {
-            /** @var list<string> $multi */
-            $multi = \is_array($stored) ? $stored : [];
-            $this->rawMultiValues = $multi;
-            $this->rawValue = null;
+        foreach ($this->getCurrentQuestions() as $key) {
+            $stored = $assessment->getAnswerValue($key);
 
-            return;
+            if (QuestionKey::EXPERIENCE_PRODUCTS_HELD === $key) {
+                /** @var list<string> $held */
+                $held = \is_array($stored) ? $stored : [];
+                $this->productsHeld = $held;
+
+                continue;
+            }
+
+            $this->answers[$key->value] = match (true) {
+                null === $stored => null,
+                \is_bool($stored) => $stored ? '1' : '0',
+                default => (string) $stored,
+            };
         }
-
-        $this->rawMultiValues = [];
-        $this->rawValue = match (true) {
-            null === $stored => null,
-            \is_bool($stored) => $stored ? '1' : '0',
-            default => (string) $stored,
-        };
     }
 
     private function loadAssessment(): InvestorProfileAssessment
@@ -183,14 +205,6 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
         }
 
         return $assessment;
-    }
-
-    /**
-     * @return list<QuestionKey>
-     */
-    private function orderedQuestions(): array
-    {
-        return QuestionKey::cases();
     }
 
     private function currentClient(): Client
