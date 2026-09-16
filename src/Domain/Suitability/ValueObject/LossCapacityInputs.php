@@ -12,6 +12,10 @@ use Webmozart\Assert\Assert;
  * (§3.5). Volontairement distincte de {@see RiskToleranceAnswers} : un client peut se dire
  * prêt à prendre des risques (tolérance) sans en avoir les moyens (capacité) — c'est cette
  * capacité qui doit plafonner le profil final, jamais l'appétence déclarée.
+ *
+ * $netWorth doit exclure la résidence principale : l'inclure surévaluerait artificiellement
+ * la capacité à subir des pertes sur un investissement financier (à rappeler explicitement
+ * dans le libellé du questionnaire au lot 1).
  */
 final readonly class LossCapacityInputs
 {
@@ -36,7 +40,11 @@ final readonly class LossCapacityInputs
         public InvestmentHorizon $horizon,
     ) {
         Assert::greaterThanEq($this->annualIncome, 0.0, 'Les revenus annuels ne peuvent pas être négatifs.');
-        Assert::greaterThanEq($this->annualExpenses, 0.0, 'Les charges annuelles ne peuvent pas être négatives.');
+        // Strictement positif (et non simplement >= 0) : des charges à 0 permettraient de
+        // saturer artificiellement le coussin de liquidité et donc la capacité calculée
+        // (audit conformité du lot 0) — un champ laissé vide par erreur ne doit jamais
+        // maximiser la protection perçue du client.
+        Assert::greaterThan($this->annualExpenses, 0.0, 'Les charges annuelles doivent être strictement positives.');
         Assert::greaterThanEq($this->netWorth, 0.0, 'Le patrimoine net ne peut pas être négatif.');
         Assert::greaterThanEq($this->availableLiquidity, 0.0, 'Les liquidités disponibles ne peuvent pas être négatives.');
         Assert::greaterThan($this->amountToInvest, 0.0, 'Le montant à investir doit être strictement positif.');

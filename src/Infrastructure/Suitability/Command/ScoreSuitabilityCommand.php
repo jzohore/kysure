@@ -85,11 +85,18 @@ final readonly class ScoreSuitabilityCommand
             ],
         );
 
+        $cappingSuffix = match (true) {
+            $result->cappedByCapacity && $result->cappedByTolerance => ' (plafonné par la capacité ET la tolérance)',
+            $result->cappedByCapacity => ' (plafonné par la capacité)',
+            $result->cappedByTolerance => ' (plafonné par la tolérance)',
+            default => '',
+        };
+
         $io->section(sprintf(
             'Profil retenu : %d — %s%s',
             $result->finalProfile->value,
             $result->finalProfile->getLabel(),
-            $result->cappedByCapacity ? ' (plafonné par la capacité)' : '',
+            $cappingSuffix,
         ));
 
         $io->listing($result->explanationFactors);

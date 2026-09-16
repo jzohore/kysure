@@ -90,6 +90,71 @@ final class ScoringEngineV1Test extends TestCase
         self::assertStringContainsString('plafonné', implode(' ', $result->explanationFactors));
     }
 
+    public function testHighKnowledgeCannotCompensateAToleranceAtTheFloorBeyondOneNotch(): void
+    {
+        // Cas d'audit (issue #23) : un client à l'expertise théorique maximale sur tous les
+        // produits mais qui répond "je vends tout" aux 3 scénarios de perte (tolérance
+        // plancher) et une capacité confortable. Sans plafonnement par la tolérance, ses
+        // connaissances suffiraient à le faire remonter loin au-dessus de son comportement
+        // réel face au risque — ce que la connaissance théorique ne doit jamais pouvoir faire.
+        $levels = [];
+        foreach (ProductFamily::cases() as $family) {
+            $levels[$family->value] = KnowledgeLevel::EXPERTISE;
+        }
+
+        $input = SuitabilityAssessmentInput::fromAnswers(
+            knowledge: FinancialKnowledgeAnswers::fromLevels($levels),
+            experience: ExperienceAnswers::fromAnswers(
+                productsHeld: ProductFamily::cases(),
+                transactionFrequency: TransactionFrequency::FREQUENTE,
+                approximateAmount: 200000.0,
+                experienceYears: 20,
+                approximateTransactionCount: 500,
+                hasExperiencedLosses: true,
+            ),
+            tolerance: RiskToleranceAnswers::fromReactions(
+                LossReaction::VEND_TOUT,
+                LossReaction::VEND_TOUT,
+                LossReaction::VEND_TOUT,
+            ),
+            capacity: $this->comfortableCapacity(),
+            sustainability: SustainabilityAnswers::fromAnswers(SustainabilityPreference::INTERESSE),
+        );
+
+        $result = $this->engine->score($input);
+
+        self::assertTrue($result->cappedByTolerance);
+        self::assertFalse($result->cappedByCapacity);
+        // Tolérance au plancher (niveau 1) + 1 cran de marge = plafond à 2, quelles que soient
+        // les connaissances et l'expérience déclarées.
+        self::assertSame(InvestorProfileLevel::PRUDENT, $result->finalProfile);
+        self::assertStringContainsString('plafonné par la tolérance', implode(' ', $result->explanationFactors));
+    }
+
+    public function testExposesTheAppliedWeightsAndRawScoreForTheAuditTrail(): void
+    {
+        $input = $this->buildInput(
+            knowledgeLevel: KnowledgeLevel::BONNE,
+            productsHeld: [ProductFamily::OPCVM_ETF],
+            transactionFrequency: TransactionFrequency::REGULIERE,
+            experienceYears: 5,
+            hasExperiencedLosses: false,
+            reaction: LossReaction::NE_FAIT_RIEN,
+            capacity: $this->comfortableCapacity(),
+        );
+
+        $result = $this->engine->score($input);
+
+        // Épingle les pondérations de suitability_engine_v1 : un changement ici doit être
+        // délibéré (nouvelle version du moteur), jamais un effet de bord silencieux.
+        self::assertSame(['knowledge' => 0.2, 'experience' => 0.2, 'tolerance' => 0.6], $result->appliedWeights);
+        self::assertEqualsWithDelta(
+            $result->knowledgeScore * 0.2 + $result->experienceScore * 0.2 + $result->toleranceScore * 0.6,
+            $result->rawScore,
+            0.0001,
+        );
+    }
+
     public function testTheCapacityNeverCapsAProfileThatIsAlreadyLowerOrEqual(): void
     {
         $input = $this->buildInput(

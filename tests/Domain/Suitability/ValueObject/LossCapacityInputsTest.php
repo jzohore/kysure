@@ -27,12 +27,12 @@ final class LossCapacityInputsTest extends TestCase
         self::assertLessThanOrEqual(4.0, $tight->score());
 
         // Situation la plus favorable : forte épargne, gros coussin de liquidité, part investie
-        // négligeable du patrimoine total, horizon long. La part investie ne peut jamais
-        // atteindre 0 (montant à investir strictement positif), donc le score approche 4 sans
-        // jamais l'atteindre exactement.
+        // négligeable du patrimoine total, horizon long. Ni la part investie ni les charges ne
+        // peuvent jamais atteindre 0 (contraintes strictement positives), donc le score
+        // approche 4 sans jamais l'atteindre exactement.
         $comfortable = LossCapacityInputs::fromInputs(
             annualIncome: 100000,
-            annualExpenses: 0,
+            annualExpenses: 1,
             netWorth: 500000,
             availableLiquidity: 100000,
             amountToInvest: 10000,

@@ -16,6 +16,14 @@ use App\Domain\Suitability\ValueObject\SuitabilityScoreResult;
  * La tolérance au risque (comportementale) pèse plus lourd que les connaissances et
  * l'expérience, qui évaluent la capacité du client à *comprendre* un produit plutôt que le
  * niveau de risque qu'il souhaite prendre.
+ *
+ * IMPORTANT (audit conformité du lot 0) : ces poids ne peuvent, seuls, jamais faire dépasser
+ * au profil final la tolérance déclarée de plus d'un cran, ni la capacité à subir des pertes
+ * — voir le double plafonnement dans {@see SuitabilityScoreResult::build()}. Sans ce garde-fou,
+ * une connaissance élevée pourrait compenser une tolérance au risque au plancher, ce qui n'est
+ * pas défendable devant un contrôleur : connaissance/expérience répondent à « le client
+ * peut-il comprendre le produit ? », tolérance/capacité répondent à « peut-il/veut-il en
+ * supporter le risque ? ». Les premières ne doivent jamais racheter les secondes.
  */
 final readonly class ScoringEngineV1 implements SuitabilityScoringEngineInterface
 {
@@ -49,6 +57,13 @@ final readonly class ScoringEngineV1 implements SuitabilityScoringEngineInterfac
         $capacityScore = 1 + $input->capacity->score() * self::RAW_TO_PROFILE_SCALE_FACTOR;
 
         $capacityLevel = InvestorProfileLevel::fromScore($capacityScore);
+        $toleranceLevel = InvestorProfileLevel::fromScore($toleranceScore);
+
+        $appliedWeights = [
+            'knowledge' => self::KNOWLEDGE_WEIGHT,
+            'experience' => self::EXPERIENCE_WEIGHT,
+            'tolerance' => self::TOLERANCE_WEIGHT,
+        ];
 
         $rawScore = $knowledgeScore * self::KNOWLEDGE_WEIGHT
             + $experienceScore * self::EXPERIENCE_WEIGHT
@@ -61,19 +76,26 @@ final readonly class ScoringEngineV1 implements SuitabilityScoringEngineInterfac
             experienceScore: $experienceScore,
             toleranceScore: $toleranceScore,
             capacityLevel: $capacityLevel,
+            toleranceLevel: $toleranceLevel,
             rawProfile: $rawProfile,
+            appliedWeights: $appliedWeights,
+            rawScore: $rawScore,
             explanationFactors: $this->buildExplanationFactors(
                 $input,
                 $knowledgeScore,
                 $experienceScore,
                 $toleranceScore,
                 $capacityLevel,
+                $toleranceLevel,
                 $rawProfile,
+                $appliedWeights,
             ),
         );
     }
 
     /**
+     * @param array{knowledge: float, experience: float, tolerance: float} $appliedWeights
+     *
      * @return list<string>
      */
     private function buildExplanationFactors(
@@ -82,14 +104,22 @@ final readonly class ScoringEngineV1 implements SuitabilityScoringEngineInterfac
         float $experienceScore,
         float $toleranceScore,
         InvestorProfileLevel $capacityLevel,
+        InvestorProfileLevel $toleranceLevel,
         InvestorProfileLevel $rawProfile,
+        array $appliedWeights,
     ): array {
         $factors = [
             sprintf('Connaissances financières : %.1f/7', $knowledgeScore),
             sprintf('Expérience d\'investissement : %.1f/7', $experienceScore),
-            sprintf('Tolérance au risque (réactions aux scénarios de perte) : %.1f/7', $toleranceScore),
-            sprintf('Capacité à subir des pertes : %s (%s)', $capacityLevel->getLabel(), $capacityLevel->value),
+            sprintf('Tolérance au risque (réactions aux scénarios de perte) : %.1f/7 — %s', $toleranceScore, $toleranceLevel->getLabel()),
+            sprintf('Capacité à subir des pertes : %s (%d)', $capacityLevel->getLabel(), $capacityLevel->value),
             sprintf('Préférence de durabilité déclarée : %s', $input->sustainability->preference->getLabel()),
+            sprintf(
+                'Pondérations appliquées : connaissances %d%%, expérience %d%%, tolérance %d%%.',
+                (int) round($appliedWeights['knowledge'] * 100),
+                (int) round($appliedWeights['experience'] * 100),
+                (int) round($appliedWeights['tolerance'] * 100),
+            ),
         ];
 
         if ($capacityLevel->value < $rawProfile->value) {
@@ -97,6 +127,18 @@ final readonly class ScoringEngineV1 implements SuitabilityScoringEngineInterfac
                 'Profil plafonné par la capacité à subir des pertes : %s (%d) retenu au lieu de %s (%d) sur la seule appétence.',
                 $capacityLevel->getLabel(),
                 $capacityLevel->value,
+                $rawProfile->getLabel(),
+                $rawProfile->value,
+            );
+        }
+
+        $toleranceCapValue = min(7, $toleranceLevel->value + 1);
+        if ($toleranceCapValue < $rawProfile->value) {
+            $factors[] = sprintf(
+                'Profil plafonné par la tolérance au risque déclarée (%s, niveau %d + 1 cran maximum) : %d retenu au lieu de %s (%d) sur les seules connaissances/expérience.',
+                $toleranceLevel->getLabel(),
+                $toleranceLevel->value,
+                $toleranceCapValue,
                 $rawProfile->getLabel(),
                 $rawProfile->value,
             );
