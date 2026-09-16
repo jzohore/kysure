@@ -53,4 +53,17 @@ readonly class DoctrineInvestorProfileAssessmentRepository implements InvestorPr
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    public function findLatestSubmittedForClient(Client $client): ?InvestorProfileAssessment
+    {
+        return $this->repository->createQueryBuilder('a')
+            ->where('a.client = :client')
+            ->andWhere('a.status = :status')
+            ->setParameter('client', $client)
+            ->setParameter('status', AssessmentStatus::SUBMITTED)
+            ->orderBy('a.submittedAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

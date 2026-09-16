@@ -17,4 +17,10 @@ interface InvestorProfileAssessmentRepositoryInterface
      * Le brouillon en cours d'un client, s'il en existe un (un seul brouillon actif à la fois).
      */
     public function findActiveDraftForClient(Client $client): ?InvestorProfileAssessment;
+
+    /**
+     * Le dernier questionnaire soumis par ce client (validé ou non), pour l'écran de revue
+     * conseiller. `null` si le client n'a jamais soumis de questionnaire.
+     */
+    public function findLatestSubmittedForClient(Client $client): ?InvestorProfileAssessment;
 }

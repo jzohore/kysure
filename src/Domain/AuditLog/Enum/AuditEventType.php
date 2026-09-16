@@ -100,6 +100,8 @@ enum AuditEventType: string
     // --- PROFIL INVESTISSEUR (QUESTIONNAIRE DE SUITABILITY) ---
     case SUITABILITY_ASSESSMENT_STARTED = 'suitability.assessment_started';
     case SUITABILITY_ASSESSMENT_SUBMITTED = 'suitability.assessment_submitted';
+    case SUITABILITY_PROFILE_VALIDATED = 'suitability.profile_validated';
+    case SUITABILITY_PROFILE_REVOKED = 'suitability.profile_revoked';
 
     // --- FACTURATION & ABONNEMENT STRIPE ---
     case SUBSCRIPTION_ACTIVATED = 'billing.subscription_activated';
@@ -239,6 +241,8 @@ enum AuditEventType: string
             // Profil investisseur
             self::SUITABILITY_ASSESSMENT_STARTED => 'Ouverture du questionnaire profil investisseur',
             self::SUITABILITY_ASSESSMENT_SUBMITTED => 'Soumission du questionnaire profil investisseur',
+            self::SUITABILITY_PROFILE_VALIDATED => 'Validation du profil investisseur',
+            self::SUITABILITY_PROFILE_REVOKED => 'Révocation du profil investisseur',
 
             // Facturation
             self::SUBSCRIPTION_ACTIVATED => 'Activation de l\'abonnement SaaS',
@@ -299,7 +303,9 @@ enum AuditEventType: string
             self::ADVISORY_REPORT_GENERATED => 'Agréments & Screening',
 
             self::SUITABILITY_ASSESSMENT_STARTED,
-            self::SUITABILITY_ASSESSMENT_SUBMITTED => 'Profil investisseur',
+            self::SUITABILITY_ASSESSMENT_SUBMITTED,
+            self::SUITABILITY_PROFILE_VALIDATED,
+            self::SUITABILITY_PROFILE_REVOKED => 'Profil investisseur',
 
             self::KYC_FOLDER_INITIATED,
             self::KYC_PORTAL_ACCESSED,
@@ -378,6 +384,7 @@ enum AuditEventType: string
             self::DER_SIGNED,
             self::DER_ACKNOWLEDGED,
             self::MEETING_REPORT_VALIDATED,
+            self::SUITABILITY_PROFILE_VALIDATED,
             self::ORIAS_CHECK_SUCCESS,
             self::SIRET_CHECK_SUCCESS,
             self::WORKSPACE_INVITATION_ACCEPTED,
@@ -394,6 +401,7 @@ enum AuditEventType: string
             self::DER_ACKNOWLEDGEMENT_REVOKED,
             self::DER_DECLINED,
             self::WORKSPACE_INVITATION_REVOKED,
+            self::SUITABILITY_PROFILE_REVOKED,
             self::SUBSCRIPTION_CANCELED => 'bg-rose-50 text-rose-700 border-rose-200',
 
             self::ADMIN_IMPERSONATION_START,
@@ -423,6 +431,7 @@ enum AuditEventType: string
             self::MEETING_REPORT_REVOKED,
             self::DER_ACKNOWLEDGEMENT_REVOKED,
             self::DER_DECLINED,
+            self::SUITABILITY_PROFILE_REVOKED,
             self::KYC_LEGAL_HOLD_PLACED,
             self::CLIENT_ACCOUNT_DELETED,
             self::ADMIN_IMPERSONATION_START,

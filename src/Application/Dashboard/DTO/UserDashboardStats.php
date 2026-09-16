@@ -39,6 +39,7 @@ final readonly class UserDashboardStats
         public int $inReviewCount,
         public int $needsCorrectionCount,
         public int $approvedCount,
+        public int $investorProfilesToValidateCount,
         // --- Aperçus d'activité ---
         public array $latestFolders,
         public array $latestScreenings,

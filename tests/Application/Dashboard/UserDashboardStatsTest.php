@@ -32,6 +32,7 @@ final class UserDashboardStatsTest extends TestCase
             'inReviewCount' => 0,
             'needsCorrectionCount' => 0,
             'approvedCount' => 0,
+            'investorProfilesToValidateCount' => 0,
             'latestFolders' => [],
             'latestScreenings' => [],
             'isOrgCompleted' => false,

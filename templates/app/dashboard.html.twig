@@ -78,6 +78,7 @@
                         { icon: 'lucide:shield-alert', badge: 'bg-violet-100 text-violet-700', label: 'Criblages LCB-FT en cours', value: dashboard.pendingScreeningsCount, sub: 'à analyser', href: path('app_screening_list') },
                         { icon: 'lucide:alert-triangle', badge: 'bg-red-100 text-red-700', label: 'Corrections requises', value: dashboard.needsCorrectionCount, sub: 'dossiers à reprendre', href: path('app_compliance_list') },
                         { icon: 'lucide:badge-check', badge: 'bg-emerald-100 text-emerald-700', label: 'Dossiers conformes', value: dashboard.approvedCount, sub: 'validés', href: path('app_compliance_list') },
+                        { icon: 'lucide:bar-chart-3', badge: 'bg-indigo-100 text-indigo-700', label: 'Profils investisseurs', value: dashboard.investorProfilesToValidateCount, sub: 'à valider', href: path('app_clients_list') },
                         { icon: 'lucide:users', badge: 'bg-slate-100 text-slate-700', label: 'Clients suivis', value: dashboard.clientsCount, sub: 'relations actives', href: path('app_clients_list') },
                     ] %}
                     {% for it in indicators %}

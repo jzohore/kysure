@@ -10,6 +10,7 @@ use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Firm\Entity\RegulatoryProfile;
 use App\Domain\Firm\Repository\RegulatoryProfileRepositoryInterface;
 use App\Domain\Screening\Repository\ScreeningAuditRepositoryInterface;
+use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\User\Repository\ClientRepositoryInterface;
 use App\Domain\Workspace\Repository\WorkspaceMemberRepositoryInterface;
 use App\Domain\Workspace\Service\CurrentUserProvider;
@@ -23,6 +24,7 @@ readonly class GetUserDashboardStatsUseCase
         private WorkspaceMemberRepositoryInterface $workspaceMemberRepository,
         private RegulatoryProfileRepositoryInterface $regulatoryProfileRepository,
         private ScreeningAuditRepositoryInterface $screeningAuditRepository,
+        private ValidatedInvestorProfileRepositoryInterface $validatedInvestorProfileRepository,
         private CurrentWorkspaceProvider $workspaceProvider,
         private CurrentUserProvider $userProvider,
     ) {
@@ -56,6 +58,7 @@ readonly class GetUserDashboardStatsUseCase
             inReviewCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::IN_REVIEW]),
             needsCorrectionCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::NEEDS_CORRECTION]),
             approvedCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::APPROVED]),
+            investorProfilesToValidateCount: $this->validatedInvestorProfileRepository->countPendingValidationForWorkspace($workspace),
             latestFolders: $this->complianceFolderRepository->findRecentByWorkspace($workspace, 5),
             latestScreenings: $this->screeningAuditRepository->findRecentByWorkspace($workspace, 5),
             isOrgCompleted: $workspace->isOrgCompleted(),

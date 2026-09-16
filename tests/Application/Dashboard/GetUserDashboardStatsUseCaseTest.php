@@ -10,6 +10,7 @@ use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Firm\Entity\RegulatoryProfile;
 use App\Domain\Firm\Repository\RegulatoryProfileRepositoryInterface;
 use App\Domain\Screening\Repository\ScreeningAuditRepositoryInterface;
+use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\User\Entity\User;
 use App\Domain\User\Repository\ClientRepositoryInterface;
 use App\Domain\Workspace\Entity\Workspace;
@@ -58,6 +59,9 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
         $screeningRepo->method('countInProgressForWorkspace')->willReturn(1);
         $screeningRepo->method('findRecentByWorkspace')->willReturn([]);
 
+        $validatedInvestorProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $validatedInvestorProfileRepo->method('countPendingValidationForWorkspace')->willReturn(2);
+
         $workspaceProvider = $this->createStub(CurrentWorkspaceProvider::class);
         $workspaceProvider->method('getWorkspace')->willReturn($workspace);
         $userProvider = $this->createStub(CurrentUserProvider::class);
@@ -69,6 +73,7 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
             $memberRepo,
             $profileRepo,
             $screeningRepo,
+            $validatedInvestorProfileRepo,
             $workspaceProvider,
             $userProvider,
         );
@@ -117,6 +122,7 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
         self::assertSame(3, $stats->inReviewCount);
         self::assertSame(1, $stats->needsCorrectionCount);
         self::assertSame(8, $stats->approvedCount);
+        self::assertSame(2, $stats->investorProfilesToValidateCount);
         self::assertSame([], $stats->latestFolders);
         self::assertSame([], $stats->latestScreenings);
         self::assertTrue($stats->isOrgCompleted);
