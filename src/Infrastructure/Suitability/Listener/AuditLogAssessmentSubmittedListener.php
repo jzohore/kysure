@@ -32,6 +32,7 @@ readonly class AuditLogAssessmentSubmittedListener
                 'assessment_slug_id' => $event->assessmentSlugId,
                 'client_slug_id' => $assessment->client->slugId,
                 'final_profile_level' => $event->finalProfileLevel,
+                'actor_name' => $assessment->client->email,
                 'actor_type' => 'client',
             ],
             workspace: $assessment->workspace,

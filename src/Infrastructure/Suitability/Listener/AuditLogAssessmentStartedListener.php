@@ -31,6 +31,7 @@ readonly class AuditLogAssessmentStartedListener
             payload: [
                 'assessment_slug_id' => $event->assessmentSlugId,
                 'client_slug_id' => $assessment->client->slugId,
+                'actor_name' => $assessment->client->email,
                 'actor_type' => 'client',
             ],
             workspace: $assessment->workspace,
