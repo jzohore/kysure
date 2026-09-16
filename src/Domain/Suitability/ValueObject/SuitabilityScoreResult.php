@@ -77,4 +77,28 @@ final readonly class SuitabilityScoreResult
             explanationFactors: $explanationFactors,
         );
     }
+
+    /**
+     * Représentation sérialisable (persistance JSON, ex: instantané figé sur un assessment).
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'engineVersion' => $this->engineVersion,
+            'knowledgeScore' => $this->knowledgeScore,
+            'experienceScore' => $this->experienceScore,
+            'toleranceScore' => $this->toleranceScore,
+            'capacityLevel' => $this->capacityLevel->value,
+            'toleranceLevel' => $this->toleranceLevel->value,
+            'rawProfile' => $this->rawProfile->value,
+            'finalProfile' => $this->finalProfile->value,
+            'cappedByCapacity' => $this->cappedByCapacity,
+            'cappedByTolerance' => $this->cappedByTolerance,
+            'appliedWeights' => $this->appliedWeights,
+            'rawScore' => $this->rawScore,
+            'explanationFactors' => $this->explanationFactors,
+        ];
+    }
 }

@@ -97,6 +97,10 @@ enum AuditEventType: string
     case SCREENING_PERFORMED = 'screening.performed';
     case ADVISORY_REPORT_GENERATED = 'advisory.generated';
 
+    // --- PROFIL INVESTISSEUR (QUESTIONNAIRE DE SUITABILITY) ---
+    case SUITABILITY_ASSESSMENT_STARTED = 'suitability.assessment_started';
+    case SUITABILITY_ASSESSMENT_SUBMITTED = 'suitability.assessment_submitted';
+
     // --- FACTURATION & ABONNEMENT STRIPE ---
     case SUBSCRIPTION_ACTIVATED = 'billing.subscription_activated';
     case SUBSCRIPTION_CANCELED = 'billing.subscription_canceled';
@@ -232,6 +236,10 @@ enum AuditEventType: string
             self::SCREENING_PERFORMED => 'Vérification Listes de Sanctions / PPE',
             self::ADVISORY_REPORT_GENERATED => 'Génération du rapport d\'adéquation',
 
+            // Profil investisseur
+            self::SUITABILITY_ASSESSMENT_STARTED => 'Ouverture du questionnaire profil investisseur',
+            self::SUITABILITY_ASSESSMENT_SUBMITTED => 'Soumission du questionnaire profil investisseur',
+
             // Facturation
             self::SUBSCRIPTION_ACTIVATED => 'Activation de l\'abonnement SaaS',
             self::SUBSCRIPTION_CANCELED => 'Résiliation de l\'abonnement',
@@ -289,6 +297,9 @@ enum AuditEventType: string
             self::ORIAS_CHECK_FAILED,
             self::SCREENING_PERFORMED,
             self::ADVISORY_REPORT_GENERATED => 'Agréments & Screening',
+
+            self::SUITABILITY_ASSESSMENT_STARTED,
+            self::SUITABILITY_ASSESSMENT_SUBMITTED => 'Profil investisseur',
 
             self::KYC_FOLDER_INITIATED,
             self::KYC_PORTAL_ACCESSED,
@@ -391,7 +402,8 @@ enum AuditEventType: string
 
             self::KYC_DOCUMENT_OCR_PROCESSED,
             self::SCREENING_PERFORMED,
-            self::ADVISORY_REPORT_GENERATED => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+            self::ADVISORY_REPORT_GENERATED,
+            self::SUITABILITY_ASSESSMENT_SUBMITTED => 'bg-indigo-50 text-indigo-700 border-indigo-200',
 
             default => 'bg-slate-100 text-slate-700 border-slate-200',
         };
