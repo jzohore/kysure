@@ -1,0 +1,19 @@
+{% extends '@app/client/layout_client.html.twig' %}
+
+{% block title %}Votre profil investisseur | {{ company_name|default('KYSURE') }}{% endblock %}
+
+{% block client_main %}
+    <div class="max-w-lg mx-auto text-center py-12">
+        <div class="mx-auto size-14 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-6">
+            <twig:ux:icon name="tabler:check" class="size-7 text-emerald-600" aria-hidden="true" />
+        </div>
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Merci, c'est enregistré</h1>
+        <p class="text-sm text-slate-600 mt-3 leading-relaxed">
+            Vos réponses ont bien été transmises à votre conseiller. Il les examinera avant votre prochain échange —
+            aucune autre action n'est requise de votre part pour le moment.
+        </p>
+        <twig:Button as="a" href="{{ path('app_portal_dashboard') }}" variant="outline" class="mt-8">
+            Retour à mon espace
+        </twig:Button>
+    </div>
+{% endblock %}

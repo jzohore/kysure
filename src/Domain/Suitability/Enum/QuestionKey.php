@@ -108,4 +108,109 @@ enum QuestionKey: string
             self::SUSTAINABILITY_CONSTRAINTS => 'Avez-vous des contraintes ou exclusions spécifiques à préciser ?',
         };
     }
+
+    /**
+     * Texte d'aide affiché sous la question, ou `null` si la question se suffit à elle-même.
+     */
+    public function getHelpText(): ?string
+    {
+        return match ($this) {
+            self::EXPERIENCE_PRODUCTS_HELD => 'Plusieurs réponses possibles.',
+            self::CAPACITY_NET_WORTH => 'Hors résidence principale : placements financiers, épargne, biens immobiliers locatifs...',
+            self::SUSTAINABILITY_CONSTRAINTS => 'Facultatif — laissez vide si vous n\'avez pas de contrainte particulière.',
+            default => null,
+        };
+    }
+
+    /**
+     * Une réponse est-elle obligatoire pour continuer ? Seule la précision libre sur les
+     * contraintes de durabilité est facultative — tout le reste est requis par le §3.
+     */
+    public function isRequired(): bool
+    {
+        return self::SUSTAINABILITY_CONSTRAINTS !== $this;
+    }
+
+    public function answerType(): AssessmentAnswerType
+    {
+        return match ($this) {
+            self::KNOWLEDGE_OPCVM_ETF,
+            self::KNOWLEDGE_TITRES_VIFS,
+            self::KNOWLEDGE_ASSURANCE_VIE,
+            self::KNOWLEDGE_IMMOBILIER_SCPI,
+            self::KNOWLEDGE_PRODUITS_COMPLEXES,
+            self::EXPERIENCE_TRANSACTION_FREQUENCY,
+            self::TOLERANCE_REACTION_MINUS_10,
+            self::TOLERANCE_REACTION_MINUS_20,
+            self::TOLERANCE_REACTION_SIGNIFICANT_LOSS => AssessmentAnswerType::SINGLE_CHOICE_INT,
+
+            self::CAPACITY_HORIZON,
+            self::SUSTAINABILITY_PREFERENCE => AssessmentAnswerType::SINGLE_CHOICE_STRING,
+
+            self::EXPERIENCE_PRODUCTS_HELD => AssessmentAnswerType::MULTI_CHOICE_STRING,
+
+            self::EXPERIENCE_YEARS,
+            self::EXPERIENCE_TRANSACTION_COUNT => AssessmentAnswerType::INTEGER,
+
+            self::EXPERIENCE_APPROXIMATE_AMOUNT,
+            self::CAPACITY_ANNUAL_INCOME,
+            self::CAPACITY_ANNUAL_EXPENSES,
+            self::CAPACITY_NET_WORTH,
+            self::CAPACITY_AVAILABLE_LIQUIDITY,
+            self::CAPACITY_AMOUNT_TO_INVEST => AssessmentAnswerType::DECIMAL,
+
+            self::EXPERIENCE_HAS_EXPERIENCED_LOSSES => AssessmentAnswerType::BOOLEAN,
+
+            self::SUSTAINABILITY_CONSTRAINTS => AssessmentAnswerType::TEXT,
+        };
+    }
+
+    /**
+     * Options proposées pour les questions à choix (unique ou multiple), valeur brute
+     * (telle qu'enregistrée) => libellé. `null` pour les questions à saisie libre.
+     *
+     * @return array<int|string, string>|null
+     */
+    public function choices(): ?array
+    {
+        return match ($this) {
+            self::KNOWLEDGE_OPCVM_ETF,
+            self::KNOWLEDGE_TITRES_VIFS,
+            self::KNOWLEDGE_ASSURANCE_VIE,
+            self::KNOWLEDGE_IMMOBILIER_SCPI,
+            self::KNOWLEDGE_PRODUITS_COMPLEXES => array_combine(
+                array_map(static fn (KnowledgeLevel $case): int => $case->value, KnowledgeLevel::cases()),
+                array_map(static fn (KnowledgeLevel $case): string => $case->getLabel(), KnowledgeLevel::cases()),
+            ),
+
+            self::EXPERIENCE_PRODUCTS_HELD => array_combine(
+                array_map(static fn (ProductFamily $case): string => $case->value, ProductFamily::cases()),
+                array_map(static fn (ProductFamily $case): string => $case->getLabel(), ProductFamily::cases()),
+            ),
+
+            self::EXPERIENCE_TRANSACTION_FREQUENCY => array_combine(
+                array_map(static fn (TransactionFrequency $case): int => $case->value, TransactionFrequency::cases()),
+                array_map(static fn (TransactionFrequency $case): string => $case->getLabel(), TransactionFrequency::cases()),
+            ),
+
+            self::TOLERANCE_REACTION_MINUS_10,
+            self::TOLERANCE_REACTION_MINUS_20,
+            self::TOLERANCE_REACTION_SIGNIFICANT_LOSS => array_combine(
+                array_map(static fn (LossReaction $case): int => $case->value, LossReaction::cases()),
+                array_map(static fn (LossReaction $case): string => $case->getLabel(), LossReaction::cases()),
+            ),
+
+            self::CAPACITY_HORIZON => array_combine(
+                array_map(static fn (InvestmentHorizon $case): string => $case->value, InvestmentHorizon::cases()),
+                array_map(static fn (InvestmentHorizon $case): string => $case->getLabel(), InvestmentHorizon::cases()),
+            ),
+
+            self::SUSTAINABILITY_PREFERENCE => array_combine(
+                array_map(static fn (SustainabilityPreference $case): string => $case->value, SustainabilityPreference::cases()),
+                array_map(static fn (SustainabilityPreference $case): string => $case->getLabel(), SustainabilityPreference::cases()),
+            ),
+
+            default => null,
+        };
+    }
 }

@@ -66,6 +66,26 @@
         </div>
     {% endif %}
 
+    {# 2bis. PROFIL INVESTISSEUR #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+        <div class="flex items-start gap-4">
+            <div class="p-2.5 rounded-lg bg-indigo-50 ring-1 ring-inset ring-indigo-100 shrink-0">
+                <twig:ux:icon name="tabler:chart-bar" class="size-5 text-indigo-600" aria-hidden="true" />
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 class="font-medium text-slate-900">Votre profil investisseur</h3>
+                <p class="text-sm text-slate-500 mt-0.5">
+                    Quelques questions pour que votre conseiller comprenne votre situation et vos objectifs.
+                </p>
+            </div>
+            <a href="{{ path('app_portal_investor_profile') }}"
+               class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-md transition-colors">
+                Répondre
+                <twig:ux:icon name="tabler:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
+            </a>
+        </div>
+    </div>
+
     {# 3. MON CONSEILLER #}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">

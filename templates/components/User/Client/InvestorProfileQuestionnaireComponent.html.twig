@@ -1,0 +1,102 @@
+<div {{ attributes }} class="max-w-lg mx-auto">
+    {% include 'components/partials/_live_alerts.html.twig' with {
+        message: this.actionMessage|default(null),
+        type: this.actionMessageType|default('error')
+    } %}
+
+    {# Barre de progression #}
+    <div class="mb-8">
+        <div class="flex items-center justify-between text-xs font-medium text-slate-500 mb-2">
+            <span>{{ this.currentQuestion.dimension.label }}</span>
+            <span class="tabular-nums">{{ this.currentIndex + 1 }} / {{ this.totalQuestions }}</span>
+        </div>
+        <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden" role="progressbar" aria-valuenow="{{ this.progressPercent }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="h-1.5 bg-[#0B261C] rounded-full transition-all duration-300" style="width: {{ this.progressPercent }}%;"></div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8">
+        <h2 class="text-lg sm:text-xl font-semibold text-slate-900 leading-snug">
+            {{ this.currentQuestion.label }}
+        </h2>
+        {% if this.currentQuestion.helpText %}
+            <p class="text-sm text-slate-500 mt-2">{{ this.currentQuestion.helpText }}</p>
+        {% endif %}
+
+        <div class="mt-6">
+            {% if this.answerTypeName in ['SINGLE_CHOICE_INT', 'SINGLE_CHOICE_STRING'] %}
+                <div class="space-y-2.5" role="radiogroup">
+                    {% for value, label in this.currentQuestion.choices %}
+                        <label class="flex items-center gap-3 p-3.5 rounded-lg border border-slate-200 cursor-pointer has-[:checked]:border-[#0B261C] has-[:checked]:bg-[#0B261C]/[0.03] transition-colors">
+                            <input type="radio" name="single_choice" value="{{ value }}" data-model="rawValue"
+                                   class="size-4 text-[#0B261C] border-slate-300 focus:ring-[#0B261C]"
+                                   {{ this.rawValue == value ? 'checked' : '' }} />
+                            <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            {% elseif this.answerTypeName == 'MULTI_CHOICE_STRING' %}
+                <div class="space-y-2.5">
+                    {% for value, label in this.currentQuestion.choices %}
+                        <label class="flex items-center gap-3 p-3.5 rounded-lg border border-slate-200 cursor-pointer has-[:checked]:border-[#0B261C] has-[:checked]:bg-[#0B261C]/[0.03] transition-colors">
+                            <input type="checkbox" value="{{ value }}" data-model="rawMultiValues"
+                                   class="size-4 rounded text-[#0B261C] border-slate-300 focus:ring-[#0B261C]"
+                                   {{ value in this.rawMultiValues ? 'checked' : '' }} />
+                            <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            {% elseif this.answerTypeName == 'BOOLEAN' %}
+                <div class="grid grid-cols-2 gap-3" role="radiogroup">
+                    {% for value, label in {'1': 'Oui', '0': 'Non'} %}
+                        <label class="flex items-center justify-center gap-2 p-3.5 rounded-lg border border-slate-200 cursor-pointer has-[:checked]:border-[#0B261C] has-[:checked]:bg-[#0B261C]/[0.03] transition-colors">
+                            <input type="radio" name="boolean_choice" value="{{ value }}" data-model="rawValue"
+                                   class="size-4 text-[#0B261C] border-slate-300 focus:ring-[#0B261C]"
+                                   {{ this.rawValue == value ? 'checked' : '' }} />
+                            <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            {% elseif this.answerTypeName in ['INTEGER', 'DECIMAL'] %}
+                <div class="relative">
+                    <input type="number" inputmode="decimal" step="{{ this.answerTypeName == 'DECIMAL' ? '0.01' : '1' }}" min="0"
+                           data-model="norender|rawValue" value="{{ this.rawValue }}"
+                           class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-[#0B261C] focus:ring-[#0B261C] text-base py-3 px-4"
+                           placeholder="0" />
+                </div>
+            {% else %}
+                <textarea data-model="norender|rawValue" rows="3"
+                          class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-[#0B261C] focus:ring-[#0B261C] text-base py-3 px-4"
+                          placeholder="Facultatif">{{ this.rawValue }}</textarea>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between gap-3 mt-6">
+        {% if this.currentIndex == 0 %}
+            <twig:Button as="button" type="button" variant="outline" disabled>
+                <twig:ux:icon name="tabler:arrow-left" class="size-4" aria-hidden="true" />
+                Précédent
+            </twig:Button>
+        {% else %}
+            <twig:Button as="button" type="button" variant="outline"
+                         data-action="live#action" data-live-action-param="previous">
+                <twig:ux:icon name="tabler:arrow-left" class="size-4" aria-hidden="true" />
+                Précédent
+            </twig:Button>
+        {% endif %}
+
+        {% set is_last_question = (this.currentIndex + 1 == this.totalQuestions) %}
+        <twig:Button as="button" type="button" variant="dark"
+                     data-action="live#action" data-live-action-param="next"
+                     class="flex-1 justify-center">
+            <span data-loading="action(next)|hide">
+                {{ is_last_question ? 'Terminer' : 'Continuer' }}
+            </span>
+            <span data-loading="action(next)|show" class="hidden items-center gap-2" role="status">
+                <twig:ux:icon name="tabler:loader" class="size-4 animate-spin" aria-hidden="true" />
+                Enregistrement…
+            </span>
+        </twig:Button>
+    </div>
+</div>

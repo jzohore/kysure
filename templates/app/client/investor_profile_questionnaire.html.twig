@@ -1,0 +1,14 @@
+{% extends '@app/client/layout_client.html.twig' %}
+
+{% block title %}Votre profil investisseur | {{ company_name|default('KYSURE') }}{% endblock %}
+
+{% block client_main %}
+    <div class="mb-8 max-w-lg mx-auto">
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Votre profil investisseur</h1>
+        <p class="text-sm text-slate-600 mt-1">
+            Quelques questions pour permettre à votre conseiller de vous proposer des solutions adaptées à votre situation.
+        </p>
+    </div>
+
+    <twig:InvestorProfileQuestionnaireComponent assessmentSlugId="{{ assessment_slug_id }}" />
+{% endblock %}
