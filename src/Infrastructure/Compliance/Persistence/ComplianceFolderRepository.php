@@ -173,6 +173,31 @@ class ComplianceFolderRepository implements ComplianceFolderRepositoryInterface
             ->getSingleScalarResult();
     }
 
+    public function findRecentByWorkspace(Workspace $workspace, int $limit = 5): array
+    {
+        return $this->repository->createQueryBuilder('cf')
+            ->where('cf.workspace = :workspace')
+            ->andWhere('cf.status != :deletedStatus')
+            ->setParameter('workspace', $workspace)
+            ->setParameter('deletedStatus', ComplianceFolderStatus::DELETED)
+            ->orderBy('cf.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function countByStatusesForWorkspace(Workspace $workspace, array $statuses): int
+    {
+        return (int) $this->repository->createQueryBuilder('cf')
+            ->select('COUNT(cf.id)')
+            ->where('cf.workspace = :workspace')
+            ->andWhere('cf.status IN (:statuses)')
+            ->setParameter('workspace', $workspace)
+            ->setParameter('statuses', $statuses)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     public function countForWorkspace(Workspace $workspace): int
     {
         return (int) $this->repository->createQueryBuilder('cf')

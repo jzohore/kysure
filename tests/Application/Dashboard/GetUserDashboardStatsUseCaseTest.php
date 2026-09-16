@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Application\Dashboard;
 
 use App\Application\Dashboard\UseCase\GetUserDashboardStatsUseCase;
-use App\Domain\AuditLog\Repository\AuditLogRepositoryInterface;
+use App\Domain\Compliance\Enum\ComplianceFolderStatus;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Firm\Entity\RegulatoryProfile;
 use App\Domain\Firm\Repository\RegulatoryProfileRepositoryInterface;
@@ -32,6 +32,16 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
         $folderRepo->method('countActiveForWorkspace')->willReturn(4);
         $folderRepo->method('countDraftsForWorkspace')->willReturn(2);
         $folderRepo->method('countForWorkspace')->willReturn(6);
+        $folderRepo->method('countByStatusesForWorkspace')->willReturnCallback(
+            static fn (mixed $workspace, array $statuses): int => match ($statuses) {
+                [ComplianceFolderStatus::PENDING_DOCS] => 5,
+                [ComplianceFolderStatus::IN_REVIEW] => 3,
+                [ComplianceFolderStatus::NEEDS_CORRECTION] => 1,
+                [ComplianceFolderStatus::APPROVED] => 8,
+                default => 0,
+            }
+        );
+        $folderRepo->method('findRecentByWorkspace')->willReturn([]);
 
         $clientsPage = $this->createStub(Pagerfanta::class);
         $clientsPage->method('getNbResults')->willReturn(7);
@@ -43,9 +53,6 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
 
         $profileRepo = $this->createStub(RegulatoryProfileRepositoryInterface::class);
         $profileRepo->method('findOneByWorkspace')->willReturn($profile);
-
-        $auditRepo = $this->createStub(AuditLogRepositoryInterface::class);
-        $auditRepo->method('findRecentByWorkspace')->willReturn([]);
 
         $screeningRepo = $this->createStub(ScreeningAuditRepositoryInterface::class);
         $screeningRepo->method('countInProgressForWorkspace')->willReturn(1);
@@ -61,7 +68,6 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
             $clientRepo,
             $memberRepo,
             $profileRepo,
-            $auditRepo,
             $screeningRepo,
             $workspaceProvider,
             $userProvider,
@@ -107,7 +113,11 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
         self::assertSame(7, $stats->clientsCount);
         self::assertSame(3, $stats->teamMembersCount);
         self::assertSame(1, $stats->pendingScreeningsCount);
-        self::assertSame([], $stats->latestAuditLogs);
+        self::assertSame(5, $stats->pendingDocsCount);
+        self::assertSame(3, $stats->inReviewCount);
+        self::assertSame(1, $stats->needsCorrectionCount);
+        self::assertSame(8, $stats->approvedCount);
+        self::assertSame([], $stats->latestFolders);
         self::assertSame([], $stats->latestScreenings);
         self::assertTrue($stats->isOrgCompleted);
         self::assertTrue($stats->isRegProfileValid);

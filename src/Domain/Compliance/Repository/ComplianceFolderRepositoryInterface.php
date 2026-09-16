@@ -48,6 +48,13 @@ interface ComplianceFolderRepositoryInterface
     public function countActiveForWorkspace(Workspace $workspace): int;
 
     /**
+     * Compte les dossiers d'un espace dans un ou plusieurs statuts donnés (ex: tableau de bord conseiller).
+     *
+     * @param list<ComplianceFolderStatus> $statuses
+     */
+    public function countByStatusesForWorkspace(Workspace $workspace, array $statuses): int;
+
+    /**
      * Tous les dossiers non supprimés de l'espace (sert au « a déjà créé un dossier »).
      */
     public function countForWorkspace(Workspace $workspace): int;
@@ -56,6 +63,13 @@ interface ComplianceFolderRepositoryInterface
      * @return Pagerfanta<ComplianceFolder>
      */
     public function findAllByWorkspace(Workspace $workspace, ?string $search = null, ?ComplianceFolderStatus $status = null): Pagerfanta;
+
+    /**
+     * Derniers dossiers créés dans l'espace (aperçu tableau de bord).
+     *
+     * @return list<ComplianceFolder>
+     */
+    public function findRecentByWorkspace(Workspace $workspace, int $limit = 5): array;
 
     /**
      * Liste paginée tous cabinets, pour le back-office KYSURE.

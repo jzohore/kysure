@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Dashboard\UseCase;
 
 use App\Application\Dashboard\DTO\UserDashboardStats;
-use App\Domain\AuditLog\Repository\AuditLogRepositoryInterface;
+use App\Domain\Compliance\Enum\ComplianceFolderStatus;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Firm\Entity\RegulatoryProfile;
 use App\Domain\Firm\Repository\RegulatoryProfileRepositoryInterface;
@@ -22,7 +22,6 @@ readonly class GetUserDashboardStatsUseCase
         private ClientRepositoryInterface $clientRepository,
         private WorkspaceMemberRepositoryInterface $workspaceMemberRepository,
         private RegulatoryProfileRepositoryInterface $regulatoryProfileRepository,
-        private AuditLogRepositoryInterface $auditLogRepository,
         private ScreeningAuditRepositoryInterface $screeningAuditRepository,
         private CurrentWorkspaceProvider $workspaceProvider,
         private CurrentUserProvider $userProvider,
@@ -53,7 +52,11 @@ readonly class GetUserDashboardStatsUseCase
             clientsCount: $this->clientRepository->findAllByWorkspace($workspace, null, 'recent', true)->getNbResults(),
             teamMembersCount: \count($this->workspaceMemberRepository->findByWorkspace($workspaceId)),
             pendingScreeningsCount: $this->screeningAuditRepository->countInProgressForWorkspace($workspace),
-            latestAuditLogs: $this->auditLogRepository->findRecentByWorkspace($workspace, 6),
+            pendingDocsCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::PENDING_DOCS]),
+            inReviewCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::IN_REVIEW]),
+            needsCorrectionCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::NEEDS_CORRECTION]),
+            approvedCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::APPROVED]),
+            latestFolders: $this->complianceFolderRepository->findRecentByWorkspace($workspace, 5),
             latestScreenings: $this->screeningAuditRepository->findRecentByWorkspace($workspace, 5),
             isOrgCompleted: $workspace->isOrgCompleted(),
             isRegProfileValid: $isRegProfileValid,
