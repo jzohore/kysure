@@ -37,4 +37,14 @@ interface InvestorProfileAssessmentRepositoryInterface
      * @return list<InvestorProfileAssessment>
      */
     public function findStalledDraftsNeedingReminder(\DateTimeInterface $before): array;
+
+    /**
+     * Le dernier questionnaire soumis par ce client, **tous cabinets confondus**. Seule
+     * lecture volontairement non scopée par cabinet dans tout le domaine Suitability : sert
+     * uniquement à préremplir un nouveau questionnaire par convenance pour le client
+     * ({@see InvestorProfileAssessment::prefillFrom()}), jamais
+     * à transférer une validation ou une information qui engagerait un cabinet à la place
+     * d'un autre.
+     */
+    public function findMostRecentSubmittedAcrossWorkspaces(Client $client): ?InvestorProfileAssessment;
 }

@@ -15,6 +15,15 @@
         </div>
     </div>
 
+    {% if this.hasUnconfirmedPrefillInCurrentSection %}
+        <div class="mb-6 rounded-lg border border-indigo-200 border-l-4 border-l-indigo-500 bg-indigo-50/40 p-4 flex items-start gap-3">
+            <twig:ux:icon name="tabler:info-circle" class="size-5 text-indigo-600 shrink-0 mt-0.5" aria-hidden="true" />
+            <p class="text-sm text-indigo-900">
+                Nous avons repris vos dernières réponses connues auprès d'un autre cabinet. Vérifiez-les et ajustez-les si votre situation a changé.
+            </p>
+        </div>
+    {% endif %}
+
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8">
         {% for question in this.currentQuestions %}
             <div {% if not loop.first %}class="pt-8 border-t border-slate-100"{% endif %}>

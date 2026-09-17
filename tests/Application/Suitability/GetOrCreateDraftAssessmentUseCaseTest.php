@@ -9,6 +9,8 @@ use App\Domain\Compliance\Entity\IndividualFolder;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Suitability\Entity\InvestorProfileAssessment;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
+use App\Domain\Suitability\Enum\AnswerSource;
+use App\Domain\Suitability\Enum\QuestionKey;
 use App\Domain\Suitability\Repository\InvestorProfileAssessmentRepositoryInterface;
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\User\Entity\Client;
@@ -133,5 +135,34 @@ final class GetOrCreateDraftAssessmentUseCaseTest extends TestCase
         $this->expectException(\DomainException::class);
 
         ($useCase)($this->client);
+    }
+
+    public function testPrefillsTheNewDraftFromTheMostRecentSubmissionAcrossWorkspaces(): void
+    {
+        $otherWorkspace = $this->createEntityState(Workspace::class, ['slugId' => 'wrk_2', 'name' => 'Autre cabinet']);
+        $priorSubmission = InvestorProfileAssessment::create($otherWorkspace, $this->client);
+        $priorSubmission->recordAnswer(QuestionKey::CAPACITY_ANNUAL_INCOME, 45000, AnswerSource::CLIENT, $this->client->id);
+
+        $folder = $this->createEntityState(IndividualFolder::class, ['workspace' => $this->workspace]);
+
+        $assessmentRepo = $this->createMock(InvestorProfileAssessmentRepositoryInterface::class);
+        $assessmentRepo->method('findActiveDraftForClient')->willReturn(null);
+        $assessmentRepo->method('findLatestSubmittedForClient')->willReturn(null);
+        $assessmentRepo->method('findMostRecentSubmittedAcrossWorkspaces')->willReturn($priorSubmission);
+        $assessmentRepo->expects(self::once())->method('save');
+
+        $validatedProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $validatedProfileRepo->method('findInForceByClient')->willReturn(null);
+
+        $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
+        $folderRepo->method('findActiveForClient')->willReturn($folder);
+
+        $dispatcher = $this->createStub(EventDispatcherInterface::class);
+
+        $useCase = new GetOrCreateDraftAssessmentUseCase($assessmentRepo, $validatedProfileRepo, $folderRepo, $dispatcher);
+        $assessment = ($useCase)($this->client);
+
+        self::assertSame(45000, $assessment->getAnswerValue(QuestionKey::CAPACITY_ANNUAL_INCOME));
+        self::assertTrue($assessment->isAnswerFromPrefill(QuestionKey::CAPACITY_ANNUAL_INCOME));
     }
 }

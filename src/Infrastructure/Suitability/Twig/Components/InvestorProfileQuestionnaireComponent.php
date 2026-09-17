@@ -98,6 +98,19 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
         return (int) round(($this->currentDimensionIndex + 1) / $this->getTotalDimensions() * 100);
     }
 
+    /**
+     * Vrai si au moins une question de la section affichée a été préremplie depuis un autre
+     * cabinet et pas encore vue par le client dans CE questionnaire (bandeau d'information) —
+     * voir {@see InvestorProfileAssessment::prefillFrom()}. Redevient faux dès que la section
+     * est validée une première fois (avancer resauvegarde chaque réponse en source CLIENT).
+     */
+    public function hasUnconfirmedPrefillInCurrentSection(): bool
+    {
+        $assessment = $this->loadAssessment();
+
+        return array_any($this->getCurrentQuestions(), static fn (QuestionKey $key): bool => $assessment->isAnswerFromPrefill($key));
+    }
+
     #[LiveAction]
     public function previous(): void
     {

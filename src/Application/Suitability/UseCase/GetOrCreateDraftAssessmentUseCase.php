@@ -15,7 +15,8 @@ use App\Domain\User\Entity\Client;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Reprend le brouillon en cours du client, ou en démarre un nouveau. Idempotent : rejouer cet
+ * Reprend le brouillon en cours du client, ou en démarre un nouveau — prérempli depuis son
+ * dernier questionnaire soumis à un autre cabinet, le cas échéant. Idempotent : rejouer cet
  * appel (rechargement de page, reprise après fermeture d'onglet) ne crée jamais de doublon.
  */
 readonly class GetOrCreateDraftAssessmentUseCase
@@ -60,6 +61,15 @@ readonly class GetOrCreateDraftAssessmentUseCase
         }
 
         $assessment = InvestorProfileAssessment::create($workspace, $client);
+
+        // Préremplissage de convenance depuis un autre cabinet, le cas échéant : le client
+        // confirme/ajuste plutôt que retaper le questionnaire depuis zéro. Chaque cabinet
+        // garde sa propre validation, indépendante — voir InvestorProfileAssessment::prefillFrom().
+        $priorSubmission = $this->assessmentRepository->findMostRecentSubmittedAcrossWorkspaces($client);
+        if ($priorSubmission instanceof InvestorProfileAssessment) {
+            $assessment->prefillFrom($priorSubmission);
+        }
+
         $this->assessmentRepository->save($assessment);
 
         $this->eventDispatcher->dispatch(new InvestorProfileAssessmentStartedEvent($assessment->slugId));

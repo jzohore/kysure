@@ -110,6 +110,27 @@ class InvestorProfileAssessment
     }
 
     /**
+     * Copie les réponses d'un questionnaire soumis auprès d'un **autre** cabinet, pour éviter
+     * au client de retaper {@see QuestionKey::cases()} depuis zéro (décision produit du
+     * 2026-09-17 : « on ne change pas du tout au tout »). Chaque réponse copiée reste
+     * modifiable comme n'importe quelle réponse — voir {@see AnswerSource::CROSS_WORKSPACE_PREFILL}
+     * pour ce que ça implique côté confirmation. Ne préremplit jamais par-dessus une réponse
+     * déjà présente (n'a de sens qu'immédiatement après {@see self::create()}, sur un
+     * assessment vide).
+     */
+    public function prefillFrom(self $source): void
+    {
+        foreach ($source->answersAsMap() as $rawKey => $value) {
+            $key = QuestionKey::from($rawKey);
+            if ($this->hasAnswer($key)) {
+                continue;
+            }
+
+            $this->recordAnswer($key, $value, AnswerSource::CROSS_WORKSPACE_PREFILL, null);
+        }
+    }
+
+    /**
      * Enregistre ou remplace une réponse. Idempotent (rejouer la même réponse ne crée pas
      * de doublon) ; interdit une fois l'assessment soumis, pour ne pas modifier en place ce
      * que le CGP a pu commencer à examiner.
@@ -132,6 +153,16 @@ class InvestorProfileAssessment
     public function getAnswerValue(QuestionKey $key): mixed
     {
         return $this->answers[$key->value]['value'] ?? null;
+    }
+
+    /**
+     * Vrai si cette réponse a été copiée depuis un autre cabinet et pas encore vue/confirmée
+     * par le client pour CE cabinet (voir {@see self::prefillFrom()}) : sert uniquement à
+     * l'affichage (bandeau d'information), jamais à une décision métier.
+     */
+    public function isAnswerFromPrefill(QuestionKey $key): bool
+    {
+        return AnswerSource::CROSS_WORKSPACE_PREFILL->value === ($this->answers[$key->value]['source'] ?? null);
     }
 
     public function hasAnswer(QuestionKey $key): bool

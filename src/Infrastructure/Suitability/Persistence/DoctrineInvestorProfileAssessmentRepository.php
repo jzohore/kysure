@@ -84,4 +84,19 @@ readonly class DoctrineInvestorProfileAssessmentRepository implements InvestorPr
             ->getQuery()
             ->getResult();
     }
+
+    public function findMostRecentSubmittedAcrossWorkspaces(Client $client): ?InvestorProfileAssessment
+    {
+        // Volontairement pas de andWhere('a.workspace = ...') : voir le commentaire sur
+        // l'interface pour la raison de cette unique exception au scoping par cabinet.
+        return $this->repository->createQueryBuilder('a')
+            ->where('a.client = :client')
+            ->andWhere('a.status = :status')
+            ->setParameter('client', $client)
+            ->setParameter('status', AssessmentStatus::SUBMITTED)
+            ->orderBy('a.submittedAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

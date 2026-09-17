@@ -153,6 +153,52 @@ final class InvestorProfileAssessmentTest extends TestCase
         self::assertTrue($assessment->hasReminderBeenSent());
     }
 
+    public function testPrefillFromCopiesAnswersWithTheCrossWorkspacePrefillSource(): void
+    {
+        $otherWorkspace = $this->createEntityState(Workspace::class, ['slugId' => 'wrk_2', 'name' => 'Autre cabinet']);
+        $source = InvestorProfileAssessment::create($otherWorkspace, $this->client);
+        $source->recordAnswer(QuestionKey::CAPACITY_ANNUAL_INCOME, 45000, AnswerSource::CLIENT, $this->client->id);
+        $source->recordAnswer(QuestionKey::SUSTAINABILITY_PREFERENCE, 'sans_preference', AnswerSource::CLIENT, $this->client->id);
+
+        $assessment = InvestorProfileAssessment::create($this->workspace, $this->client);
+        $assessment->prefillFrom($source);
+
+        self::assertSame(45000, $assessment->getAnswerValue(QuestionKey::CAPACITY_ANNUAL_INCOME));
+        self::assertTrue($assessment->isAnswerFromPrefill(QuestionKey::CAPACITY_ANNUAL_INCOME));
+        self::assertTrue($assessment->isAnswerFromPrefill(QuestionKey::SUSTAINABILITY_PREFERENCE));
+    }
+
+    public function testPrefillFromNeverOverwritesAnExistingAnswer(): void
+    {
+        $otherWorkspace = $this->createEntityState(Workspace::class, ['slugId' => 'wrk_2', 'name' => 'Autre cabinet']);
+        $source = InvestorProfileAssessment::create($otherWorkspace, $this->client);
+        $source->recordAnswer(QuestionKey::CAPACITY_ANNUAL_INCOME, 45000, AnswerSource::CLIENT, $this->client->id);
+
+        $assessment = InvestorProfileAssessment::create($this->workspace, $this->client);
+        $assessment->recordAnswer(QuestionKey::CAPACITY_ANNUAL_INCOME, 99000, AnswerSource::CLIENT, $this->client->id);
+        $assessment->prefillFrom($source);
+
+        self::assertSame(99000, $assessment->getAnswerValue(QuestionKey::CAPACITY_ANNUAL_INCOME));
+        self::assertFalse($assessment->isAnswerFromPrefill(QuestionKey::CAPACITY_ANNUAL_INCOME));
+    }
+
+    public function testAnswerConfirmedThroughTheNormalFlowIsNoLongerFlaggedAsPrefill(): void
+    {
+        $otherWorkspace = $this->createEntityState(Workspace::class, ['slugId' => 'wrk_2', 'name' => 'Autre cabinet']);
+        $source = InvestorProfileAssessment::create($otherWorkspace, $this->client);
+        $source->recordAnswer(QuestionKey::CAPACITY_ANNUAL_INCOME, 45000, AnswerSource::CLIENT, $this->client->id);
+
+        $assessment = InvestorProfileAssessment::create($this->workspace, $this->client);
+        $assessment->prefillFrom($source);
+        self::assertTrue($assessment->isAnswerFromPrefill(QuestionKey::CAPACITY_ANNUAL_INCOME));
+
+        // Le client avance dans le questionnaire (data-model resauvegarde chaque réponse en
+        // source CLIENT) : la réponse n'est plus "non confirmée", même si la valeur n'a pas changé.
+        $assessment->recordAnswer(QuestionKey::CAPACITY_ANNUAL_INCOME, 45000, AnswerSource::CLIENT, $this->client->id);
+
+        self::assertFalse($assessment->isAnswerFromPrefill(QuestionKey::CAPACITY_ANNUAL_INCOME));
+    }
+
     private function completeAssessment(): InvestorProfileAssessment
     {
         $assessment = InvestorProfileAssessment::create($this->workspace, $this->client);
