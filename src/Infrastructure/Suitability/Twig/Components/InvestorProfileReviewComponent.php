@@ -28,6 +28,10 @@ use Webmozart\Assert\Assert;
  * Écran de revue conseiller : restitue le profil investisseur calculé (figé si déjà validé,
  * brouillon sinon), et porte les actions de validation/révocation. Pattern calqué sur
  * {@see \App\Infrastructure\Compliance\Twig\Components\AiReportDisplayComponent}.
+ *
+ * Toute lecture (assessment, profil validé) est scopée au workspace courant : un client peut
+ * être suivi par plusieurs cabinets à la fois, chacun avec son propre historique de
+ * validation — ce composant ne doit jamais restituer le travail d'un cabinet concurrent.
  */
 #[AsLiveComponent(
     name: 'InvestorProfileReviewComponent',
@@ -81,7 +85,7 @@ class InvestorProfileReviewComponent extends AbstractController
     public function getLatestAssessment(): ?InvestorProfileAssessment
     {
         if (!$this->latestAssessmentLoaded) {
-            $this->latestAssessmentCache = $this->assessmentRepository->findLatestSubmittedForClient($this->getClient());
+            $this->latestAssessmentCache = $this->assessmentRepository->findLatestSubmittedForClient($this->getClient(), $this->workspaceProvider->getWorkspace());
             $this->latestAssessmentLoaded = true;
         }
 
@@ -91,7 +95,7 @@ class InvestorProfileReviewComponent extends AbstractController
     public function getInForceProfile(): ?ValidatedInvestorProfile
     {
         if (!$this->inForceProfileLoaded) {
-            $this->inForceProfileCache = $this->profileRepository->findInForceByClient($this->getClient());
+            $this->inForceProfileCache = $this->profileRepository->findInForceByClient($this->getClient(), $this->workspaceProvider->getWorkspace());
             $this->inForceProfileLoaded = true;
         }
 

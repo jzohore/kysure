@@ -115,6 +115,44 @@ final class InvestorProfileAssessmentTest extends TestCase
         $assessment->recordAnswer(QuestionKey::SUSTAINABILITY_PREFERENCE, 'interesse', AnswerSource::CLIENT, $this->client->id);
     }
 
+    public function testRecordAnswerBumpsLastActivity(): void
+    {
+        $assessment = InvestorProfileAssessment::create($this->workspace, $this->client);
+        $createdAt = $assessment->lastActivityAt;
+
+        usleep(1000);
+        $assessment->recordAnswer(QuestionKey::SUSTAINABILITY_PREFERENCE, 'sans_preference', AnswerSource::CLIENT, $this->client->id);
+
+        self::assertGreaterThan($createdAt, $assessment->lastActivityAt);
+    }
+
+    public function testIsNearCompletionOnlyOnceAtLeastSeventyPercentAnswered(): void
+    {
+        $assessment = InvestorProfileAssessment::create($this->workspace, $this->client);
+        $totalQuestions = \count(QuestionKey::cases());
+        $threshold = (int) ceil($totalQuestions * 0.7);
+
+        $questions = QuestionKey::cases();
+        for ($i = 0; $i < $threshold - 1; ++$i) {
+            $assessment->recordAnswer($questions[$i], 'reponse', AnswerSource::CLIENT, $this->client->id);
+        }
+        self::assertFalse($assessment->isNearCompletion());
+
+        $assessment->recordAnswer($questions[$threshold - 1], 'reponse', AnswerSource::CLIENT, $this->client->id);
+        self::assertTrue($assessment->isNearCompletion());
+    }
+
+    public function testMarkReminderSentIsReflectedByHasReminderBeenSent(): void
+    {
+        $assessment = InvestorProfileAssessment::create($this->workspace, $this->client);
+
+        self::assertFalse($assessment->hasReminderBeenSent());
+
+        $assessment->markReminderSent();
+
+        self::assertTrue($assessment->hasReminderBeenSent());
+    }
+
     private function completeAssessment(): InvestorProfileAssessment
     {
         $assessment = InvestorProfileAssessment::create($this->workspace, $this->client);

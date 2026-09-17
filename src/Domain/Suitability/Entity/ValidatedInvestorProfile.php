@@ -30,7 +30,7 @@ use Webmozart\Assert\Assert;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'suitability_validated_investor_profiles')]
-#[ORM\UniqueConstraint(name: 'uniq_client_profile_version', columns: ['client_id', 'version'])]
+#[ORM\UniqueConstraint(name: 'uniq_client_workspace_profile_version', columns: ['client_id', 'workspace_id', 'version'])]
 class ValidatedInvestorProfile
 {
     use GenerateSlugPrefixedTrait;
@@ -101,8 +101,11 @@ class ValidatedInvestorProfile
         #[ORM\Column(type: Types::JSON)]
         public private(set) array $content,
         /**
-         * Version incrémentale par client. Au plus une version « en vigueur » (non révoquée)
-         * à la fois.
+         * Version incrémentale par (client, cabinet) : un même client peut être suivi par
+         * plusieurs cabinets ({@see Client::$workspaces}), chacun avec
+         * son propre historique de validation, totalement indépendant des autres — un CGP ne
+         * doit jamais voir ni influencer le profil validé par un cabinet concurrent. Au plus
+         * une version « en vigueur » (non révoquée) à la fois, par cabinet.
          */
         #[ORM\Column(type: Types::INTEGER, options: ['default' => 1])]
         public private(set) int $version,

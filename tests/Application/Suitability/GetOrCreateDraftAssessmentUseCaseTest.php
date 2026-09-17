@@ -8,8 +8,11 @@ use App\Application\Suitability\UseCase\GetOrCreateDraftAssessmentUseCase;
 use App\Domain\Compliance\Entity\IndividualFolder;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Suitability\Entity\InvestorProfileAssessment;
+use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 use App\Domain\Suitability\Repository\InvestorProfileAssessmentRepositoryInterface;
+use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\User\Entity\Client;
+use App\Domain\User\Entity\User;
 use App\Domain\Workspace\Entity\Workspace;
 use App\Tests\Application\ReflectionHelperTrait;
 use PHPUnit\Framework\TestCase;
@@ -36,17 +39,20 @@ final class GetOrCreateDraftAssessmentUseCaseTest extends TestCase
     public function testReusesTheExistingActiveDraftWithoutTouchingAnything(): void
     {
         $existingDraft = InvestorProfileAssessment::create($this->workspace, $this->client);
+        $folder = $this->createEntityState(IndividualFolder::class, ['workspace' => $this->workspace]);
 
         $assessmentRepo = $this->createMock(InvestorProfileAssessmentRepositoryInterface::class);
         $assessmentRepo->method('findActiveDraftForClient')->willReturn($existingDraft);
         $assessmentRepo->expects(self::never())->method('save');
 
+        $validatedProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
         $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
+        $folderRepo->method('findActiveForClient')->willReturn($folder);
 
         $dispatcher = $this->createMock(EventDispatcherInterface::class);
         $dispatcher->expects(self::never())->method('dispatch');
 
-        $useCase = new GetOrCreateDraftAssessmentUseCase($assessmentRepo, $folderRepo, $dispatcher);
+        $useCase = new GetOrCreateDraftAssessmentUseCase($assessmentRepo, $validatedProfileRepo, $folderRepo, $dispatcher);
 
         self::assertSame($existingDraft, ($useCase)($this->client));
     }
@@ -59,13 +65,16 @@ final class GetOrCreateDraftAssessmentUseCaseTest extends TestCase
         $assessmentRepo->method('findActiveDraftForClient')->willReturn(null);
         $assessmentRepo->expects(self::once())->method('save');
 
+        $validatedProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $validatedProfileRepo->method('findInForceByClient')->willReturn(null);
+
         $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
         $folderRepo->method('findActiveForClient')->willReturn($folder);
 
         $dispatcher = $this->createMock(EventDispatcherInterface::class);
         $dispatcher->expects(self::once())->method('dispatch');
 
-        $useCase = new GetOrCreateDraftAssessmentUseCase($assessmentRepo, $folderRepo, $dispatcher);
+        $useCase = new GetOrCreateDraftAssessmentUseCase($assessmentRepo, $validatedProfileRepo, $folderRepo, $dispatcher);
         $assessment = ($useCase)($this->client);
 
         self::assertSame($this->workspace, $assessment->workspace);
@@ -77,14 +86,51 @@ final class GetOrCreateDraftAssessmentUseCaseTest extends TestCase
         $assessmentRepo = $this->createStub(InvestorProfileAssessmentRepositoryInterface::class);
         $assessmentRepo->method('findActiveDraftForClient')->willReturn(null);
 
+        $validatedProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $validatedProfileRepo->method('findInForceByClient')->willReturn(null);
+
         $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
         $folderRepo->method('findActiveForClient')->willReturn(null);
 
         $dispatcher = $this->createStub(EventDispatcherInterface::class);
 
-        $useCase = new GetOrCreateDraftAssessmentUseCase($assessmentRepo, $folderRepo, $dispatcher);
+        $useCase = new GetOrCreateDraftAssessmentUseCase($assessmentRepo, $validatedProfileRepo, $folderRepo, $dispatcher);
 
         $this->expectException(\LogicException::class);
+
+        ($useCase)($this->client);
+    }
+
+    public function testRefusesToStartANewDraftWhenAnInForceValidatedProfileExists(): void
+    {
+        $cgp = $this->createEntityState(User::class, ['id' => Uuid::v7(), 'firstName' => 'Marie', 'lastName' => 'Curie']);
+        $submittedAssessment = InvestorProfileAssessment::create($this->workspace, $this->client);
+        $validatedProfile = ValidatedInvestorProfile::validate(
+            $this->workspace,
+            $this->client,
+            $submittedAssessment,
+            $cgp,
+            ['answers' => [], 'scoreSnapshot' => ['finalProfile' => 4]],
+            version: 1,
+        );
+        $folder = $this->createEntityState(IndividualFolder::class, ['workspace' => $this->workspace]);
+
+        $assessmentRepo = $this->createMock(InvestorProfileAssessmentRepositoryInterface::class);
+        $assessmentRepo->method('findActiveDraftForClient')->willReturn(null);
+        $assessmentRepo->expects(self::never())->method('save');
+
+        $validatedProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $validatedProfileRepo->method('findInForceByClient')->willReturn($validatedProfile);
+
+        $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
+        $folderRepo->method('findActiveForClient')->willReturn($folder);
+
+        $dispatcher = $this->createMock(EventDispatcherInterface::class);
+        $dispatcher->expects(self::never())->method('dispatch');
+
+        $useCase = new GetOrCreateDraftAssessmentUseCase($assessmentRepo, $validatedProfileRepo, $folderRepo, $dispatcher);
+
+        $this->expectException(\DomainException::class);
 
         ($useCase)($this->client);
     }

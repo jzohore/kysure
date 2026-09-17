@@ -1,4 +1,4 @@
-<div {{ attributes }} class="max-w-lg mx-auto">
+<div{{ attributes.defaults({'data-controller': 'investor-profile-scroll-top'}) }} class="max-w-lg mx-auto">
     {% include 'components/partials/_live_alerts.html.twig' with {
         message: this.actionMessage|default(null),
         type: this.actionMessageType|default('error')
@@ -83,7 +83,7 @@
             </twig:Button>
         {% else %}
             <twig:Button as="button" type="button" variant="outline"
-                         data-action="live#action" data-live-action-param="previous">
+                         data-action="investor-profile-scroll-top#scrollToTop live#action" data-live-action-param="previous">
                 <twig:ux:icon name="tabler:arrow-left" class="size-4" aria-hidden="true" />
                 Précédent
             </twig:Button>
@@ -91,7 +91,7 @@
 
         {% set is_last_section = (this.currentDimensionIndex + 1 == this.totalDimensions) %}
         <twig:Button as="button" type="button" variant="dark"
-                     data-action="live#action" data-live-action-param="next"
+                     data-action="investor-profile-scroll-top#scrollToTop live#action" data-live-action-param="next"
                      class="flex-1 justify-center">
             <span data-loading="action(next)|hide">
                 {{ is_last_section ? 'Terminer' : 'Continuer' }}

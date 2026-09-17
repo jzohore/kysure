@@ -49,36 +49,42 @@ readonly class DoctrineValidatedInvestorProfileRepository implements ValidatedIn
         return $this->repository->findOneBy(['slugId' => $slugId]);
     }
 
-    public function findInForceByClient(Client $client): ?ValidatedInvestorProfile
+    public function findInForceByClient(Client $client, Workspace $workspace): ?ValidatedInvestorProfile
     {
         return $this->repository->createQueryBuilder('p')
             ->andWhere('p.client = :client')
+            ->andWhere('p.workspace = :workspace')
             ->andWhere('p.revokedAt IS NULL')
             ->orderBy('p.version', 'DESC')
             ->setParameter('client', $client)
+            ->setParameter('workspace', $workspace)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
     }
 
-    public function findLatestVersionNumber(Client $client): int
+    public function findLatestVersionNumber(Client $client, Workspace $workspace): int
     {
         $max = $this->repository->createQueryBuilder('p')
             ->select('MAX(p.version)')
             ->andWhere('p.client = :client')
+            ->andWhere('p.workspace = :workspace')
             ->setParameter('client', $client)
+            ->setParameter('workspace', $workspace)
             ->getQuery()
             ->getSingleScalarResult();
 
         return (int) $max;
     }
 
-    public function findAllByClient(Client $client): array
+    public function findAllByClient(Client $client, Workspace $workspace): array
     {
         return $this->repository->createQueryBuilder('p')
             ->andWhere('p.client = :client')
+            ->andWhere('p.workspace = :workspace')
             ->orderBy('p.version', 'DESC')
             ->setParameter('client', $client)
+            ->setParameter('workspace', $workspace)
             ->getQuery()
             ->getResult();
     }

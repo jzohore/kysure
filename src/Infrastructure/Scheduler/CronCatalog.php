@@ -24,6 +24,7 @@ final class CronCatalog
             CronJob::PURGE_DER_TECHNICAL_DATA => 'app:rgpd:purge-der-technical-data',
             CronJob::MINIMIZE_SCREENING_RESULTS => 'app:rgpd:minimize-screening-results',
             CronJob::AUTO_RESOLVE_SUPPORT_THREADS => 'app:support:auto-resolve',
+            CronJob::SEND_INVESTOR_PROFILE_REMINDER => 'app:suitability:send-reminder-mail',
         };
     }
 }

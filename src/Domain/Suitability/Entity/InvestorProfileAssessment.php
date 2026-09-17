@@ -51,6 +51,21 @@ class InvestorProfileAssessment
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     public private(set) \DateTimeImmutable $createdAt;
 
+    /**
+     * Dernière réponse enregistrée (ou création si aucune réponse encore) : sert à détecter
+     * un client en pause pour la relance email ({@see self::isStalledSince()}).
+     */
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    public private(set) \DateTimeImmutable $lastActivityAt;
+
+    /**
+     * Horodatage de l'email de relance envoyé au client, le cas échéant. `null` tant qu'aucune
+     * relance n'a été envoyée. Volontairement envoyée une seule fois par questionnaire (pas de
+     * remise à zéro si le client répond puis se remet en pause) pour ne jamais spammer.
+     */
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public private(set) ?\DateTimeImmutable $reminderSentAt = null;
+
     #[ORM\Column(type: Types::STRING, enumType: AssessmentStatus::class)]
     public private(set) AssessmentStatus $status = AssessmentStatus::DRAFT;
 
@@ -85,6 +100,7 @@ class InvestorProfileAssessment
         public private(set) Client $client,
     ) {
         $this->createdAt = now();
+        $this->lastActivityAt = $this->createdAt;
         $this->slugId = $this->generate_ulid_prefixed('ipa_');
     }
 
@@ -110,6 +126,7 @@ class InvestorProfileAssessment
             'answeredBy' => $answeredBy?->toString(),
             'source' => $source->value,
         ];
+        $this->lastActivityAt = now();
     }
 
     public function getAnswerValue(QuestionKey $key): mixed
@@ -149,6 +166,31 @@ class InvestorProfileAssessment
     public function isSubmitted(): bool
     {
         return AssessmentStatus::SUBMITTED === $this->status;
+    }
+
+    /**
+     * Vrai si le client a déjà répondu à une part significative du questionnaire (pas juste
+     * démarré) : sert de garde-fou pour ne relancer par email que les abandons "vers la fin",
+     * pas les brouillons à peine ouverts. Seuil arbitraire mais assumé (70%) : ajustable si le
+     * taux de complétion en usage réel montre qu'il est mal calibré.
+     */
+    public function isNearCompletion(): bool
+    {
+        return (\count($this->answers) / \count(QuestionKey::cases())) >= 0.7;
+    }
+
+    public function hasReminderBeenSent(): bool
+    {
+        return $this->reminderSentAt instanceof \DateTimeImmutable;
+    }
+
+    /**
+     * Marque la relance comme envoyée. Idempotent par construction du côté appelant : le
+     * use case ne sélectionne que les assessments avec `reminderSentAt IS NULL`.
+     */
+    public function markReminderSent(): void
+    {
+        $this->reminderSentAt = now();
     }
 
     /**

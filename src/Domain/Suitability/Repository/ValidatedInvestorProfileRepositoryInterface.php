@@ -22,23 +22,26 @@ interface ValidatedInvestorProfileRepositoryInterface
     public function findBySlugId(string $slugId): ?ValidatedInvestorProfile;
 
     /**
-     * La version actuellement en vigueur pour ce client (non révoquée), ou `null` si le
-     * client n'a aucun profil validé.
+     * La version actuellement en vigueur pour ce client **auprès de ce cabinet**, non révoquée,
+     * ou `null` si aucun profil n'y est validé. Scopé par cabinet : un client peut être suivi
+     * par plusieurs cabinets à la fois ({@see Client::$workspaces}),
+     * chacun avec son propre historique de validation — jamais mélangés entre eux.
      */
-    public function findInForceByClient(Client $client): ?ValidatedInvestorProfile;
+    public function findInForceByClient(Client $client, Workspace $workspace): ?ValidatedInvestorProfile;
 
     /**
-     * Le plus grand numéro de version émis pour ce client (0 si aucun). La prochaine
-     * validation utilisera `+ 1`.
+     * Le plus grand numéro de version émis pour ce client **auprès de ce cabinet** (0 si aucun).
+     * La prochaine validation dans ce cabinet utilisera `+ 1`.
      */
-    public function findLatestVersionNumber(Client $client): int;
+    public function findLatestVersionNumber(Client $client, Workspace $workspace): int;
 
     /**
-     * Historique complet des profils validés du client, du plus récent au plus ancien.
+     * Historique complet des profils validés du client **auprès de ce cabinet**, du plus
+     * récent au plus ancien.
      *
      * @return list<ValidatedInvestorProfile>
      */
-    public function findAllByClient(Client $client): array;
+    public function findAllByClient(Client $client, Workspace $workspace): array;
 
     /**
      * Nombre de questionnaires soumis n'ayant pas encore de profil validé en vigueur, pour

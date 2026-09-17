@@ -7,8 +7,10 @@ namespace App\Application\Suitability\UseCase;
 use App\Domain\Compliance\Entity\ComplianceFolder;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Suitability\Entity\InvestorProfileAssessment;
+use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 use App\Domain\Suitability\Event\InvestorProfileAssessmentStartedEvent;
 use App\Domain\Suitability\Repository\InvestorProfileAssessmentRepositoryInterface;
+use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\User\Entity\Client;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
@@ -20,6 +22,7 @@ readonly class GetOrCreateDraftAssessmentUseCase
 {
     public function __construct(
         private InvestorProfileAssessmentRepositoryInterface $assessmentRepository,
+        private ValidatedInvestorProfileRepositoryInterface $validatedProfileRepository,
         private ComplianceFolderRepositoryInterface $folderRepository,
         private EventDispatcherInterface $eventDispatcher,
     ) {
@@ -27,19 +30,36 @@ readonly class GetOrCreateDraftAssessmentUseCase
 
     public function __invoke(Client $client): InvestorProfileAssessment
     {
-        $existing = $this->assessmentRepository->findActiveDraftForClient($client);
-        if ($existing instanceof InvestorProfileAssessment) {
-            return $existing;
-        }
-
         $folder = $this->folderRepository->findActiveForClient($client);
         if (!$folder instanceof ComplianceFolder) {
             // Même invariant que GetClientDashboardUseCase : un client authentifié a toujours
             // un dossier actif, c'est de là que vient son espace de travail.
             throw new \LogicException(sprintf('Incohérence de domaine : aucun dossier actif pour le client %s.', $client->slugId));
         }
+        $workspace = $folder->workspace;
 
-        $assessment = InvestorProfileAssessment::create($folder->workspace, $client);
+        $existing = $this->assessmentRepository->findActiveDraftForClient($client, $workspace);
+        if ($existing instanceof InvestorProfileAssessment) {
+            return $existing;
+        }
+
+        if ($this->validatedProfileRepository->findInForceByClient($client, $workspace) instanceof ValidatedInvestorProfile) {
+            // Le profil du client fait déjà foi auprès de ce cabinet (validé par le CGP) : pas
+            // de nouveau questionnaire tant que ce profil n'a pas été révoqué. Sinon le client
+            // pourrait se re-profiler lui-même sans passer par la revue conseiller. Un autre
+            // cabinet qui suit aussi ce client garde son propre historique, indépendant.
+            throw new \DomainException(sprintf('Le client %s a déjà un profil investisseur validé en vigueur auprès de ce cabinet.', $client->slugId));
+        }
+
+        $pendingSubmission = $this->assessmentRepository->findLatestSubmittedForClient($client, $workspace);
+        if ($pendingSubmission instanceof InvestorProfileAssessment) {
+            // Déjà soumis, en attente d'un examen du CGP : on ne recrée pas de brouillon tant
+            // que ce dernier n'a rien validé (sans quoi une simple visite de la page créerait
+            // un second assessment concurrent du premier, jamais examiné).
+            return $pendingSubmission;
+        }
+
+        $assessment = InvestorProfileAssessment::create($workspace, $client);
         $this->assessmentRepository->save($assessment);
 
         $this->eventDispatcher->dispatch(new InvestorProfileAssessmentStartedEvent($assessment->slugId));

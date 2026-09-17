@@ -45,12 +45,12 @@ final readonly class ValidateInvestorProfileUseCase
             throw new \DomainException('Le questionnaire n\'a pas encore été soumis par le client.');
         }
 
-        if ($this->profileRepository->findInForceByClient($assessment->client) instanceof ValidatedInvestorProfile) {
-            throw new \DomainException('Un profil investisseur est déjà validé pour ce client. Révoquez-le avant d\'en valider un nouveau.');
+        if ($this->profileRepository->findInForceByClient($assessment->client, $assessment->workspace) instanceof ValidatedInvestorProfile) {
+            throw new \DomainException('Un profil investisseur est déjà validé pour ce client dans ce cabinet. Révoquez-le avant d\'en valider un nouveau.');
         }
 
         $user = $this->userProvider->getUser();
-        $version = $this->profileRepository->findLatestVersionNumber($assessment->client) + 1;
+        $version = $this->profileRepository->findLatestVersionNumber($assessment->client, $assessment->workspace) + 1;
 
         $profile = ValidatedInvestorProfile::validate(
             workspace: $assessment->workspace,

@@ -1,0 +1,20 @@
+{% extends 'emails/base.html.twig' %}
+
+{% block title %}Questionnaire profil investisseur reçu - {{ client_name }}{% endblock %}
+
+{% block content %}
+    <h1>Nouveau questionnaire à valider</h1>
+
+    <p>Bonjour,</p>
+
+    <p><strong>{{ client_name }}</strong> vient de soumettre son questionnaire profil investisseur depuis son espace client. Une proposition de profil a été calculée et attend votre revue avant de faire foi.</p>
+
+    <div class="btn-container">
+        <a href="{{ review_url }}" class="btn">Examiner le profil</a>
+    </div>
+
+    <p style="font-size: 12px; color: #94a3b8; word-break: break-all; margin-top: 20px;">
+        Si le bouton ne fonctionne pas, copiez et collez cette adresse dans votre navigateur :<br>
+        <a href="{{ review_url }}" style="color: #64748b;">{{ review_url }}</a>
+    </p>
+{% endblock %}

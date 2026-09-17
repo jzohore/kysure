@@ -8,6 +8,11 @@ use App\Application\Portal\DTO\ActiveFolderDto;
 use App\Application\Portal\DTO\ClientDashboardDto;
 use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
+use App\Domain\Suitability\Entity\InvestorProfileAssessment;
+use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
+use App\Domain\Suitability\Enum\InvestorProfileDashboardStatus;
+use App\Domain\Suitability\Repository\InvestorProfileAssessmentRepositoryInterface;
+use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\User\Entity\Client;
 use App\Domain\User\Enum\ClientPortalStatus;
 use Psr\Log\LoggerInterface;
@@ -17,6 +22,8 @@ readonly class GetClientDashboardUseCase
     public function __construct(
         private ComplianceDocumentRepositoryInterface $documentRepository,
         private ComplianceFolderRepositoryInterface $folderRepository,
+        private InvestorProfileAssessmentRepositoryInterface $assessmentRepository,
+        private ValidatedInvestorProfileRepositoryInterface $validatedProfileRepository,
         private LoggerInterface $logger,
     ) {
     }
@@ -49,6 +56,16 @@ readonly class GetClientDashboardUseCase
         $cabinetName = (false !== $firstWorkspace) ? $firstWorkspace->name : 'Votre Cabinet';
         $cabinetContactEmail = (false !== $firstWorkspace) ? $firstWorkspace->email : null;
 
+        // 5bis. Statut du profil investisseur, scopé au cabinet du dossier actif : un client
+        // peut être suivi par plusieurs cabinets à la fois, chacun avec son propre historique
+        // (voir ValidatedInvestorProfile), jamais mélangés entre eux.
+        $investorProfileStatus = match (true) {
+            $this->validatedProfileRepository->findInForceByClient($client, $activeFolder->workspace) instanceof ValidatedInvestorProfile => InvestorProfileDashboardStatus::VALIDATED,
+            $this->assessmentRepository->findLatestSubmittedForClient($client, $activeFolder->workspace) instanceof InvestorProfileAssessment => InvestorProfileDashboardStatus::SUBMITTED,
+            $this->assessmentRepository->findActiveDraftForClient($client, $activeFolder->workspace) instanceof InvestorProfileAssessment => InvestorProfileDashboardStatus::IN_PROGRESS,
+            default => InvestorProfileDashboardStatus::NOT_STARTED,
+        };
+
         // 6. Création du Sous-DTO représentant le dossier
         $activeFolderDto = new ActiveFolderDto(
             id: $activeFolder->slugId ?? (string) $activeFolder->id,
@@ -66,6 +83,7 @@ readonly class GetClientDashboardUseCase
             pendingDocumentsCount: $pendingDocs,
             activeFolder: $activeFolderDto, // 🚨 Injection de l'agrégat
             cabinetContactEmail: $cabinetContactEmail,
+            investorProfileStatus: $investorProfileStatus,
         );
     }
 }

@@ -8,6 +8,7 @@ use App\Domain\Suitability\Entity\InvestorProfileAssessment;
 use App\Domain\Suitability\Enum\AssessmentStatus;
 use App\Domain\Suitability\Repository\InvestorProfileAssessmentRepositoryInterface;
 use App\Domain\User\Entity\Client;
+use App\Domain\Workspace\Entity\Workspace;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 
@@ -41,12 +42,14 @@ readonly class DoctrineInvestorProfileAssessmentRepository implements InvestorPr
         return $this->repository->findOneBy(['slugId' => $slugId]);
     }
 
-    public function findActiveDraftForClient(Client $client): ?InvestorProfileAssessment
+    public function findActiveDraftForClient(Client $client, Workspace $workspace): ?InvestorProfileAssessment
     {
         return $this->repository->createQueryBuilder('a')
             ->where('a.client = :client')
+            ->andWhere('a.workspace = :workspace')
             ->andWhere('a.status = :status')
             ->setParameter('client', $client)
+            ->setParameter('workspace', $workspace)
             ->setParameter('status', AssessmentStatus::DRAFT)
             ->orderBy('a.createdAt', 'DESC')
             ->setMaxResults(1)
@@ -54,16 +57,31 @@ readonly class DoctrineInvestorProfileAssessmentRepository implements InvestorPr
             ->getOneOrNullResult();
     }
 
-    public function findLatestSubmittedForClient(Client $client): ?InvestorProfileAssessment
+    public function findLatestSubmittedForClient(Client $client, Workspace $workspace): ?InvestorProfileAssessment
     {
         return $this->repository->createQueryBuilder('a')
             ->where('a.client = :client')
+            ->andWhere('a.workspace = :workspace')
             ->andWhere('a.status = :status')
             ->setParameter('client', $client)
+            ->setParameter('workspace', $workspace)
             ->setParameter('status', AssessmentStatus::SUBMITTED)
             ->orderBy('a.submittedAt', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    public function findStalledDraftsNeedingReminder(\DateTimeInterface $before): array
+    {
+        /* @var list<InvestorProfileAssessment> */
+        return $this->repository->createQueryBuilder('a')
+            ->where('a.status = :status')
+            ->andWhere('a.lastActivityAt <= :before')
+            ->andWhere('a.reminderSentAt IS NULL')
+            ->setParameter('status', AssessmentStatus::DRAFT)
+            ->setParameter('before', $before)
+            ->getQuery()
+            ->getResult();
     }
 }
