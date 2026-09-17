@@ -50,27 +50,47 @@ final class GetClientDashboardUseCaseTest extends TestCase
         ]);
     }
 
+    public function testThrowsWhenTheClientHasNoActiveFolderAtAll(): void
+    {
+        $documentRepo = $this->createStub(ComplianceDocumentRepositoryInterface::class);
+
+        $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
+        $folderRepo->method('findAllActiveForClient')->willReturn([]);
+
+        $assessmentRepo = $this->createStub(InvestorProfileAssessmentRepositoryInterface::class);
+        $validatedProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $logger = $this->createStub(LoggerInterface::class);
+
+        $useCase = new GetClientDashboardUseCase($documentRepo, $folderRepo, $assessmentRepo, $validatedProfileRepo, $logger);
+
+        $this->expectException(\LogicException::class);
+
+        ($useCase)($this->client);
+    }
+
     public function testInvestorProfileStatusIsNotStartedByDefault(): void
     {
-        self::assertSame(InvestorProfileDashboardStatus::NOT_STARTED, $this->buildAndInvoke()->investorProfileStatus);
+        $relationship = $this->buildAndInvoke()->cabinetRelationships[0];
+
+        self::assertSame(InvestorProfileDashboardStatus::NOT_STARTED, $relationship->investorProfileStatus);
     }
 
     public function testInvestorProfileStatusIsInProgressWhenADraftExists(): void
     {
         $draft = InvestorProfileAssessment::create($this->workspace, $this->client);
 
-        $status = $this->buildAndInvoke(draft: $draft)->investorProfileStatus;
+        $relationship = $this->buildAndInvoke(draft: $draft)->cabinetRelationships[0];
 
-        self::assertSame(InvestorProfileDashboardStatus::IN_PROGRESS, $status);
+        self::assertSame(InvestorProfileDashboardStatus::IN_PROGRESS, $relationship->investorProfileStatus);
     }
 
     public function testInvestorProfileStatusIsSubmittedWhenPendingCgpReview(): void
     {
         $submitted = InvestorProfileAssessment::create($this->workspace, $this->client);
 
-        $status = $this->buildAndInvoke(submitted: $submitted)->investorProfileStatus;
+        $relationship = $this->buildAndInvoke(submitted: $submitted)->cabinetRelationships[0];
 
-        self::assertSame(InvestorProfileDashboardStatus::SUBMITTED, $status);
+        self::assertSame(InvestorProfileDashboardStatus::SUBMITTED, $relationship->investorProfileStatus);
     }
 
     public function testInvestorProfileStatusIsValidatedWhenAnInForceProfileExists(): void
@@ -86,9 +106,37 @@ final class GetClientDashboardUseCaseTest extends TestCase
             version: 1,
         );
 
-        $status = $this->buildAndInvoke(validated: $profile)->investorProfileStatus;
+        $relationship = $this->buildAndInvoke(validated: $profile)->cabinetRelationships[0];
 
-        self::assertSame(InvestorProfileDashboardStatus::VALIDATED, $status);
+        self::assertSame(InvestorProfileDashboardStatus::VALIDATED, $relationship->investorProfileStatus);
+    }
+
+    public function testReturnsOneRelationshipPerActiveCabinetWhenTheClientHasSeveral(): void
+    {
+        $otherWorkspace = $this->createEntityState(Workspace::class, ['slugId' => 'wrk_2', 'name' => 'Cabinet B', 'email' => 'contact@cabinet-b.fr']);
+        $otherFolder = $this->createEntityState(IndividualFolder::class, [
+            'workspace' => $otherWorkspace,
+            'status' => ComplianceFolderStatus::AWAITING_CLIENT,
+            'slugId' => 'fld_2',
+            'createdAt' => new \DateTimeImmutable('2026-02-01'),
+        ]);
+
+        $documentRepo = $this->createStub(ComplianceDocumentRepositoryInterface::class);
+        $documentRepo->method('countPendingForFolder')->willReturn(0);
+
+        $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
+        $folderRepo->method('findAllActiveForClient')->willReturn([$this->folder, $otherFolder]);
+
+        $assessmentRepo = $this->createStub(InvestorProfileAssessmentRepositoryInterface::class);
+        $validatedProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $logger = $this->createStub(LoggerInterface::class);
+
+        $useCase = new GetClientDashboardUseCase($documentRepo, $folderRepo, $assessmentRepo, $validatedProfileRepo, $logger);
+        $dashboard = ($useCase)($this->client);
+
+        self::assertCount(2, $dashboard->cabinetRelationships);
+        self::assertSame('Cabinet A', $dashboard->cabinetRelationships[0]->activeFolder->workspaceName);
+        self::assertSame('Cabinet B', $dashboard->cabinetRelationships[1]->activeFolder->workspaceName);
     }
 
     private function buildAndInvoke(
@@ -97,10 +145,10 @@ final class GetClientDashboardUseCaseTest extends TestCase
         ?ValidatedInvestorProfile $validated = null,
     ): ClientDashboardDto {
         $documentRepo = $this->createStub(ComplianceDocumentRepositoryInterface::class);
-        $documentRepo->method('countPendingForClient')->willReturn(0);
+        $documentRepo->method('countPendingForFolder')->willReturn(0);
 
         $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
-        $folderRepo->method('findActiveForClient')->willReturn($this->folder);
+        $folderRepo->method('findAllActiveForClient')->willReturn([$this->folder]);
 
         $assessmentRepo = $this->createStub(InvestorProfileAssessmentRepositoryInterface::class);
         $assessmentRepo->method('findActiveDraftForClient')->willReturn($draft);

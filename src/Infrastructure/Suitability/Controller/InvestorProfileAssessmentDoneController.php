@@ -29,13 +29,13 @@ final class InvestorProfileAssessmentDoneController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/portal/profil-investisseur/termine', name: 'app_portal_investor_profile_done', methods: ['GET'])]
-    public function __invoke(): Response
+    #[Route(path: '/portal/profil-investisseur/termine/{folderId}', name: 'app_portal_investor_profile_done', requirements: ['folderId' => 'comp_fol_[A-Za-z0-9]+'], defaults: ['folderId' => null], methods: ['GET'])]
+    public function __invoke(?string $folderId = null): Response
     {
         /** @var Client $client */
         $client = $this->getUser();
         $workspace = $client->workspaces->first();
-        $validatedProfile = ($this->findInForceValidatedProfileUseCase)($client);
+        $validatedProfile = ($this->findInForceValidatedProfileUseCase)($client, $folderId);
 
         return $this->render('@app/client/investor_profile_done.html.twig', [
             'company_name' => false !== $workspace ? $workspace->name : 'KYSURE',

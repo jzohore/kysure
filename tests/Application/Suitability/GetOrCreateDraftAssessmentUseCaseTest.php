@@ -165,4 +165,31 @@ final class GetOrCreateDraftAssessmentUseCaseTest extends TestCase
         self::assertSame(45000, $assessment->getAnswerValue(QuestionKey::CAPACITY_ANNUAL_INCOME));
         self::assertTrue($assessment->isAnswerFromPrefill(QuestionKey::CAPACITY_ANNUAL_INCOME));
     }
+
+    public function testResolvesTheExplicitFolderWhenProvidedRatherThanTheMostRecentOne(): void
+    {
+        // Un client peut avoir plusieurs cabinets actifs à la fois : le folderId (carte
+        // cliquée sur le tableau de bord) doit primer sur "le dossier le plus récent" —
+        // vérifié ci-dessous via l'assertion que findActiveForClient n'est jamais appelée.
+        $requestedFolder = $this->createEntityState(IndividualFolder::class, ['workspace' => $this->workspace]);
+
+        $assessmentRepo = $this->createMock(InvestorProfileAssessmentRepositoryInterface::class);
+        $assessmentRepo->method('findActiveDraftForClient')->willReturn(null);
+        $assessmentRepo->method('findLatestSubmittedForClient')->willReturn(null);
+        $assessmentRepo->expects(self::once())->method('save');
+
+        $validatedProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $validatedProfileRepo->method('findInForceByClient')->willReturn(null);
+
+        $folderRepo = $this->createMock(ComplianceFolderRepositoryInterface::class);
+        $folderRepo->expects(self::once())->method('findOneBySlugIdAndClient')->with('fld_requested', $this->client)->willReturn($requestedFolder);
+        $folderRepo->expects(self::never())->method('findActiveForClient');
+
+        $dispatcher = $this->createStub(EventDispatcherInterface::class);
+
+        $useCase = new GetOrCreateDraftAssessmentUseCase($assessmentRepo, $validatedProfileRepo, $folderRepo, $dispatcher);
+        $assessment = ($useCase)($this->client, 'fld_requested');
+
+        self::assertSame($this->workspace, $assessment->workspace);
+    }
 }

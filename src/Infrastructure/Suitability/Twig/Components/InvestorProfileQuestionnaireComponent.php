@@ -43,6 +43,14 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
     #[LiveProp]
     public string $assessmentSlugId;
 
+    /**
+     * Le dossier depuis lequel le client est arrivé : un client peut avoir plusieurs cabinets
+     * actifs à la fois, ce prop permet de revenir vers l'écran de clôture du bon cabinet en
+     * fin de parcours plutôt que de retomber sur "le dossier le plus récent" par défaut.
+     */
+    #[LiveProp]
+    public ?string $folderId = null;
+
     #[LiveProp(writable: true)]
     public int $currentDimensionIndex = 0;
 
@@ -69,9 +77,10 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
     ) {
     }
 
-    public function mount(string $assessmentSlugId): void
+    public function mount(string $assessmentSlugId, ?string $folderId = null): void
     {
         $this->assessmentSlugId = $assessmentSlugId;
+        $this->folderId = $folderId;
         $this->syncAnswersFromStored();
     }
 
@@ -148,7 +157,9 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
 
             $this->logger->info('Questionnaire profil investisseur soumis.', ['assessment_slug_id' => $assessment->slugId]);
 
-            return new RedirectResponse($this->urlGenerator->generate('app_portal_investor_profile_done'));
+            $doneRouteParams = null !== $this->folderId && '' !== $this->folderId ? ['folderId' => $this->folderId] : [];
+
+            return new RedirectResponse($this->urlGenerator->generate('app_portal_investor_profile_done', $doneRouteParams));
         }
 
         ++$this->currentDimensionIndex;

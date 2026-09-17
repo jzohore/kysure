@@ -29,9 +29,18 @@ readonly class GetOrCreateDraftAssessmentUseCase
     ) {
     }
 
-    public function __invoke(Client $client): InvestorProfileAssessment
+    /**
+     * @param ?string $folderId le dossier depuis lequel le client est arrivé (carte cabinet du
+     *                          tableau de bord) : un client peut avoir plusieurs cabinets actifs à la fois, ce
+     *                          paramètre lève l'ambiguïté sur celui concerné. À défaut (lien historique sans ce
+     *                          paramètre), retombe sur le dossier actif le plus récent.
+     */
+    public function __invoke(Client $client, ?string $folderId = null): InvestorProfileAssessment
     {
-        $folder = $this->folderRepository->findActiveForClient($client);
+        $folder = null !== $folderId
+            ? $this->folderRepository->findOneBySlugIdAndClient($folderId, $client)
+            : $this->folderRepository->findActiveForClient($client);
+
         if (!$folder instanceof ComplianceFolder) {
             // Même invariant que GetClientDashboardUseCase : un client authentifié a toujours
             // un dossier actif, c'est de là que vient son espace de travail.

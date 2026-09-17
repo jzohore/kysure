@@ -24,22 +24,22 @@ final class InvestorProfileAssessmentController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/portal/profil-investisseur', name: 'app_portal_investor_profile', methods: ['GET'])]
-    public function __invoke(): Response
+    #[Route(path: '/portal/profil-investisseur/{folderId}', name: 'app_portal_investor_profile', requirements: ['folderId' => 'comp_fol_[A-Za-z0-9]+'], defaults: ['folderId' => null], methods: ['GET'])]
+    public function __invoke(?string $folderId = null): Response
     {
         /** @var Client $client */
         $client = $this->getUser();
 
-        if (($this->findInForceValidatedProfileUseCase)($client) instanceof ValidatedInvestorProfile) {
+        if (($this->findInForceValidatedProfileUseCase)($client, $folderId) instanceof ValidatedInvestorProfile) {
             // Profil déjà validé par le CGP : pas de nouveau questionnaire tant qu'il n'a pas
             // été révoqué, sinon le client pourrait écraser lui-même la version qui fait foi.
-            return $this->redirectToRoute('app_portal_investor_profile_done');
+            return $this->redirectToRoute('app_portal_investor_profile_done', ['folderId' => $folderId]);
         }
 
-        $assessment = ($this->getOrCreateDraftAssessmentUseCase)($client);
+        $assessment = ($this->getOrCreateDraftAssessmentUseCase)($client, $folderId);
 
         if ($assessment->isSubmitted()) {
-            return $this->redirectToRoute('app_portal_investor_profile_done');
+            return $this->redirectToRoute('app_portal_investor_profile_done', ['folderId' => $folderId]);
         }
 
         $workspace = $client->workspaces->first();
@@ -47,6 +47,7 @@ final class InvestorProfileAssessmentController extends AbstractController
         return $this->render('@app/client/investor_profile_questionnaire.html.twig', [
             'assessment_slug_id' => $assessment->slugId,
             'company_name' => false !== $workspace ? $workspace->name : 'KYSURE',
+            'folder_id' => $folderId,
         ]);
     }
 }

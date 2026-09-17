@@ -69,4 +69,22 @@ final class FindInForceValidatedProfileUseCaseTest extends TestCase
 
         self::assertSame($profile, ($useCase)($this->client));
     }
+
+    public function testResolvesTheExplicitFolderWhenProvidedRatherThanTheMostRecentOne(): void
+    {
+        // Un client peut avoir plusieurs cabinets actifs à la fois : le folderId (carte
+        // cliquée sur le tableau de bord) doit primer sur "le dossier le plus récent".
+        $requestedFolder = $this->createEntityState(IndividualFolder::class, ['workspace' => $this->workspace]);
+
+        $profileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $profileRepo->method('findInForceByClient')->willReturn(null);
+
+        $folderRepo = $this->createMock(ComplianceFolderRepositoryInterface::class);
+        $folderRepo->expects(self::once())->method('findOneBySlugIdAndClient')->with('fld_requested', $this->client)->willReturn($requestedFolder);
+        $folderRepo->expects(self::never())->method('findActiveForClient');
+
+        $useCase = new FindInForceValidatedProfileUseCase($profileRepo, $folderRepo);
+
+        ($useCase)($this->client, 'fld_requested');
+    }
 }

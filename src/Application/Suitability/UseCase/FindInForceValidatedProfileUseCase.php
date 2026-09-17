@@ -31,9 +31,18 @@ readonly class FindInForceValidatedProfileUseCase
     ) {
     }
 
-    public function __invoke(Client $client): ?ValidatedInvestorProfile
+    /**
+     * @param ?string $folderId le dossier depuis lequel le client est arrivé (carte cabinet du
+     *                          tableau de bord) : un client peut avoir plusieurs cabinets actifs à la fois, ce
+     *                          paramètre lève l'ambiguïté sur celui concerné. À défaut, retombe sur le dossier
+     *                          actif le plus récent.
+     */
+    public function __invoke(Client $client, ?string $folderId = null): ?ValidatedInvestorProfile
     {
-        $folder = $this->folderRepository->findActiveForClient($client);
+        $folder = null !== $folderId
+            ? $this->folderRepository->findOneBySlugIdAndClient($folderId, $client)
+            : $this->folderRepository->findActiveForClient($client);
+
         if (!$folder instanceof ComplianceFolder) {
             return null;
         }
