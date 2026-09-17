@@ -46,6 +46,7 @@ final class GetClientDashboardUseCaseTest extends TestCase
             'workspace' => $this->workspace,
             'status' => ComplianceFolderStatus::APPROVED,
             'slugId' => 'fld_1',
+            'reference' => 'REF-2026-001',
             'createdAt' => new \DateTimeImmutable('2026-01-01'),
         ]);
     }
@@ -111,6 +112,13 @@ final class GetClientDashboardUseCaseTest extends TestCase
         self::assertSame(InvestorProfileDashboardStatus::VALIDATED, $relationship->investorProfileStatus);
     }
 
+    public function testDashboardTitleUsesTheFolderRealReferenceNotAGenericPlaceholder(): void
+    {
+        $relationship = $this->buildAndInvoke()->cabinetRelationships[0];
+
+        self::assertSame('REF-2026-001', $relationship->activeFolder->title);
+    }
+
     public function testReturnsOneRelationshipPerActiveCabinetWhenTheClientHasSeveral(): void
     {
         $otherWorkspace = $this->createEntityState(Workspace::class, ['slugId' => 'wrk_2', 'name' => 'Cabinet B', 'email' => 'contact@cabinet-b.fr']);
@@ -118,6 +126,7 @@ final class GetClientDashboardUseCaseTest extends TestCase
             'workspace' => $otherWorkspace,
             'status' => ComplianceFolderStatus::AWAITING_CLIENT,
             'slugId' => 'fld_2',
+            'reference' => 'REF-2026-002',
             'createdAt' => new \DateTimeImmutable('2026-02-01'),
         ]);
 
