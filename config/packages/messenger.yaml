@@ -80,6 +80,8 @@ framework:
             'App\Infrastructure\Ocr\Message\ProcessOcrMessage': async_heavy
             # Génération du PDF du DER : appel Gotenberg (API externe potentiellement lente).
             'App\Infrastructure\Compliance\Message\GenerateDerPdfMessage': async_heavy
+            # Génération du PDF de synthèse (déclaration d'adéquation) du profil investisseur.
+            'App\Infrastructure\Suitability\Message\GenerateInvestorProfilePdfMessage': async_heavy
             # Tes commandes de conformité lourdes
 
             # --- TÂCHES PLANIFIÉES (déclenchement manuel depuis le back-office) ---

@@ -49,6 +49,11 @@ readonly class DoctrineValidatedInvestorProfileRepository implements ValidatedIn
         return $this->repository->findOneBy(['slugId' => $slugId]);
     }
 
+    public function findBySlugIdAndWorkspace(string $slugId, Workspace $workspace): ?ValidatedInvestorProfile
+    {
+        return $this->repository->findOneBy(['slugId' => $slugId, 'workspace' => $workspace]);
+    }
+
     public function findInForceByClient(Client $client, Workspace $workspace): ?ValidatedInvestorProfile
     {
         return $this->repository->createQueryBuilder('p')

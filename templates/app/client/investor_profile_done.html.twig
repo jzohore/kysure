@@ -21,6 +21,11 @@
                 aucune autre action n'est requise de votre part pour le moment.
             </p>
         {% endif %}
+        {% if pdf_available %}
+            <twig:Button as="a" href="{{ path('app_portal_investor_profile_pdf_download', {slugId: validated_profile_slug_id}) }}" target="_blank" variant="outline" class="mt-8 mr-3">
+                Télécharger mon profil (PDF)
+            </twig:Button>
+        {% endif %}
         <twig:Button as="a" href="{{ path('app_portal_dashboard') }}" variant="outline" class="mt-8">
             Retour à mon espace
         </twig:Button>

@@ -22,6 +22,13 @@ interface ValidatedInvestorProfileRepositoryInterface
     public function findBySlugId(string $slugId): ?ValidatedInvestorProfile;
 
     /**
+     * Même lecture que {@see self::findBySlugId()}, mais scopée au cabinet courant : un CGP ne
+     * doit jamais pouvoir accéder (même en lecture) au profil validé d'un client par un cabinet
+     * concurrent en devinant son slug.
+     */
+    public function findBySlugIdAndWorkspace(string $slugId, Workspace $workspace): ?ValidatedInvestorProfile;
+
+    /**
      * La version actuellement en vigueur pour ce client **auprès de ce cabinet**, non révoquée,
      * ou `null` si aucun profil n'y est validé. Scopé par cabinet : un client peut être suivi
      * par plusieurs cabinets à la fois ({@see Client::$workspaces}),

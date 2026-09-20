@@ -43,6 +43,8 @@ final class InvestorProfileAssessmentDoneController extends AbstractController
             // Le cabinet qui a validé, pas "workspaces->first()" : un client peut être suivi
             // par plusieurs cabinets, seul celui qui a réellement validé fait foi ici.
             'validated_by_cabinet_name' => $validatedProfile?->workspace->name,
+            'validated_profile_slug_id' => $validatedProfile?->slugId,
+            'pdf_available' => null !== $validatedProfile?->pdfStoragePath,
         ]);
     }
 }

@@ -83,6 +83,14 @@ class ValidatedInvestorProfile
     public private(set) ?string $overrideReason = null;
 
     /**
+     * Chemin de stockage du PDF de synthèse (déclaration d'adéquation), généré de façon
+     * asynchrone après validation — voir {@see \App\Infrastructure\Suitability\Handler\GenerateInvestorProfilePdfHandler}.
+     * `null` tant que la génération n'a pas encore abouti.
+     */
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    public private(set) ?string $pdfStoragePath = null;
+
+    /**
      * @param array{answers: array<string, mixed>, scoreSnapshot: array<string, mixed>} $content copie figée des réponses et du résultat du moteur de scoring (voir {@see InvestorProfileAssessment::answersAsMap()} et {@see \App\Domain\Suitability\ValueObject\SuitabilityScoreResult::toArray()})
      */
     private function __construct(
@@ -175,6 +183,11 @@ class ValidatedInvestorProfile
     public function isOverridden(): bool
     {
         return null !== $this->overriddenProfileLevel;
+    }
+
+    public function markPdfGenerated(string $storagePath): void
+    {
+        $this->pdfStoragePath = $storagePath;
     }
 
     /**

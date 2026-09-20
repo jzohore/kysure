@@ -89,6 +89,12 @@
                     <p class="text-xs text-slate-400 mb-3">
                         Validé le {{ this.inForceProfile.validatedAt|date('d/m/Y à H:i') }} par {{ this.inForceProfile.validatedByName }}
                     </p>
+                    {% if this.inForceProfile.pdfStoragePath %}
+                        <twig:Button as="a" href="{{ path('app_investor_profile_pdf_download', {slugId: this.inForceProfile.slugId}) }}" target="_blank" variant="outline" size="sm" class="mb-3">
+                            <twig:ux:icon name="lucide:file-down" class="size-3.5" aria-hidden="true" />
+                            Télécharger la synthèse PDF
+                        </twig:Button>
+                    {% endif %}
                     {% if this.canRevoke %}
                         {% if this.isRevoking %}
                             <div class="space-y-2">
