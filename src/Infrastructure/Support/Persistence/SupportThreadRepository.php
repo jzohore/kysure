@@ -250,4 +250,24 @@ readonly class SupportThreadRepository implements SupportThreadRepositoryInterfa
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * @return SupportThread[]
+     */
+    public function findOverdueOpenThreadsNeedingAlert(): array
+    {
+        return $this->repository->createQueryBuilder('st')
+            // Optimisation : on charge le cabinet et l'assigné pour éviter le N+1 dans le message Slack
+            ->addSelect('workspace', 'assignedTo')
+            ->leftJoin('st.workspace', 'workspace')
+            ->leftJoin('st.assignedTo', 'assignedTo')
+            ->where('st.status = :status')
+            ->andWhere('st.dueAt < :now')
+            ->andWhere('st.slaBreachAlertSent = :alertSent')
+            ->setParameter('status', SupportThreadStatus::OPEN)
+            ->setParameter('now', new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
+            ->setParameter('alertSent', false)
+            ->getQuery()
+            ->getResult();
+    }
 }

@@ -16,6 +16,7 @@ enum CronJob: string
     case PURGE_DER_TECHNICAL_DATA = 'purge_der_technical_data';
     case MINIMIZE_SCREENING_RESULTS = 'minimize_screening_results';
     case AUTO_RESOLVE_SUPPORT_THREADS = 'auto_resolve_support_threads';
+    case ALERT_OVERDUE_SUPPORT_THREADS = 'alert_overdue_support_threads';
 
     public function getLabel(): string
     {
@@ -24,6 +25,7 @@ enum CronJob: string
             self::PURGE_DER_TECHNICAL_DATA => 'Purge des données techniques des accusés DER',
             self::MINIMIZE_SCREENING_RESULTS => 'Minimisation des résultats de screening',
             self::AUTO_RESOLVE_SUPPORT_THREADS => 'Clôture automatique des tickets support inactifs',
+            self::ALERT_OVERDUE_SUPPORT_THREADS => 'Alerte Slack des tickets support en dépassement SLA',
         };
     }
 
@@ -34,6 +36,7 @@ enum CronJob: string
             self::PURGE_DER_TECHNICAL_DATA => 'Efface l\'IP et le user-agent des accusés de réception DER au-delà de leur durée de conservation probatoire.',
             self::MINIMIZE_SCREENING_RESULTS => 'Retire les données brutes de tiers des résultats de screening périmés.',
             self::AUTO_RESOLVE_SUPPORT_THREADS => 'Clôture les tickets de support inactifs depuis plus de 2 heures.',
+            self::ALERT_OVERDUE_SUPPORT_THREADS => 'Envoie une alerte Slack pour chaque ticket support ayant dépassé son échéance de première réponse (SLA).',
         };
     }
 
@@ -48,7 +51,8 @@ enum CronJob: string
             self::PURGE_EXPIRED_INVITATIONS,
             self::PURGE_DER_TECHNICAL_DATA,
             self::MINIMIZE_SCREENING_RESULTS => CronFrequency::DAILY_AT_3AM,
-            self::AUTO_RESOLVE_SUPPORT_THREADS => CronFrequency::EVERY_15_MINUTES,
+            self::AUTO_RESOLVE_SUPPORT_THREADS,
+            self::ALERT_OVERDUE_SUPPORT_THREADS => CronFrequency::EVERY_15_MINUTES,
         };
     }
 }

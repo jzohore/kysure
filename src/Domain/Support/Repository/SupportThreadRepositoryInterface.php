@@ -79,4 +79,12 @@ interface SupportThreadRepositoryInterface
      * @return SupportThread[]
      */
     public function findThreadsPendingClosure(\DateTimeInterface $threshold): array;
+
+    /**
+     * Tickets ouverts ayant dépassé leur échéance SLA (`dueAt`) et pas encore alertés pour ce
+     * dépassement — sert à l'alerte Slack (lot P4).
+     *
+     * @return SupportThread[]
+     */
+    public function findOverdueOpenThreadsNeedingAlert(): array;
 }

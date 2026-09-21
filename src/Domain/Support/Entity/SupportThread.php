@@ -62,6 +62,15 @@ class SupportThread
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     public private(set) bool $closureWarningSent = false;
 
+    /**
+     * Une alerte Slack de dépassement SLA a déjà été envoyée pour l'échéance courante — évite
+     * de spammer le canal à chaque exécution du cron tant que le ticket reste en dépassement.
+     * Remise à zéro si l'échéance change ({@see self::changePriority()}) ou si le ticket est
+     * rouvert ({@see self::reopen()}) : un nouveau dépassement mérite une nouvelle alerte.
+     */
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    public private(set) bool $slaBreachAlertSent = false;
+
     #[ORM\Column(type: 'string', enumType: SupportPriority::class, options: ['default' => 'normal'])]
     public private(set) SupportPriority $priority = SupportPriority::NORMAL;
 
@@ -111,6 +120,7 @@ class SupportThread
     public function reopen(): void
     {
         $this->status = SupportThreadStatus::OPEN;
+        $this->slaBreachAlertSent = false;
         $this->updateTimestamp();
     }
 
@@ -160,6 +170,7 @@ class SupportThread
         $this->priority = $priority;
         // L'échéance SLA suit la nouvelle priorité, toujours depuis la création du ticket.
         $this->dueAt = $this->createdAt->add($priority->getResponseDelay());
+        $this->slaBreachAlertSent = false;
     }
 
     /**
@@ -173,6 +184,11 @@ class SupportThread
     public function markClosureWarningAsSent(): void
     {
         $this->closureWarningSent = true;
+    }
+
+    public function markSlaBreachAlertAsSent(): void
+    {
+        $this->slaBreachAlertSent = true;
     }
 
     public function resetClosureWarning(): void

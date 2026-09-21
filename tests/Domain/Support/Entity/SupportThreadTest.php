@@ -109,4 +109,45 @@ final class SupportThreadTest extends TestCase
 
         self::assertFalse($thread->isOverdue());
     }
+
+    public function testMarkSlaBreachAlertAsSentFlagsTheThread(): void
+    {
+        $thread = SupportThread::open(
+            $this->createStub(Workspace::class),
+            $this->createStub(User::class),
+            'category',
+            'topic',
+        );
+
+        self::assertFalse($thread->slaBreachAlertSent);
+
+        $thread->markSlaBreachAlertAsSent();
+
+        self::assertTrue($thread->slaBreachAlertSent);
+    }
+
+    public function testChangePriorityResetsTheSlaBreachAlertFlag(): void
+    {
+        $thread = $this->createEntityState(SupportThread::class, [
+            'status' => SupportThreadStatus::OPEN,
+            'createdAt' => new \DateTimeImmutable('-1 hour'),
+            'slaBreachAlertSent' => true,
+        ]);
+
+        $thread->changePriority(SupportPriority::URGENT);
+
+        self::assertFalse($thread->slaBreachAlertSent);
+    }
+
+    public function testReopenResetsTheSlaBreachAlertFlag(): void
+    {
+        $thread = $this->createEntityState(SupportThread::class, [
+            'status' => SupportThreadStatus::RESOLVED,
+            'slaBreachAlertSent' => true,
+        ]);
+
+        $thread->reopen();
+
+        self::assertFalse($thread->slaBreachAlertSent);
+    }
 }
