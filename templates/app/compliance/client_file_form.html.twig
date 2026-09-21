@@ -1,0 +1,103 @@
+{% extends '@app/base_app.html.twig' %}
+
+{% block title %}{{ page_title }} | {{ company_name }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+    <div class="max-w-3xl mx-auto">
+        <a href="{{ path('app_compliance_show', {slugId: compliance_folder.slugId}) }}" class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 mb-4">
+            <twig:ux:icon name="tabler:arrow-left" class="size-4" aria-hidden="true" />
+            Retour au dossier
+        </a>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100">
+                <h1 class="text-lg font-bold text-slate-900">Fiche patrimoniale (EER)</h1>
+                <p class="text-sm text-slate-500 mt-0.5">
+                    État civil, situation familiale et professionnelle, situation patrimoniale et objectifs
+                    d'investissement du client — sert de base au rapport d'adéquation.
+                </p>
+            </div>
+
+            <div class="p-6">
+                {{ form_start(client_file_form) }}
+                <div class="space-y-8">
+
+                    <section>
+                        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500 mb-3 pb-2 border-b border-slate-100">État civil</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {{ form_row(client_file_form.civility) }}
+                            {{ form_row(client_file_form.birthDate) }}
+                            {{ form_row(client_file_form.birthPlace) }}
+                            {{ form_row(client_file_form.nationality) }}
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500 mb-3 pb-2 border-b border-slate-100">Situation familiale</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {{ form_row(client_file_form.maritalStatus) }}
+                            {{ form_row(client_file_form.childrenCount) }}
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500 mb-3 pb-2 border-b border-slate-100">Situation professionnelle</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {{ form_row(client_file_form.professionalStatus) }}
+                            {{ form_row(client_file_form.professionalSeniorityYears) }}
+                            {{ form_row(client_file_form.profession) }}
+                            {{ form_row(client_file_form.employer) }}
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500 mb-3 pb-2 border-b border-slate-100">Situation patrimoniale</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {{ form_row(client_file_form.annualIncome) }}
+                            {{ form_row(client_file_form.annualExpenses) }}
+                            {{ form_row(client_file_form.outstandingDebt) }}
+                            {{ form_row(client_file_form.investmentCapacity) }}
+                        </div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mt-5 mb-3">Poches patrimoniales</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {{ form_row(client_file_form.realEstateAmount) }}
+                            {{ form_row(client_file_form.lifeInsuranceAmount) }}
+                            {{ form_row(client_file_form.peaAmount) }}
+                            {{ form_row(client_file_form.securitiesAccountAmount) }}
+                            {{ form_row(client_file_form.regulatedSavingsAmount) }}
+                            {{ form_row(client_file_form.availableLiquidityAmount) }}
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500 mb-3 pb-2 border-b border-slate-100">
+                            Objectifs d'investissement <span class="normal-case font-normal text-slate-400">(3 maximum)</span>
+                        </h2>
+                        <div class="space-y-4">
+                            {% for objective_form in client_file_form.objectives %}
+                                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {{ form_row(objective_form.type) }}
+                                        {{ form_row(objective_form.priority) }}
+                                        {{ form_row(objective_form.horizon) }}
+                                        {{ form_row(objective_form.amount) }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+
+                    <div class="flex items-center justify-end gap-3 pt-2">
+                        <twig:Button as="a" href="{{ path('app_compliance_show', {slugId: compliance_folder.slugId}) }}" variant="ghost">Annuler</twig:Button>
+                        <twig:Button type="submit" variant="dark">
+                            <twig:ux:icon name="tabler:check" class="size-4" aria-hidden="true" />
+                            Enregistrer
+                        </twig:Button>
+                    </div>
+                </div>
+                {{ form_end(client_file_form) }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -200,6 +200,15 @@
                     <twig:ComplianceFolderApprovalComponent folderSlugId="{{ dto.slugId }}" />
                 {% endif %}
 
+                {% if not dto.isKyb %}
+                    <div class="flex justify-end">
+                        <twig:Button as="a" href="{{ path('app_client_file_edit', {slugId: dto.slugId}) }}" variant="outline" size="sm" class="focus-visible:ring-2 focus-visible:ring-slate-500">
+                            <twig:ux:icon name="tabler:file-description" class="size-4" aria-hidden="true" />
+                            Fiche patrimoniale (EER)
+                        </twig:Button>
+                    </div>
+                {% endif %}
+
                 {# POLYMORPHISME GÉRÉ PAR LE DTO #}
                 {% if dto.isKyb %}
 
