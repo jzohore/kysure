@@ -5,6 +5,18 @@ on:
         branches-ignore:
             - staging   # 🛡️ Évite la boucle infinie : le job merge-to-staging pousse
             # sur staging, ce qui redéclencherait le workflow sans cette exclusion.
+            - master    # 🛡️ Idem côté promotion staging → master (workflow séparé
+            # promote-to-master.yml) : évite qu'un fast-forward sur master ne
+            # redéclenche inutilement toute la pipeline dessus.
+    workflow_call:
+        # 🛡️ Permet à promote-to-master.yml de rejouer quality-assurance et
+        # docker-security sur le SHA réel de `staging` (celui qui sera promu),
+        # au lieu de se fier au scan déjà fait sur la feature branch d'origine.
+        inputs:
+            ref:
+                description: "Ref à checkout pour les jobs de scan (branche, tag ou SHA). Par défaut : le SHA courant."
+                required: false
+                type: string
 
 # 🛡️ Permissions par défaut resserrées au strict minimum (lecture seule).
 # Seul le job qui en a réellement besoin (merge-to-staging) élève ses droits
@@ -24,6 +36,7 @@ jobs:
             -   name: Checkout Code
                 uses: actions/checkout@v7
                 with:
+                    ref: ${{ inputs.ref || github.sha }}
                     fetch-depth: 0   # nécessaire pour les tâches GrumPHP basées sur git diff, et pour gitleaks
 
             # 🛡️ Scan de secrets : clés API, tokens, mots de passe committés par
@@ -82,6 +95,8 @@ jobs:
         steps:
             -   name: Checkout Code
                 uses: actions/checkout@v7   # aligné sur les autres jobs (Node 24)
+                with:
+                    ref: ${{ inputs.ref || github.sha }}
 
             -   name: Lint Dockerfile (hadolint)
                 uses: hadolint/hadolint-action@v3.1.0
@@ -121,6 +136,9 @@ jobs:
         name: 🔀 Auto-Merge to Staging
         needs: [quality-assurance, docker-security]
         runs-on: ubuntu-latest
+        # 🛡️ Ne tourne que sur un vrai push de feature branch, jamais quand ce
+        # workflow est réutilisé par promote-to-master.yml (re-scan de staging).
+        if: github.event_name == 'push'
         permissions:
             contents: write   # 🛡️ Élevé uniquement ici, pour git push origin staging
         steps:

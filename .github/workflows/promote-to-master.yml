@@ -1,0 +1,54 @@
+name: 🚀 Promotion staging → master
+
+on:
+    workflow_dispatch: {}   # 🛡️ Déclenchement humain uniquement — jamais automatique.
+    # La décision « staging est bon pour la prod » reste un geste volontaire ;
+    # seule la mécanique git (fast-forward sûr) est fiabilisée ci-dessous.
+
+permissions:
+    contents: read
+
+jobs:
+    # 🛡️ Rejoue quality-assurance + docker-security sur le SHA réel de
+    # `staging` (celui qui sera promu vers master), pas sur celui de la
+    # feature branch d'origine scannée au moment de son propre push.
+    re-scan-staging:
+        name: Re-scan staging avant promotion
+        uses: ./.github/workflows/ci-cd.yml
+        with:
+            ref: staging
+
+    fast-forward-master:
+        name: 🔀 Fast-forward master vers staging
+        needs: re-scan-staging
+        runs-on: ubuntu-latest
+        # 🛡️ Gate humain supplémentaire : configurer un reviewer requis sur
+        # cet environment dans Settings → Environments → production (GitHub).
+        environment: production
+        permissions:
+            contents: write   # 🛡️ Élevé uniquement ici, pour git push origin master
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Vérifie que master est bien ancêtre de staging
+              # 🛡️ Si master a divergé (ex. hotfix committé directement dessus),
+              # le fast-forward doit échouer bruyamment — jamais de merge commit
+              # ni de --force pour forcer le passage.
+              run: |
+                  git fetch origin master staging
+                  if ! git merge-base --is-ancestor origin/master origin/staging; then
+                    echo "::error::master a divergé de staging — fast-forward impossible. Intervention humaine requise (pas de merge commit, pas de force push)."
+                    exit 1
+                  fi
+
+            - name: Fast-forward master (jamais de merge commit, jamais de --force)
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git checkout master
+                  git merge --ff-only origin/staging
+                  git push origin master
