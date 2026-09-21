@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Suitability\Twig\Components;
 
+use App\Application\Suitability\DTO\Response\InvestorProfileComparisonResponse;
+use App\Application\Suitability\UseCase\InvestorProfileComparisonAssembler;
 use App\Application\Suitability\UseCase\RevokeInvestorProfileUseCase;
 use App\Application\Suitability\UseCase\ValidateInvestorProfileUseCase;
 use App\Domain\Compliance\Entity\ComplianceFolder;
@@ -74,6 +76,8 @@ class InvestorProfileReviewComponent extends AbstractController
     private bool $inForceProfileLoaded = false;
     private ?AdvisoryRiskProfile $advisoryRiskProfileCache = null;
     private bool $advisoryRiskProfileLoaded = false;
+    /** @var list<ValidatedInvestorProfile>|null */
+    private ?array $historyCache = null;
 
     public function __construct(
         private readonly ClientRepositoryInterface $clientRepository,
@@ -86,6 +90,7 @@ class InvestorProfileReviewComponent extends AbstractController
         private readonly RevokeInvestorProfileUseCase $revokeInvestorProfileUseCase,
         private readonly TraderWithoutSafetyNetDetector $traderWithoutSafetyNetDetector,
         private readonly AdvisoryProfileDivergenceDetector $divergenceDetector,
+        private readonly InvestorProfileComparisonAssembler $comparisonAssembler,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -217,6 +222,38 @@ class InvestorProfileReviewComponent extends AbstractController
         return $this->divergenceDetector->detect($advisoryProfile, $retainedLevel);
     }
 
+    /**
+     * Historique complet des versions du profil investisseur pour ce client, dans CE cabinet
+     * uniquement, du plus récent au plus ancien.
+     *
+     * @return list<ValidatedInvestorProfile>
+     */
+    public function getHistory(): array
+    {
+        return $this->historyCache ??= $this->profileRepository->findAllByClient($this->getClient(), $this->workspaceProvider->getWorkspace());
+    }
+
+    public function hasMultipleVersions(): bool
+    {
+        return \count($this->getHistory()) > 1;
+    }
+
+    /**
+     * Comparatif visuel entre les deux versions les plus récentes (cas typique : révocation
+     * puis revalidation après un changement de situation du client) — `null` s'il n'y a rien à
+     * comparer.
+     */
+    public function getComparison(): ?InvestorProfileComparisonResponse
+    {
+        $history = $this->getHistory();
+
+        if (\count($history) < 2) {
+            return null;
+        }
+
+        return $this->comparisonAssembler->assemble(older: $history[1], newer: $history[0]);
+    }
+
     public function canValidate(): bool
     {
         $assessment = $this->getLatestAssessment();
@@ -321,5 +358,6 @@ class InvestorProfileReviewComponent extends AbstractController
         $this->latestAssessmentLoaded = false;
         $this->inForceProfileCache = null;
         $this->inForceProfileLoaded = false;
+        $this->historyCache = null;
     }
 }

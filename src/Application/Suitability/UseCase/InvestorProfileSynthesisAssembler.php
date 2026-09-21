@@ -80,7 +80,12 @@ class InvestorProfileSynthesisAssembler
         return $result;
     }
 
-    private function formatAnswer(QuestionKey $key, mixed $value): string
+    /**
+     * Traduit une réponse brute en libellé lisible — public pour être réutilisé par
+     * {@see InvestorProfileComparisonAssembler}, qui a
+     * besoin exactement du même formatage pour comparer deux versions d'un profil.
+     */
+    public function formatAnswer(QuestionKey $key, mixed $value): string
     {
         $choices = $key->choices();
 

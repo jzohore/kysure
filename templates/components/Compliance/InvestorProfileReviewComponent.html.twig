@@ -118,6 +118,49 @@
                             Télécharger la synthèse PDF
                         </twig:Button>
                     {% endif %}
+
+                    {% if this.hasMultipleVersions %}
+                        {% set comparison = this.comparison %}
+                        <details class="mb-4 group">
+                            <summary class="list-none cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900">
+                                <twig:ux:icon name="lucide:git-compare" class="size-3.5" aria-hidden="true" />
+                                Comparer avec la version précédente (v{{ comparison.oldVersion }} → v{{ comparison.newVersion }})
+                                <twig:ux:icon name="lucide:chevron-down" class="size-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
+                            </summary>
+
+                            <div class="mt-2 rounded-lg border border-slate-200 overflow-hidden">
+                                <div class="grid grid-cols-[1fr_1fr_1fr] bg-slate-50 text-[11px] font-semibold text-slate-500 px-3 py-2 border-b border-slate-200">
+                                    <div>Question</div>
+                                    <div>v{{ comparison.oldVersion }} — {{ comparison.oldValidatedAt|date('d/m/Y') }}</div>
+                                    <div>v{{ comparison.newVersion }} — {{ comparison.newValidatedAt|date('d/m/Y') }}</div>
+                                </div>
+
+                                {% if comparison.levelChanged %}
+                                    <div class="px-3 py-2 bg-amber-50 text-xs text-amber-800 border-b border-amber-100 flex items-center gap-1.5">
+                                        <twig:ux:icon name="lucide:trending-up" class="size-3.5 shrink-0" aria-hidden="true" />
+                                        Profil retenu changé : {{ comparison.oldRetainedLevel }} — {{ comparison.oldRetainedLabel }}
+                                        → {{ comparison.newRetainedLevel }} — {{ comparison.newRetainedLabel }}
+                                    </div>
+                                {% endif %}
+
+                                <div class="max-h-80 overflow-y-auto">
+                                    {% for dimension in comparison.dimensions %}
+                                        {% if dimension.answers|length > 0 %}
+                                            <div class="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide bg-white">{{ dimension.label }}</div>
+                                            {% for answer in dimension.answers %}
+                                                <div class="grid grid-cols-[1fr_1fr_1fr] px-3 py-1.5 text-xs border-t border-slate-100 {{ answer.changed ? 'bg-amber-50' : '' }}">
+                                                    <div class="text-slate-500 pr-2">{{ answer.questionLabel }}</div>
+                                                    <div class="{{ answer.changed ? 'text-amber-800 font-medium' : 'text-slate-700' }} pr-2">{{ answer.oldAnswerLabel }}</div>
+                                                    <div class="{{ answer.changed ? 'text-amber-800 font-medium' : 'text-slate-700' }}">{{ answer.newAnswerLabel }}</div>
+                                                </div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </details>
+                    {% endif %}
+
                     {% if this.canRevoke %}
                         {% if this.isRevoking %}
                             <div class="space-y-2">
