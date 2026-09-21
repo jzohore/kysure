@@ -11,13 +11,26 @@
             Bonjour {{ dashboard.clientFirstName }},
         </h1>
         <p class="text-sm sm:text-base text-slate-600 mt-1">
-            Voici un résumé de votre situation réglementaire.
+            {% if dashboard.cabinetRelationships|length > 1 %}
+                Voici un résumé de votre situation réglementaire auprès de vos {{ dashboard.cabinetRelationships|length }} cabinets.
+            {% else %}
+                Voici un résumé de votre situation réglementaire.
+            {% endif %}
         </p>
     </div>
 
-    {# 2. LA PRIORITÉ : LE DOSSIER ACTIF (Pleine largeur) #}
-    {% if dashboard.activeFolder %}
-        {% set status = dashboard.portalStatus %}
+    {# Un client peut être suivi par plusieurs cabinets à la fois : une section par relation
+       active, jamais une seule mise en avant arbitraire qui masquerait les autres. #}
+    {% for relationship in dashboard.cabinetRelationships %}
+        {% if dashboard.cabinetRelationships|length > 1 %}
+            <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2 {{ not loop.first ? 'mt-10' : '' }}">
+                <twig:ux:icon name="tabler:building-bank" class="size-4" aria-hidden="true" />
+                {{ relationship.activeFolder.workspaceName }}
+            </h2>
+        {% endif %}
+
+        {# 2. LE DOSSIER DE CE CABINET (Pleine largeur) #}
+        {% set status = relationship.activeFolder.status %}
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
             <div class="border-l-4 {{ status.accentBorderClass }} p-6 sm:p-8">
                 <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
@@ -27,11 +40,11 @@
                         </div>
                         <div>
                             <h2 class="text-lg font-semibold text-slate-900 tracking-tight">
-                                {{ dashboard.activeFolder.title }}
+                                {{ relationship.activeFolder.title }}
                             </h2>
                             <p class="text-sm text-slate-600 mt-1.5 leading-relaxed max-w-xl">
                                 {% if status.value == 'action_required' %}
-                                    Votre cabinet requiert <strong>{{ dashboard.pendingDocumentsCount }} pièce(s) justificative(s)</strong> pour finaliser la mise en conformité de votre dossier.
+                                    Votre cabinet requiert <strong>{{ relationship.pendingDocumentsCount }} pièce(s) justificative(s)</strong> pour finaliser la mise en conformité de votre dossier.
                                 {% elseif status.value == 'under_review' %}
                                     Votre dossier a été transmis à votre cabinet. L'analyse est en cours&nbsp;: aucune action n'est requise de votre part, vous serez prévenu·e dès qu'elle sera terminée.
                                 {% else %}
@@ -49,13 +62,13 @@
 
                 <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-end gap-3">
                     {% if status.value == 'action_required' %}
-                        <a href="{{ path('app_portal_folder_detail', {id: dashboard.activeFolder.id}) }}"
+                        <a href="{{ path('app_portal_folder_detail', {id: relationship.activeFolder.id}) }}"
                            class="inline-flex items-center justify-center gap-2 bg-[#0B261C] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B261C] focus-visible:ring-offset-2 transition-all shadow-sm">
                             Transmettre mes pièces
                             <twig:ux:icon name="tabler:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
                         </a>
                     {% else %}
-                        <a href="{{ path('app_portal_folder_detail', {id: dashboard.activeFolder.id}) }}"
+                        <a href="{{ path('app_portal_folder_detail', {id: relationship.activeFolder.id}) }}"
                            class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-md transition-colors">
                             Voir le détail
                             <twig:ux:icon name="tabler:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
@@ -64,29 +77,49 @@
                 </div>
             </div>
         </div>
-    {% endif %}
 
-    {# 3. MON CONSEILLER #}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <twig:ux:icon name="tabler:building-bank" class="size-4 text-slate-400" aria-hidden="true" />
-            Votre cabinet
-        </h3>
-        <div class="flex items-start gap-4">
-            <div class="size-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                <span class="text-lg font-bold text-slate-400" aria-hidden="true">{{ dashboard.cabinetName|first }}</span>
-            </div>
-            <div>
-                <h4 class="font-medium text-slate-900">{{ dashboard.cabinetName }}</h4>
-                <p class="text-sm text-slate-500 mt-0.5">Conseil en gestion de patrimoine</p>
-
-                {% if dashboard.cabinetContactEmail %}
-                    <a href="mailto:{{ dashboard.cabinetContactEmail }}" class="mt-3 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors group">
-                        <twig:ux:icon name="tabler:mail" class="size-4 text-slate-400" aria-hidden="true" />
-                        {{ dashboard.cabinetContactEmail }}
-                    </a>
-                {% endif %}
+        {# 3. PROFIL INVESTISSEUR DE CE CABINET #}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+            <div class="flex items-start gap-4">
+                <div class="p-2.5 rounded-lg bg-indigo-50 ring-1 ring-inset ring-indigo-100 shrink-0">
+                    <twig:ux:icon name="tabler:chart-bar" class="size-5 text-indigo-600" aria-hidden="true" />
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-medium text-slate-900">Votre profil investisseur pour {{ relationship.activeFolder.workspaceName }}</h3>
+                    <p class="text-sm text-slate-500 mt-0.5">
+                        {{ relationship.investorProfileStatus.description }}
+                    </p>
+                </div>
+                <a href="{{ path('app_portal_investor_profile', {folderId: relationship.activeFolder.id}) }}"
+                   class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-md transition-colors">
+                    {{ relationship.investorProfileStatus.ctaLabel }}
+                    <twig:ux:icon name="tabler:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
+                </a>
             </div>
         </div>
-    </div>
+
+        {# 4. CE CABINET #}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 {{ loop.last ? '' : 'mb-8' }}">
+            <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <twig:ux:icon name="tabler:building-bank" class="size-4 text-slate-400" aria-hidden="true" />
+                Votre cabinet
+            </h3>
+            <div class="flex items-start gap-4">
+                <div class="size-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                    <span class="text-lg font-bold text-slate-400" aria-hidden="true">{{ relationship.activeFolder.workspaceName|first }}</span>
+                </div>
+                <div>
+                    <h4 class="font-medium text-slate-900">{{ relationship.activeFolder.workspaceName }}</h4>
+                    <p class="text-sm text-slate-500 mt-0.5">Conseil en gestion de patrimoine</p>
+
+                    {% if relationship.cabinetContactEmail %}
+                        <a href="mailto:{{ relationship.cabinetContactEmail }}" class="mt-3 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors group">
+                            <twig:ux:icon name="tabler:mail" class="size-4 text-slate-400" aria-hidden="true" />
+                            {{ relationship.cabinetContactEmail }}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
 {% endblock %}

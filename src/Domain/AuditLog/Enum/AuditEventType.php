@@ -97,6 +97,13 @@ enum AuditEventType: string
     case SCREENING_PERFORMED = 'screening.performed';
     case ADVISORY_REPORT_GENERATED = 'advisory.generated';
 
+    // --- PROFIL INVESTISSEUR (QUESTIONNAIRE DE SUITABILITY) ---
+    case SUITABILITY_ASSESSMENT_STARTED = 'suitability.assessment_started';
+    case SUITABILITY_ASSESSMENT_SUBMITTED = 'suitability.assessment_submitted';
+    case SUITABILITY_PROFILE_VALIDATED = 'suitability.profile_validated';
+    case SUITABILITY_PROFILE_REVOKED = 'suitability.profile_revoked';
+    case SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING = 'suitability.high_risk_low_capacity_warning';
+
     // --- FACTURATION & ABONNEMENT STRIPE ---
     case SUBSCRIPTION_ACTIVATED = 'billing.subscription_activated';
     case SUBSCRIPTION_CANCELED = 'billing.subscription_canceled';
@@ -232,6 +239,13 @@ enum AuditEventType: string
             self::SCREENING_PERFORMED => 'Vérification Listes de Sanctions / PPE',
             self::ADVISORY_REPORT_GENERATED => 'Génération du rapport d\'adéquation',
 
+            // Profil investisseur
+            self::SUITABILITY_ASSESSMENT_STARTED => 'Ouverture du questionnaire profil investisseur',
+            self::SUITABILITY_ASSESSMENT_SUBMITTED => 'Soumission du questionnaire profil investisseur',
+            self::SUITABILITY_PROFILE_VALIDATED => 'Validation du profil investisseur',
+            self::SUITABILITY_PROFILE_REVOKED => 'Révocation du profil investisseur',
+            self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'Mise en garde : appétence au risque élevée malgré une capacité à subir des pertes très faible',
+
             // Facturation
             self::SUBSCRIPTION_ACTIVATED => 'Activation de l\'abonnement SaaS',
             self::SUBSCRIPTION_CANCELED => 'Résiliation de l\'abonnement',
@@ -289,6 +303,12 @@ enum AuditEventType: string
             self::ORIAS_CHECK_FAILED,
             self::SCREENING_PERFORMED,
             self::ADVISORY_REPORT_GENERATED => 'Agréments & Screening',
+
+            self::SUITABILITY_ASSESSMENT_STARTED,
+            self::SUITABILITY_ASSESSMENT_SUBMITTED,
+            self::SUITABILITY_PROFILE_VALIDATED,
+            self::SUITABILITY_PROFILE_REVOKED,
+            self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'Profil investisseur',
 
             self::KYC_FOLDER_INITIATED,
             self::KYC_PORTAL_ACCESSED,
@@ -367,6 +387,7 @@ enum AuditEventType: string
             self::DER_SIGNED,
             self::DER_ACKNOWLEDGED,
             self::MEETING_REPORT_VALIDATED,
+            self::SUITABILITY_PROFILE_VALIDATED,
             self::ORIAS_CHECK_SUCCESS,
             self::SIRET_CHECK_SUCCESS,
             self::WORKSPACE_INVITATION_ACCEPTED,
@@ -383,15 +404,18 @@ enum AuditEventType: string
             self::DER_ACKNOWLEDGEMENT_REVOKED,
             self::DER_DECLINED,
             self::WORKSPACE_INVITATION_REVOKED,
+            self::SUITABILITY_PROFILE_REVOKED,
             self::SUBSCRIPTION_CANCELED => 'bg-rose-50 text-rose-700 border-rose-200',
 
             self::ADMIN_IMPERSONATION_START,
             self::ADMIN_IMPERSONATION_EXIT,
-            self::SUBSCRIPTION_TRIAL_EXTENDED => 'bg-amber-50 text-amber-700 border-amber-200',
+            self::SUBSCRIPTION_TRIAL_EXTENDED,
+            self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'bg-amber-50 text-amber-700 border-amber-200',
 
             self::KYC_DOCUMENT_OCR_PROCESSED,
             self::SCREENING_PERFORMED,
-            self::ADVISORY_REPORT_GENERATED => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+            self::ADVISORY_REPORT_GENERATED,
+            self::SUITABILITY_ASSESSMENT_SUBMITTED => 'bg-indigo-50 text-indigo-700 border-indigo-200',
 
             default => 'bg-slate-100 text-slate-700 border-slate-200',
         };
@@ -411,6 +435,8 @@ enum AuditEventType: string
             self::MEETING_REPORT_REVOKED,
             self::DER_ACKNOWLEDGEMENT_REVOKED,
             self::DER_DECLINED,
+            self::SUITABILITY_PROFILE_REVOKED,
+            self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING,
             self::KYC_LEGAL_HOLD_PLACED,
             self::CLIENT_ACCOUNT_DELETED,
             self::ADMIN_IMPERSONATION_START,

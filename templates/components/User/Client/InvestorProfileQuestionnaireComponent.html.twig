@@ -1,0 +1,114 @@
+<div{{ attributes.defaults({'data-controller': 'investor-profile-scroll-top'}) }} class="max-w-lg mx-auto">
+    {% include 'components/partials/_live_alerts.html.twig' with {
+        message: this.actionMessage|default(null),
+        type: this.actionMessageType|default('error')
+    } %}
+
+    {# Barre de progression, par dimension (5 écrans max) plutôt que par question (22) #}
+    <div class="mb-8">
+        <div class="flex items-center justify-between text-xs font-medium text-slate-500 mb-2">
+            <span>{{ this.currentDimension.label }}</span>
+            <span class="tabular-nums">Section {{ this.currentDimensionIndex + 1 }} / {{ this.totalDimensions }}</span>
+        </div>
+        <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden" role="progressbar" aria-valuenow="{{ this.progressPercent }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="h-1.5 bg-[#0B261C] rounded-full transition-all duration-300" style="width: {{ this.progressPercent }}%;"></div>
+        </div>
+    </div>
+
+    {% if this.hasUnconfirmedPrefillInCurrentSection %}
+        <div class="mb-6 rounded-lg border border-indigo-200 border-l-4 border-l-indigo-500 bg-indigo-50/40 p-4 flex items-start gap-3">
+            <twig:ux:icon name="tabler:info-circle" class="size-5 text-indigo-600 shrink-0 mt-0.5" aria-hidden="true" />
+            <p class="text-sm text-indigo-900">
+                Nous avons repris vos dernières réponses connues auprès d'un autre cabinet. Vérifiez-les et ajustez-les si votre situation a changé.
+            </p>
+        </div>
+    {% endif %}
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8">
+        {% for question in this.currentQuestions %}
+            <div {% if not loop.first %}class="pt-8 border-t border-slate-100"{% endif %}>
+                <h2 class="text-base sm:text-lg font-semibold text-slate-900 leading-snug">
+                    {{ question.label }}
+                </h2>
+                {% if question.helpText %}
+                    <p class="text-sm text-slate-500 mt-1.5">{{ question.helpText }}</p>
+                {% endif %}
+
+                <div class="mt-4">
+                    {% set answer_type = question.answerType.name %}
+                    {% if answer_type in ['SINGLE_CHOICE_INT', 'SINGLE_CHOICE_STRING'] %}
+                        <div class="space-y-2.5" role="radiogroup">
+                            {% for value, label in question.choices %}
+                                <label class="flex items-center gap-3 p-3.5 rounded-lg border border-slate-200 cursor-pointer has-[:checked]:border-[#0B261C] has-[:checked]:bg-[#0B261C]/[0.03] transition-colors">
+                                    <input type="radio" name="choice_{{ question.value }}" value="{{ value }}" data-model="answers[{{ question.value }}]"
+                                           class="size-4 text-[#0B261C] border-slate-300 focus:ring-[#0B261C]"
+                                           {{ this.answers[question.value]|default(null) == value ? 'checked' : '' }} />
+                                    <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    {% elseif answer_type == 'MULTI_CHOICE_STRING' %}
+                        <div class="space-y-2.5">
+                            {% for value, label in question.choices %}
+                                <label class="flex items-center gap-3 p-3.5 rounded-lg border border-slate-200 cursor-pointer has-[:checked]:border-[#0B261C] has-[:checked]:bg-[#0B261C]/[0.03] transition-colors">
+                                    <input type="checkbox" value="{{ value }}" data-model="productsHeld"
+                                           class="size-4 rounded text-[#0B261C] border-slate-300 focus:ring-[#0B261C]"
+                                           {{ value in this.productsHeld ? 'checked' : '' }} />
+                                    <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    {% elseif answer_type == 'BOOLEAN' %}
+                        <div class="grid grid-cols-2 gap-3" role="radiogroup">
+                            {% for value, label in {'1': 'Oui', '0': 'Non'} %}
+                                <label class="flex items-center justify-center gap-2 p-3.5 rounded-lg border border-slate-200 cursor-pointer has-[:checked]:border-[#0B261C] has-[:checked]:bg-[#0B261C]/[0.03] transition-colors">
+                                    <input type="radio" name="bool_{{ question.value }}" value="{{ value }}" data-model="answers[{{ question.value }}]"
+                                           class="size-4 text-[#0B261C] border-slate-300 focus:ring-[#0B261C]"
+                                           {{ this.answers[question.value]|default(null) == value ? 'checked' : '' }} />
+                                    <span class="text-sm font-medium text-slate-800">{{ label }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    {% elseif answer_type in ['INTEGER', 'DECIMAL'] %}
+                        <input type="number" inputmode="decimal" step="{{ answer_type == 'DECIMAL' ? '0.01' : '1' }}" min="0"
+                               data-model="norender|answers[{{ question.value }}]" value="{{ this.answers[question.value]|default(null) }}"
+                               class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-[#0B261C] focus:ring-[#0B261C] text-base py-3 px-4"
+                               placeholder="0" />
+                    {% else %}
+                        <textarea data-model="norender|answers[{{ question.value }}]" rows="3"
+                                  class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-[#0B261C] focus:ring-[#0B261C] text-base py-3 px-4"
+                                  placeholder="Facultatif">{{ this.answers[question.value]|default(null) }}</textarea>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="flex items-center justify-between gap-3 mt-6">
+        {% if this.currentDimensionIndex == 0 %}
+            <twig:Button as="button" type="button" variant="outline" disabled>
+                <twig:ux:icon name="tabler:arrow-left" class="size-4" aria-hidden="true" />
+                Précédent
+            </twig:Button>
+        {% else %}
+            <twig:Button as="button" type="button" variant="outline"
+                         data-action="investor-profile-scroll-top#scrollToTop live#action" data-live-action-param="previous">
+                <twig:ux:icon name="tabler:arrow-left" class="size-4" aria-hidden="true" />
+                Précédent
+            </twig:Button>
+        {% endif %}
+
+        {% set is_last_section = (this.currentDimensionIndex + 1 == this.totalDimensions) %}
+        <twig:Button as="button" type="button" variant="dark"
+                     data-action="investor-profile-scroll-top#scrollToTop live#action" data-live-action-param="next"
+                     class="flex-1 justify-center">
+            <span data-loading="action(next)|hide">
+                {{ is_last_section ? 'Terminer' : 'Continuer' }}
+            </span>
+            <span data-loading="action(next)|show" class="hidden items-center gap-2" role="status">
+                <twig:ux:icon name="tabler:loader" class="size-4 animate-spin" aria-hidden="true" />
+                Enregistrement…
+            </span>
+        </twig:Button>
+    </div>
+</div>

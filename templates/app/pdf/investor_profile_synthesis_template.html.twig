@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Déclaration d'adéquation - {{ synthesis.clientFullName }}</title>
+    <style>
+        /* =========================================================================
+           Déclaration d'adéquation — synthèse du profil investisseur validé
+           PDF généré par Gotenberg (Chromium headless), fichier HTML unique,
+           aucune feuille de style externe. Contraintes : lisible en noir & blanc,
+           polices système. Gabarit calqué sur der_template.html.twig.
+           ========================================================================= */
+
+        * { box-sizing: border-box; }
+
+        @page {
+            size: A4 portrait;
+            margin: 14mm 16mm 15mm;
+        }
+
+        html {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10.5px;
+            line-height: 1.5;
+            color: #0f172a;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 24px;
+            padding-bottom: 10px;
+            margin-bottom: 18px;
+            border-bottom: 2px solid #0f172a;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .header .logo {
+            display: block;
+            max-height: 46px;
+            max-width: 150px;
+        }
+        .header .firm-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .doc-meta {
+            flex-shrink: 0;
+            text-align: right;
+        }
+        .doc-meta .kicker {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #0f172a;
+        }
+        .doc-meta table {
+            margin-left: auto;
+            border-collapse: collapse;
+        }
+        .doc-meta td {
+            padding: 1px 0;
+            font-size: 8.5px;
+        }
+        .doc-meta td.k {
+            padding-right: 8px;
+            text-align: right;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #475569;
+        }
+        .doc-meta td.v {
+            text-align: right;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .info-grid {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 16px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .info-box {
+            flex: 1;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #94a3b8;
+            padding: 10px 12px;
+        }
+        .info-box .label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #475569;
+        }
+        .info-box .body {
+            font-size: 9.5px;
+            line-height: 1.5;
+            color: #0f172a;
+        }
+
+        h1 {
+            margin: 16px 0 7px;
+            padding-bottom: 4px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #0f172a;
+            border-bottom: 1.5px solid #0f172a;
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+        .sec {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        p {
+            margin: 5px 0 9px;
+        }
+        strong {
+            color: #0f172a;
+        }
+
+        .fine-print {
+            font-size: 8.5px;
+            line-height: 1.45;
+            color: #475569;
+        }
+
+        /* --- Profil retenu --- */
+        .profile-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #0f172a;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .profile-box .level {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .profile-box .override-note {
+            margin-top: 6px;
+            font-size: 8.5px;
+            color: #475569;
+        }
+
+        /* --- Tableau des réponses --- */
+        .dimension-title {
+            margin: 12px 0 4px;
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        table.answers {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        table.answers tr {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        table.answers td {
+            padding: 4px 4px;
+            font-size: 9px;
+            vertical-align: top;
+        }
+        table.answers td.q {
+            width: 60%;
+            color: #475569;
+        }
+        table.answers td.a {
+            width: 40%;
+            font-weight: 600;
+            color: #0f172a;
+            text-align: right;
+        }
+
+        /* --- Bloc d'intégrité (pas de signature : v0) --- */
+        .integrity-box {
+            margin-top: 18px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            padding: 12px 14px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .integrity-box .row {
+            margin-bottom: 4px;
+            font-size: 9px;
+            color: #475569;
+        }
+        .integrity-box .row strong {
+            color: #0f172a;
+        }
+        .integrity-box .hash {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 8px;
+            word-break: break-all;
+            color: #64748b;
+        }
+
+        .doc-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 16px;
+            padding-top: 8px;
+            font-size: 8px;
+            color: #475569;
+            border-top: 1px solid #e2e8f0;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="brand">
+        {% if synthesis.workspaceLogoStoragePath %}
+            <img src="{{ synthesis.workspaceLogoStoragePath|private_url }}" class="logo" alt="Logo du cabinet">
+        {% else %}
+            <div class="firm-name">{{ synthesis.workspaceName }}</div>
+        {% endif %}
+    </div>
+    <div class="doc-meta">
+        <span class="kicker">DÉCLARATION D'ADÉQUATION</span>
+        <table>
+            <tr><td class="k">Version</td><td class="v">{{ synthesis.version }}</td></tr>
+            <tr><td class="k">Validée le</td><td class="v">{{ synthesis.validatedAt|date("d/m/Y") }}</td></tr>
+        </table>
+    </div>
+</div>
+
+<div class="info-grid">
+    <div class="info-box">
+        <span class="label">LE CABINET</span>
+        <div class="body">
+            {{ synthesis.workspaceLegalName ?: synthesis.workspaceName }}<br>
+            {{ synthesis.workspaceAddress|default('Adresse à compléter dans les Réglages') }}<br>
+            SIRET : {{ synthesis.workspaceSiret|default('à compléter dans les Réglages') }}
+        </div>
+    </div>
+    <div class="info-box">
+        <span class="label">LE CLIENT</span>
+        <div class="body">
+            {{ synthesis.clientFullName }}<br>
+            Email : {{ synthesis.clientEmail }}
+        </div>
+    </div>
+</div>
+
+<section class="sec">
+    <h1>Profil investisseur retenu</h1>
+    <div class="profile-box">
+        <div class="level">{{ synthesis.retainedProfileLevel }}/7 — {{ synthesis.retainedProfileLabel }}</div>
+        {% if synthesis.isOverridden %}
+            <div class="override-note">
+                Corrigé par le conseiller (le moteur de scoring proposait initialement le niveau {{ synthesis.computedProfileLevel }}/7).
+                Motif : {{ synthesis.overrideReason }}
+            </div>
+        {% endif %}
+    </div>
+    <p class="fine-print">
+        Ce niveau, établi sur une échelle réglementaire de 1 (très prudent) à 7 (agressif), résulte des réponses
+        du client au questionnaire d'évaluation de son adéquation (connaissances, expérience, tolérance au
+        risque, capacité financière, préférences de durabilité). Il constitue une donnée d'entrée pour le
+        devoir de conseil du cabinet, non une recommandation de produit.
+    </p>
+</section>
+
+<section class="sec">
+    <h1>Détail des réponses</h1>
+    {% for dimension in synthesis.dimensions %}
+        {% if dimension.answers|length > 0 %}
+            <div class="dimension-title">{{ dimension.label }}</div>
+            <table class="answers">
+                {% for answer in dimension.answers %}
+                    <tr>
+                        <td class="q">{{ answer.questionLabel }}</td>
+                        <td class="a">{{ answer.answerLabel }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+    {% endfor %}
+</section>
+
+<div class="integrity-box">
+    <div class="row">
+        Document généré automatiquement à partir des réponses du client et figé au moment de la validation
+        par le conseiller — il n'est <strong>pas destiné à être signé</strong>. La preuve de son intégrité est
+        l'empreinte numérique ci-dessous : toute altération du contenu source la rendrait invalide.
+    </div>
+    <div class="row"><strong>Validé par :</strong> {{ synthesis.validatedByName }}</div>
+    <div class="row"><strong>Le :</strong> {{ synthesis.validatedAt|date("d/m/Y à H:i") }}</div>
+    <div class="row"><strong>Empreinte SHA-256 :</strong></div>
+    <div class="hash">{{ synthesis.contentHash }}</div>
+</div>
+
+<div class="doc-footer">
+    <span>{{ synthesis.workspaceLegalName ?: synthesis.workspaceName }} &mdash; SIRET {{ synthesis.workspaceSiret }}</span>
+    <span>Déclaration d'adéquation &middot; Profil investisseur v{{ synthesis.version }}</span>
+</div>
+
+</body>
+</html>

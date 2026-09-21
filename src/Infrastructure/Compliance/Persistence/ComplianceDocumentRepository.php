@@ -101,6 +101,19 @@ class ComplianceDocumentRepository implements ComplianceDocumentRepositoryInterf
             ->getSingleScalarResult();
     }
 
+    public function countPendingForFolder(ComplianceFolder $folder): int
+    {
+        return (int) $this->repository->createQueryBuilder('cd')
+            ->select('COUNT(cd.id)')
+            ->where('cd.folder = :folder')
+            ->andWhere('cd.status IN (:statuses)')
+            ->andWhere('cd.isAskToClient = true')
+            ->setParameter('folder', $folder)
+            ->setParameter('statuses', DocumentStatus::getActionableByClientStatuses())
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     /**
      * @return array<ComplianceDocument>
      */

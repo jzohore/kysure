@@ -47,6 +47,13 @@ interface ComplianceDocumentRepositoryInterface
     public function countPendingForClient(Client $client): int;
 
     /**
+     * Comme {@see self::countPendingForClient()}, mais pour un seul dossier — nécessaire dès
+     * qu'un client a plusieurs dossiers actifs à la fois (un par cabinet) : le compteur d'un
+     * cabinet ne doit jamais inclure les pièces demandées par un autre.
+     */
+    public function countPendingForFolder(ComplianceFolder $folder): int;
+
+    /**
      * @return array<ComplianceDocument>
      */
     public function findByFolder(ComplianceFolder $folder): array;

@@ -58,6 +58,9 @@ framework:
             'App\Infrastructure\Workspace\Message\DispatchInvitationEmailMessage': async_priority
             # Équipe KYSURE : notification du membre concerné (création / rôle / statut).
             'App\Infrastructure\User\Message\SendAdminAccountEmailMessage': async_priority
+            # Profil investisseur : alerte cabinet à la soumission, relance client en pause.
+            'App\Infrastructure\Suitability\Message\DispatchNotifyAssessmentSubmitted': async_priority
+            'App\Infrastructure\Suitability\Message\SendAssessmentReminderMessage': async_priority
 
             # --- WORKFLOW KYC & S3 (Peut prendre 1 ou 2 secondes) ---
             'App\Infrastructure\KYC\Message\SendSubmittedKycFolderMessage': async_main
@@ -77,6 +80,8 @@ framework:
             'App\Infrastructure\Ocr\Message\ProcessOcrMessage': async_heavy
             # Génération du PDF du DER : appel Gotenberg (API externe potentiellement lente).
             'App\Infrastructure\Compliance\Message\GenerateDerPdfMessage': async_heavy
+            # Génération du PDF de synthèse (déclaration d'adéquation) du profil investisseur.
+            'App\Infrastructure\Suitability\Message\GenerateInvestorProfilePdfMessage': async_heavy
             # Tes commandes de conformité lourdes
 
             # --- TÂCHES PLANIFIÉES (déclenchement manuel depuis le back-office) ---

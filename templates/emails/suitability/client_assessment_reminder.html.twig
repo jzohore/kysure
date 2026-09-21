@@ -1,0 +1,18 @@
+{% extends 'emails/base.html.twig' %}
+
+{% block title %}Il vous reste quelques questions à répondre{% endblock %}
+
+{% block content %}
+    <h1>Bonjour {{ first_name }},</h1>
+
+    <p>Vous avez commencé à répondre à votre questionnaire profil investisseur, mais il n'est pas encore terminé. Il ne vous reste que quelques questions pour le finaliser.</p>
+
+    <div class="btn-container">
+        <a href="{{ action_url }}" class="btn">Terminer mon questionnaire</a>
+    </div>
+
+    <p style="font-size: 12px; color: #94a3b8; word-break: break-all; margin-top: 20px;">
+        Si le bouton ne fonctionne pas, copiez et collez cette adresse dans votre navigateur :<br>
+        <a href="{{ action_url }}" style="color: #64748b;">{{ action_url }}</a>
+    </p>
+{% endblock %}

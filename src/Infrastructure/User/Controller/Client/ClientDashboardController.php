@@ -32,9 +32,16 @@ final class ClientDashboardController extends AbstractController
         // Le contrôleur ne fait plus qu'orchestrer
         $dashboardDto = ($this->getClientDashboardUseCase)($client);
 
+        // Un seul cabinet : son nom sert de branding d'en-tête, comme avant. Plusieurs
+        // cabinets à la fois : aucun nom de cabinet n'a de sens seul en en-tête, retombe sur
+        // la marque de la plateforme.
+        $companyName = 1 === \count($dashboardDto->cabinetRelationships)
+            ? $dashboardDto->cabinetRelationships[0]->activeFolder->workspaceName
+            : 'KYSURE';
+
         return $this->render('@app/client/dashboard.html.twig', [
             'dashboard' => $dashboardDto,
-            'company_name' => $dashboardDto->cabinetName,
+            'company_name' => $companyName,
             'folders' => ($this->getClientFoldersUseCase)($client),
         ]);
     }

@@ -1,0 +1,18 @@
+{% extends '@app/client/layout_client.html.twig' %}
+
+{% block title %}Votre profil investisseur | {{ company_name|default('KYSURE') }}{% endblock %}
+
+{% block client_main %}
+    <div class="mb-8 max-w-lg mx-auto">
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Votre profil investisseur</h1>
+        <p class="text-sm text-slate-600 mt-1">
+            Quelques questions pour permettre à votre conseiller de vous proposer des solutions adaptées à votre situation.
+        </p>
+        <p class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 mt-3">
+            <twig:ux:icon name="tabler:clock" class="size-3.5" aria-hidden="true" />
+            Environ 5 minutes, en 5 étapes
+        </p>
+    </div>
+
+    <twig:InvestorProfileQuestionnaireComponent assessmentSlugId="{{ assessment_slug_id }}" folderId="{{ folder_id ?? '' }}" />
+{% endblock %}

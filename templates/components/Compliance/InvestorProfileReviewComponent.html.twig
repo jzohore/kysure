@@ -1,0 +1,218 @@
+<div {{ attributes }}>
+    {% include 'components/partials/_live_alerts.html.twig' with {
+        message: this.actionMessage|default(null),
+        type: this.actionMessageType|default('error')
+    } %}
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <twig:ux:icon name="lucide:bar-chart-3" class="size-4 text-slate-400" aria-hidden="true" />
+            Profil investisseur
+        </h2>
+
+        {% if not this.hasSubmittedAssessment %}
+            <div class="text-center py-8 px-4">
+                <twig:ux:icon name="lucide:clipboard-list" class="size-8 text-slate-300 mx-auto mb-3" aria-hidden="true" />
+                <p class="text-sm font-medium text-slate-600">Questionnaire non soumis</p>
+                <p class="text-xs text-slate-400 mt-1">Le client n'a pas encore complété son questionnaire profil investisseur.</p>
+            </div>
+        {% else %}
+            {% set snapshot = this.scoreSnapshot %}
+
+            {# ── Statut ── #}
+            <div class="flex items-center justify-between mb-4">
+                {% if this.isValidated %}
+                    <span class="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                        <twig:ux:icon name="lucide:badge-check" class="size-3.5" aria-hidden="true" />
+                        Validé — v{{ this.inForceProfile.version }}
+                    </span>
+                {% else %}
+                    <span class="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                        <twig:ux:icon name="lucide:clock" class="size-3.5" aria-hidden="true" />
+                        À valider
+                    </span>
+                {% endif %}
+            </div>
+
+            {# ── Profil retenu ── #}
+            <div class="rounded-lg bg-slate-50 border border-slate-200 p-4 mb-4">
+                <p class="text-xs font-medium text-slate-500">Profil retenu</p>
+                <p class="text-xl font-bold text-slate-900 mt-0.5">
+                    {{ this.retainedProfileLevel }} — {{ this.retainedProfileLabel }}
+                </p>
+                {% if this.isProfileOverridden %}
+                    <p class="text-xs text-amber-700 mt-1.5 flex items-center gap-1">
+                        <twig:ux:icon name="lucide:pencil-line" class="size-3.5" aria-hidden="true" />
+                        Corrigé par le CGP — le moteur proposait {{ this.inForceProfile.computedProfileLevel }}
+                    </p>
+                {% endif %}
+            </div>
+
+            {% if this.hasHighRiskLowCapacityMismatch %}
+                <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 mb-4 flex gap-2">
+                    <twig:ux:icon name="lucide:triangle-alert" class="size-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        <strong>Mise en garde :</strong> appétence au risque déclarée très forte malgré une capacité
+                        à subir des pertes très faible. Le profil final a été plafonné en conséquence, et cette
+                        situation est consignée dans la piste d'audit du cabinet.
+                    </p>
+                </div>
+            {% endif %}
+
+            {% if this.hasAdvisoryProfileDivergence %}
+                <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 mb-4 flex gap-2">
+                    <twig:ux:icon name="lucide:git-compare-arrows" class="size-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        <strong>Divergence détectée :</strong> le profil perçu à l'entretien
+                        (« {{ this.advisoryRiskProfile.value }} ») s'écarte sensiblement du profil retenu du
+                        questionnaire ci-dessus. Le questionnaire fait foi, mais un point avec le client peut être
+                        utile pour comprendre l'écart.
+                    </p>
+                </div>
+            {% endif %}
+
+            {# ── Détail par dimension ── #}
+            <dl class="grid grid-cols-2 gap-3 text-xs mb-4">
+                <div class="p-2.5 rounded-lg bg-white border border-slate-100">
+                    <dt class="text-slate-400">Connaissances</dt>
+                    <dd class="font-semibold text-slate-800 tabular-nums">{{ snapshot.knowledgeScore|number_format(1) }}/7</dd>
+                </div>
+                <div class="p-2.5 rounded-lg bg-white border border-slate-100">
+                    <dt class="text-slate-400">Expérience</dt>
+                    <dd class="font-semibold text-slate-800 tabular-nums">{{ snapshot.experienceScore|number_format(1) }}/7</dd>
+                </div>
+                <div class="p-2.5 rounded-lg bg-white border border-slate-100">
+                    <dt class="text-slate-400">Tolérance au risque</dt>
+                    <dd class="font-semibold text-slate-800 tabular-nums">{{ snapshot.toleranceScore|number_format(1) }}/7</dd>
+                </div>
+                <div class="p-2.5 rounded-lg bg-white border border-slate-100">
+                    <dt class="text-slate-400">Capacité à subir des pertes</dt>
+                    <dd class="font-semibold text-slate-800 tabular-nums">{{ snapshot.capacityLevel }}/7</dd>
+                </div>
+            </dl>
+
+            {# ── Facteurs explicatifs ── #}
+            <details class="mb-4 group">
+                <summary class="list-none cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900">
+                    <twig:ux:icon name="lucide:list" class="size-3.5" aria-hidden="true" />
+                    Facteurs explicatifs
+                    <twig:ux:icon name="lucide:chevron-down" class="size-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <ul class="mt-2 space-y-1 text-xs text-slate-600 list-disc list-inside">
+                    {% for factor in snapshot.explanationFactors %}
+                        <li>{{ factor }}</li>
+                    {% endfor %}
+                </ul>
+                <p class="text-[11px] text-slate-400 mt-2">Moteur {{ snapshot.engineVersion }}</p>
+            </details>
+
+            {% if this.isValidated %}
+                {# ── Bloc révocation ── #}
+                <div class="pt-4 border-t border-slate-100">
+                    <p class="text-xs text-slate-400 mb-3">
+                        Validé le {{ this.inForceProfile.validatedAt|date('d/m/Y à H:i') }} par {{ this.inForceProfile.validatedByName }}
+                    </p>
+                    {% if this.inForceProfile.pdfStoragePath %}
+                        <twig:Button as="a" href="{{ path('app_investor_profile_pdf_download', {slugId: this.inForceProfile.slugId}) }}" target="_blank" variant="outline" size="sm" class="mb-3">
+                            <twig:ux:icon name="lucide:file-down" class="size-3.5" aria-hidden="true" />
+                            Télécharger la synthèse PDF
+                        </twig:Button>
+                    {% endif %}
+
+                    {% if this.hasMultipleVersions %}
+                        {% set comparison = this.comparison %}
+                        <details class="mb-4 group">
+                            <summary class="list-none cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900">
+                                <twig:ux:icon name="lucide:git-compare" class="size-3.5" aria-hidden="true" />
+                                Comparer avec la version précédente (v{{ comparison.oldVersion }} → v{{ comparison.newVersion }})
+                                <twig:ux:icon name="lucide:chevron-down" class="size-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
+                            </summary>
+
+                            <div class="mt-2 rounded-lg border border-slate-200 overflow-hidden">
+                                <div class="grid grid-cols-[1fr_1fr_1fr] bg-slate-50 text-[11px] font-semibold text-slate-500 px-3 py-2 border-b border-slate-200">
+                                    <div>Question</div>
+                                    <div>v{{ comparison.oldVersion }} — {{ comparison.oldValidatedAt|date('d/m/Y') }}</div>
+                                    <div>v{{ comparison.newVersion }} — {{ comparison.newValidatedAt|date('d/m/Y') }}</div>
+                                </div>
+
+                                {% if comparison.levelChanged %}
+                                    <div class="px-3 py-2 bg-amber-50 text-xs text-amber-800 border-b border-amber-100 flex items-center gap-1.5">
+                                        <twig:ux:icon name="lucide:trending-up" class="size-3.5 shrink-0" aria-hidden="true" />
+                                        Profil retenu changé : {{ comparison.oldRetainedLevel }} — {{ comparison.oldRetainedLabel }}
+                                        → {{ comparison.newRetainedLevel }} — {{ comparison.newRetainedLabel }}
+                                    </div>
+                                {% endif %}
+
+                                <div class="max-h-80 overflow-y-auto">
+                                    {% for dimension in comparison.dimensions %}
+                                        {% if dimension.answers|length > 0 %}
+                                            <div class="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide bg-white">{{ dimension.label }}</div>
+                                            {% for answer in dimension.answers %}
+                                                <div class="grid grid-cols-[1fr_1fr_1fr] px-3 py-1.5 text-xs border-t border-slate-100 {{ answer.changed ? 'bg-amber-50' : '' }}">
+                                                    <div class="text-slate-500 pr-2">{{ answer.questionLabel }}</div>
+                                                    <div class="{{ answer.changed ? 'text-amber-800 font-medium' : 'text-slate-700' }} pr-2">{{ answer.oldAnswerLabel }}</div>
+                                                    <div class="{{ answer.changed ? 'text-amber-800 font-medium' : 'text-slate-700' }}">{{ answer.newAnswerLabel }}</div>
+                                                </div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </details>
+                    {% endif %}
+
+                    {% if this.canRevoke %}
+                        {% if this.isRevoking %}
+                            <div class="space-y-2">
+                                <label for="revoke_reason" class="block text-xs font-medium text-slate-700">
+                                    Motif de révocation <span class="font-normal text-slate-400">— obligatoire</span>
+                                </label>
+                                <textarea id="revoke_reason" rows="2" data-model="revokeReason"
+                                          class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-red-400 focus:ring-red-400 text-sm"
+                                          placeholder="Ex : nouvelles réponses du client, erreur constatée…"></textarea>
+                                <div class="flex items-center gap-2">
+                                    <twig:Button as="button" type="button" variant="outline" size="sm" data-action="live#action" data-live-action-param="toggleRevoke">Annuler</twig:Button>
+                                    <twig:Button as="button" type="button" variant="destructive" size="sm" data-action="live#action" data-live-action-param="revoke">Révoquer</twig:Button>
+                                </div>
+                            </div>
+                        {% else %}
+                            <twig:Button as="button" type="button" variant="outline" size="sm" data-action="live#action" data-live-action-param="toggleRevoke">
+                                Révoquer ce profil
+                            </twig:Button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% else %}
+                {# ── Bloc validation ── #}
+                <div class="pt-4 border-t border-slate-100 space-y-3">
+                    {% if this.canValidate %}
+                        {% if this.isOverriding %}
+                            <div class="space-y-2">
+                                <label for="overridden_level" class="block text-xs font-medium text-slate-700">Profil corrigé (1 à 7)</label>
+                                <input type="number" id="overridden_level" min="1" max="7" data-model="norender|overriddenLevel"
+                                       class="block w-24 rounded-lg border-slate-300 shadow-sm focus:border-[#0B261C] focus:ring-[#0B261C] text-sm" />
+                                <label for="override_reason" class="block text-xs font-medium text-slate-700 mt-2">
+                                    Motif <span class="font-normal text-slate-400">— obligatoire</span>
+                                </label>
+                                <textarea id="override_reason" rows="2" data-model="norender|overrideReason"
+                                          class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-[#0B261C] focus:ring-[#0B261C] text-sm"
+                                          placeholder="Ex : capacité à subir des pertes manifestement sous-déclarée…"></textarea>
+                            </div>
+                        {% endif %}
+                        {% set override_toggle_label = this.isOverriding ? 'Annuler la correction' : 'Corriger le profil' %}
+                        <div class="flex items-center gap-2">
+                            <twig:Button as="button" type="button" variant="outline" size="sm" data-action="live#action" data-live-action-param="toggleOverride">
+                                {{ override_toggle_label }}
+                            </twig:Button>
+                            <twig:Button as="button" type="button" variant="dark" size="sm" data-action="live#action" data-live-action-param="validate">
+                                Valider le profil
+                            </twig:Button>
+                        </div>
+                    {% else %}
+                        <p class="text-xs text-slate-400">Validation réservée à un administrateur du cabinet.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>

@@ -96,6 +96,21 @@ src/Infrastructure/  Doctrine repos (Persistence/), controllers, Twig components
 - Accessibilité : `<label for>`, `aria-*` sur dialogues, icônes décoratives `aria-hidden="true"`,
   libellés de chargement en vrai texte, `focus-visible:ring`.
 
+## Exploration du code — impératif
+
+**Avant de coder**, ne pas explorer le code en lisant fichier par fichier (`grep`/`find`/lecture manuelle en
+rafale) : passer par **graphify**, qui maintient un graphe du code (`src/graphify-out/graph.json`).
+
+```bash
+/Users/junior/.venvs/graphify/bin/graphify update ./src        # rafraîchit le graphe si le code a bougé
+/Users/junior/.venvs/graphify/bin/graphify explain "NomDeClasse"  # voisinage d'un symbole (implémenteurs, appelants...)
+/Users/junior/.venvs/graphify/bin/graphify query "question en langage naturel"  # traversée BFS ciblée
+/Users/junior/.venvs/graphify/bin/graphify path "A" "B"         # chemin le plus court entre deux nœuds
+```
+
+Une fois le ou les fichiers précis identifiés via le graphe, les lire avec l'outil de lecture habituel pour
+le détail d'implémentation — graphify sert à *localiser*, pas à remplacer la lecture du fichier ciblé.
+
 ## Commandes
 
 ```bash

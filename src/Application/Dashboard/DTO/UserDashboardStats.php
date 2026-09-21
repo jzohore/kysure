@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Application\Dashboard\DTO;
 
-use App\Domain\AuditLog\Entity\AuditLog;
+use App\Domain\Compliance\Entity\ComplianceFolder;
 use App\Domain\Screening\Entity\ScreeningAudit;
+use App\Domain\Suitability\Entity\InvestorProfileAssessment;
 
 /**
  * Données agrégées du tableau de bord : compteurs de quota (Phase 1),
@@ -15,8 +16,9 @@ use App\Domain\Screening\Entity\ScreeningAudit;
 final readonly class UserDashboardStats
 {
     /**
-     * @param AuditLog[]       $latestAuditLogs
-     * @param ScreeningAudit[] $latestScreenings
+     * @param list<ComplianceFolder>          $latestFolders
+     * @param ScreeningAudit[]                $latestScreenings
+     * @param list<InvestorProfileAssessment> $pendingInvestorProfileValidations
      */
     public function __construct(
         public string $workspaceName,
@@ -34,9 +36,16 @@ final readonly class UserDashboardStats
         public int $clientsCount,
         public int $teamMembersCount,
         public int $pendingScreeningsCount,
+        // --- Dossiers à traiter (conseiller) ---
+        public int $pendingDocsCount,
+        public int $inReviewCount,
+        public int $needsCorrectionCount,
+        public int $approvedCount,
+        public int $investorProfilesToValidateCount,
         // --- Aperçus d'activité ---
-        public array $latestAuditLogs,
+        public array $latestFolders,
         public array $latestScreenings,
+        public array $pendingInvestorProfileValidations,
         // --- Check-list d'onboarding ---
         public bool $isOrgCompleted,
         public bool $isRegProfileValid,

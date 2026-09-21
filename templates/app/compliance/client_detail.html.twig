@@ -202,6 +202,10 @@
                     <p class="text-xs text-slate-400 mt-1">Créez son premier dossier de conformité avec le bouton « Nouveau dossier ».</p>
                 </div>
             {% endfor %}
+
+            <div id="profil-investisseur" class="scroll-mt-6">
+                <twig:InvestorProfileReviewComponent clientSlugId="{{ client.slugId }}" />
+            </div>
         </div>
 
         {# ===== Colonne latérale : actions ===== #}

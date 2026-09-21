@@ -196,6 +196,10 @@
                     </div>
                 </div>
 
+                {% if not dto.isArchived %}
+                    <twig:ComplianceFolderApprovalComponent folderSlugId="{{ dto.slugId }}" />
+                {% endif %}
+
                 {# POLYMORPHISME GÉRÉ PAR LE DTO #}
                 {% if dto.isKyb %}
 

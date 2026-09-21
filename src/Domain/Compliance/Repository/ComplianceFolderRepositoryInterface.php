@@ -48,6 +48,13 @@ interface ComplianceFolderRepositoryInterface
     public function countActiveForWorkspace(Workspace $workspace): int;
 
     /**
+     * Compte les dossiers d'un espace dans un ou plusieurs statuts donnés (ex: tableau de bord conseiller).
+     *
+     * @param list<ComplianceFolderStatus> $statuses
+     */
+    public function countByStatusesForWorkspace(Workspace $workspace, array $statuses): int;
+
+    /**
      * Tous les dossiers non supprimés de l'espace (sert au « a déjà créé un dossier »).
      */
     public function countForWorkspace(Workspace $workspace): int;
@@ -56,6 +63,13 @@ interface ComplianceFolderRepositoryInterface
      * @return Pagerfanta<ComplianceFolder>
      */
     public function findAllByWorkspace(Workspace $workspace, ?string $search = null, ?ComplianceFolderStatus $status = null): Pagerfanta;
+
+    /**
+     * Derniers dossiers créés dans l'espace (aperçu tableau de bord).
+     *
+     * @return list<ComplianceFolder>
+     */
+    public function findRecentByWorkspace(Workspace $workspace, int $limit = 5): array;
 
     /**
      * Liste paginée tous cabinets, pour le back-office KYSURE.
@@ -67,6 +81,14 @@ interface ComplianceFolderRepositoryInterface
     public function findOneLastDraftIndividuals(string $method, Workspace $workspace): ?ComplianceFolder;
 
     public function findActiveForClient(Client $client): ?ComplianceFolder;
+
+    /**
+     * Même lecture que {@see self::findActiveForClient()}, mais scopée à un cabinet précis :
+     * un client peut avoir un dossier actif dans plusieurs cabinets à la fois
+     * ({@see Client::$workspaces}), il ne faut jamais en restituer un
+     * autre que celui du cabinet courant.
+     */
+    public function findActiveForClientAndWorkspace(Client $client, Workspace $workspace): ?ComplianceFolder;
 
     /**
      * Récupère et transforme la liste des dossiers actifs pour le portail client.

@@ -266,6 +266,10 @@ abstract class ComplianceFolder
 
     public function reject(string $reason, User $rejectedBy): void
     {
+        if (ComplianceFolderStatus::IN_REVIEW !== $this->status) {
+            throw FolderStateException::cannotRejectIfNotInReview($this->reference, $this->status->value);
+        }
+
         $this->status = ComplianceFolderStatus::REJECTED;
         $this->addMetadata('rejection_reason', $reason);
         $this->saveHistory('Dossier rejeté', "Motif: {$reason} - Par {$rejectedBy->getFullName()}"); // ✅ Corrigé

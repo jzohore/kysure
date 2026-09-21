@@ -83,6 +83,39 @@ $customPlaceholders = [
     'S3_BUCKET_NAME' => 'kysure-kyc-documents-dev',
 ];
 
+/**
+ * Filet de sécurité indépendant du nom de la clé : une clé en liste blanche n'est pas une
+ * garantie que sa VALEUR l'est (ex : une clé qu'on croit être un simple identifiant, mais qui
+ * se trouve être en réalité une vraie clé d'accès cloud). On masque quand même si la valeur a
+ * la forme d'un secret connu, quelle que soit la clé qui la porte.
+ */
+$secretValuePatterns = [
+    '/^AKIA[0-9A-Z]{16}$/',                                                // AWS Access Key ID
+    '/^[A-Za-z0-9\/+]{40}$/',                                              // AWS Secret Access Key
+    '/^SCW[A-Z0-9]{17,}$/',                                                // Scaleway Access Key
+    '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',   // UUID (secrets/IDs Scaleway...)
+    '/^[0-9a-f]{32,}$/i',                                                  // Secret hexadécimal générique
+];
+
+$looksLikeSecretValue = static function (string $value) use ($secretValuePatterns): bool {
+    foreach ($secretValuePatterns as $pattern) {
+        if (1 === preg_match($pattern, $value)) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
+// Une URL/DSN en liste blanche (endpoint, webhook public...) peut quand même embarquer des
+// identifiants réels (ex: "https://user:secret@host"). On ne masque que le user:pass, le reste
+// (hôte, port, chemin) reste utile pour reconstituer un environnement de dev.
+$stripEmbeddedCredentials = static fn (string $value): string => (string) preg_replace(
+    '#^(\w+://)[^/\s@]+:[^/\s@]+@#',
+    '$1change_me:change_me@',
+    $value,
+);
+
 $lines = file($envLocalPath, \FILE_IGNORE_NEW_LINES);
 
 // 2. 🛡️ Sécurisation stricte exigée par PHPStan :
@@ -110,8 +143,17 @@ foreach ($lines as $line) {
             // Remplacement explicite pour les DSN ou secrets connus
             $sanitizedLines[] = sprintf('%s="%s"', $key, $customPlaceholders[$key]);
         } elseif (in_array($key, $safeValueKeys, true)) {
-            // Conservation des valeurs de la liste blanche
-            $sanitizedLines[] = sprintf('%s=%s', $key, trim($value));
+            $trimmedValue = trim($value);
+
+            if ($looksLikeSecretValue($trimmedValue)) {
+                // La clé est en liste blanche mais la valeur a la forme d'un vrai secret
+                // (clé cloud, UUID, hex long...) : on ne fait jamais confiance au seul nom de
+                // la clé, sinon toute nouvelle clé mal classée fuite silencieusement dans .env.
+                $sanitizedLines[] = sprintf('%s=change_me_%s', $key, strtolower($key));
+            } else {
+                // Conservation des valeurs de la liste blanche, identifiants embarqués masqués
+                $sanitizedLines[] = sprintf('%s=%s', $key, $stripEmbeddedCredentials($trimmedValue));
+            }
         } else {
             // Masquage automatique pour toute clé d'API, secret ou token sensible
             $sanitizedLines[] = sprintf('%s=change_me_%s', $key, strtolower($key));

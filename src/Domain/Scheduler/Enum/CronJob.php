@@ -17,6 +17,7 @@ enum CronJob: string
     case MINIMIZE_SCREENING_RESULTS = 'minimize_screening_results';
     case AUTO_RESOLVE_SUPPORT_THREADS = 'auto_resolve_support_threads';
     case ALERT_OVERDUE_SUPPORT_THREADS = 'alert_overdue_support_threads';
+    case SEND_INVESTOR_PROFILE_REMINDER = 'send_investor_profile_reminder';
 
     public function getLabel(): string
     {
@@ -26,6 +27,7 @@ enum CronJob: string
             self::MINIMIZE_SCREENING_RESULTS => 'Minimisation des résultats de screening',
             self::AUTO_RESOLVE_SUPPORT_THREADS => 'Clôture automatique des tickets support inactifs',
             self::ALERT_OVERDUE_SUPPORT_THREADS => 'Alerte Slack des tickets support en dépassement SLA',
+            self::SEND_INVESTOR_PROFILE_REMINDER => 'Relance des questionnaires profil investisseur en pause',
         };
     }
 
@@ -37,6 +39,7 @@ enum CronJob: string
             self::MINIMIZE_SCREENING_RESULTS => 'Retire les données brutes de tiers des résultats de screening périmés.',
             self::AUTO_RESOLVE_SUPPORT_THREADS => 'Clôture les tickets de support inactifs depuis plus de 2 heures.',
             self::ALERT_OVERDUE_SUPPORT_THREADS => 'Envoie une alerte Slack pour chaque ticket support ayant dépassé son échéance de première réponse (SLA).',
+            self::SEND_INVESTOR_PROFILE_REMINDER => 'Envoie un email de relance aux clients dont le questionnaire est en pause depuis plus d\'un jour, alors qu\'ils l\'ont déjà bien avancé.',
         };
     }
 
@@ -53,6 +56,7 @@ enum CronJob: string
             self::MINIMIZE_SCREENING_RESULTS => CronFrequency::DAILY_AT_3AM,
             self::AUTO_RESOLVE_SUPPORT_THREADS,
             self::ALERT_OVERDUE_SUPPORT_THREADS => CronFrequency::EVERY_15_MINUTES,
+            self::SEND_INVESTOR_PROFILE_REMINDER => CronFrequency::HOURLY,
         };
     }
 }
