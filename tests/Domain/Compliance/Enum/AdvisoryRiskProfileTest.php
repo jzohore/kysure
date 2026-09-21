@@ -24,6 +24,15 @@ final class AdvisoryRiskProfileTest extends TestCase
         self::assertSame(AdvisoryRiskProfile::cases(), AdvisoryRiskProfile::selectable());
     }
 
+    public function testEquivalentInvestorProfileLevelMapsToTheSharedLabelScale(): void
+    {
+        self::assertNull(AdvisoryRiskProfile::NON_DETERMINE->equivalentInvestorProfileLevel());
+        self::assertSame(2, AdvisoryRiskProfile::PRUDENT->equivalentInvestorProfileLevel());
+        self::assertSame(4, AdvisoryRiskProfile::EQUILIBRE->equivalentInvestorProfileLevel());
+        self::assertSame(5, AdvisoryRiskProfile::DYNAMIQUE->equivalentInvestorProfileLevel());
+        self::assertSame(7, AdvisoryRiskProfile::OFFENSIF->equivalentInvestorProfileLevel());
+    }
+
     #[DataProvider('recognisedLabels')]
     public function testFromLabelReconcilesCasingAndAccents(string $input, AdvisoryRiskProfile $expected): void
     {

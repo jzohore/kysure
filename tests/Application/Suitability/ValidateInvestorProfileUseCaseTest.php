@@ -12,6 +12,7 @@ use App\Domain\Suitability\Enum\AnswerSource;
 use App\Domain\Suitability\Enum\QuestionKey;
 use App\Domain\Suitability\Event\InvestorProfileValidatedEvent;
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
+use App\Domain\Suitability\Service\TraderWithoutSafetyNetDetector;
 use App\Domain\User\Entity\Client;
 use App\Domain\User\Entity\User;
 use App\Domain\Workspace\Entity\Workspace;
@@ -90,6 +91,7 @@ final class ValidateInvestorProfileUseCaseTest extends TestCase
                 self::assertSame(3, $event->version);
                 self::assertSame(4, $event->retainedProfileLevel);
                 self::assertFalse($event->overridden);
+                self::assertFalse($event->hasHighRiskLowCapacityMismatch);
 
                 return true;
             }),
@@ -138,6 +140,37 @@ final class ValidateInvestorProfileUseCaseTest extends TestCase
             $transactionManager,
             $userProvider,
             $dispatcher ?? $this->createStub(EventDispatcherInterface::class),
+            new TraderWithoutSafetyNetDetector(),
         );
+    }
+
+    public function testFlagsTheTraderWithoutSafetyNetMismatchInTheDispatchedEvent(): void
+    {
+        $assessment = InvestorProfileAssessment::create($this->workspace, $this->client);
+        foreach (QuestionKey::cases() as $key) {
+            $assessment->recordAnswer($key, 'reponse', AnswerSource::CLIENT, $this->client->id);
+        }
+        $assessment->submit([
+            'finalProfile' => 2,
+            'engineVersion' => 'suitability_engine_v1',
+            'toleranceLevel' => 7,
+            'capacityLevel' => 1,
+        ]);
+
+        $profileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $profileRepo->method('findInForceByClient')->willReturn(null);
+        $profileRepo->method('findLatestVersionNumber')->willReturn(0);
+
+        $dispatcher = $this->createMock(EventDispatcherInterface::class);
+        $dispatcher->expects(self::once())->method('dispatch')->with(
+            self::callback(static function (InvestorProfileValidatedEvent $event): bool {
+                self::assertTrue($event->hasHighRiskLowCapacityMismatch);
+
+                return true;
+            }),
+        );
+
+        $useCase = $this->buildUseCase($profileRepo, $dispatcher);
+        ($useCase)($assessment);
     }
 }

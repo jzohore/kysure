@@ -10,6 +10,7 @@ use App\Domain\Workspace\Entity\Workspace;
 use App\Domain\Workspace\Entity\WorkspaceMember;
 use App\Domain\Workspace\Enum\InvitedRole;
 use App\Domain\Workspace\Repository\WorkspaceMemberRepositoryInterface;
+use App\Domain\Workspace\Service\WorkspacePermissionChecker;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -23,6 +24,8 @@ class ComplianceFolderVoter extends Voter
     public const string EDIT = 'EDIT';
     public const string DELETE = 'DELETE';
     public const string MAKE_CONFIDENTIAL = 'MAKE_CONFIDENTIAL';
+    public const string APPROVE = 'APPROVE_FOLDER';
+    public const string REJECT = 'REJECT_FOLDER';
 
     /**
      * @var array<string, WorkspaceMember|null>
@@ -31,12 +34,13 @@ class ComplianceFolderVoter extends Voter
 
     public function __construct(
         private readonly WorkspaceMemberRepositoryInterface $workspaceMemberRepository,
+        private readonly WorkspacePermissionChecker $permissionChecker,
     ) {
     }
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return in_array($attribute, [self::VIEW, self::EDIT, self::DELETE, self::MAKE_CONFIDENTIAL], true)
+        return in_array($attribute, [self::VIEW, self::EDIT, self::DELETE, self::MAKE_CONFIDENTIAL, self::APPROVE, self::REJECT], true)
             && $subject instanceof ComplianceFolder;
     }
 
@@ -66,6 +70,7 @@ class ComplianceFolderVoter extends Voter
             self::EDIT => $this->canEdit($folder, $user),
             self::DELETE => $this->canDelete($workspaceMember),
             self::MAKE_CONFIDENTIAL => $this->canMakeConfidential($folder, $user, $workspaceMember),
+            self::APPROVE, self::REJECT => $this->permissionChecker->canValidateActs($user, $workspace),
             default => false,
         };
     }

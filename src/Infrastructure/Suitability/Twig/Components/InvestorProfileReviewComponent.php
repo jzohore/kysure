@@ -6,11 +6,18 @@ namespace App\Infrastructure\Suitability\Twig\Components;
 
 use App\Application\Suitability\UseCase\RevokeInvestorProfileUseCase;
 use App\Application\Suitability\UseCase\ValidateInvestorProfileUseCase;
+use App\Domain\Compliance\Entity\ComplianceFolder;
+use App\Domain\Compliance\Entity\ValidatedMeetingReport;
+use App\Domain\Compliance\Enum\AdvisoryRiskProfile;
+use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
+use App\Domain\Compliance\Repository\ValidatedMeetingReportRepositoryInterface;
 use App\Domain\Suitability\Entity\InvestorProfileAssessment;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 use App\Domain\Suitability\Enum\InvestorProfileLevel;
 use App\Domain\Suitability\Repository\InvestorProfileAssessmentRepositoryInterface;
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
+use App\Domain\Suitability\Service\AdvisoryProfileDivergenceDetector;
+use App\Domain\Suitability\Service\TraderWithoutSafetyNetDetector;
 use App\Domain\User\Entity\Client;
 use App\Domain\User\Repository\ClientRepositoryInterface;
 use App\Domain\Workspace\Service\CurrentWorkspaceProvider;
@@ -65,14 +72,20 @@ class InvestorProfileReviewComponent extends AbstractController
     private bool $latestAssessmentLoaded = false;
     private ?ValidatedInvestorProfile $inForceProfileCache = null;
     private bool $inForceProfileLoaded = false;
+    private ?AdvisoryRiskProfile $advisoryRiskProfileCache = null;
+    private bool $advisoryRiskProfileLoaded = false;
 
     public function __construct(
         private readonly ClientRepositoryInterface $clientRepository,
         private readonly CurrentWorkspaceProvider $workspaceProvider,
         private readonly InvestorProfileAssessmentRepositoryInterface $assessmentRepository,
         private readonly ValidatedInvestorProfileRepositoryInterface $profileRepository,
+        private readonly ComplianceFolderRepositoryInterface $folderRepository,
+        private readonly ValidatedMeetingReportRepositoryInterface $meetingReportRepository,
         private readonly ValidateInvestorProfileUseCase $validateInvestorProfileUseCase,
         private readonly RevokeInvestorProfileUseCase $revokeInvestorProfileUseCase,
+        private readonly TraderWithoutSafetyNetDetector $traderWithoutSafetyNetDetector,
+        private readonly AdvisoryProfileDivergenceDetector $divergenceDetector,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -153,6 +166,55 @@ class InvestorProfileReviewComponent extends AbstractController
     public function isProfileOverridden(): bool
     {
         return $this->getInForceProfile()?->isOverridden() ?? false;
+    }
+
+    /**
+     * Vrai si le profil (calculé ou déjà validé) cumule une appétence au risque déclarée très
+     * forte et une capacité à subir des pertes très faible (« trader sans filet », décision
+     * lot 5) : déjà plafonné dans le score final, affiché ici comme mise en garde explicite
+     * pour le CGP avant/après validation.
+     */
+    public function hasHighRiskLowCapacityMismatch(): bool
+    {
+        return $this->traderWithoutSafetyNetDetector->detect($this->getScoreSnapshot() ?? []);
+    }
+
+    /**
+     * Le profil de risque perçu à l'entretien (rapport de synthèse validé en vigueur pour le
+     * dossier actif de CE cabinet), ou `null` si aucun rapport n'a encore été validé.
+     */
+    public function getAdvisoryRiskProfile(): ?AdvisoryRiskProfile
+    {
+        if (!$this->advisoryRiskProfileLoaded) {
+            $this->advisoryRiskProfileLoaded = true;
+            $folder = $this->folderRepository->findActiveForClientAndWorkspace($this->getClient(), $this->workspaceProvider->getWorkspace());
+
+            if ($folder instanceof ComplianceFolder) {
+                $report = $this->meetingReportRepository->findInForceByFolder($folder);
+                if ($report instanceof ValidatedMeetingReport) {
+                    $this->advisoryRiskProfileCache = AdvisoryRiskProfile::fromLabel($report->content['riskProfile'] ?? null);
+                }
+            }
+        }
+
+        return $this->advisoryRiskProfileCache;
+    }
+
+    /**
+     * Vrai si le profil perçu à l'entretien diverge significativement du profil retenu du
+     * questionnaire (décision lot 5 : simple alerte, jamais de blocage — le profil du
+     * questionnaire fait foi, l'entretien reste une tendance perçue par le CGP).
+     */
+    public function hasAdvisoryProfileDivergence(): bool
+    {
+        $advisoryProfile = $this->getAdvisoryRiskProfile();
+        $retainedLevel = $this->getRetainedProfileLevel();
+
+        if (!$advisoryProfile instanceof AdvisoryRiskProfile || null === $retainedLevel) {
+            return false;
+        }
+
+        return $this->divergenceDetector->detect($advisoryProfile, $retainedLevel);
     }
 
     public function canValidate(): bool

@@ -83,6 +83,14 @@ interface ComplianceFolderRepositoryInterface
     public function findActiveForClient(Client $client): ?ComplianceFolder;
 
     /**
+     * Même lecture que {@see self::findActiveForClient()}, mais scopée à un cabinet précis :
+     * un client peut avoir un dossier actif dans plusieurs cabinets à la fois
+     * ({@see Client::$workspaces}), il ne faut jamais en restituer un
+     * autre que celui du cabinet courant.
+     */
+    public function findActiveForClientAndWorkspace(Client $client, Workspace $workspace): ?ComplianceFolder;
+
+    /**
      * Récupère et transforme la liste des dossiers actifs pour le portail client.
      *
      * @return list<ComplianceFolder>

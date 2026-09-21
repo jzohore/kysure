@@ -260,6 +260,22 @@ class ComplianceFolderRepository implements ComplianceFolderRepositoryInterface
             ->getOneOrNullResult();
     }
 
+    public function findActiveForClientAndWorkspace(Client $client, Workspace $workspace): ?ComplianceFolder
+    {
+        return $this->repository->createQueryBuilder('cf')
+            ->select('cf')
+            ->where('cf.client = :client')
+            ->andWhere('cf.workspace = :workspace')
+            ->andWhere('cf.status IN (:kycStatuses)')
+            ->setParameter('client', $client)
+            ->setParameter('workspace', $workspace)
+            ->setParameter('kycStatuses', ComplianceFolderStatus::getKycPhaseStatuses())
+            ->orderBy('cf.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     public function findOneBySlugIdAndClient(string $folderId, Client $client): ?ComplianceFolder
     {
         return $this->repository->findOneBy(['slugId' => $folderId, 'client' => $client]);

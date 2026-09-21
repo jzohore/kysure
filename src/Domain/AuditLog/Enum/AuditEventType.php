@@ -102,6 +102,7 @@ enum AuditEventType: string
     case SUITABILITY_ASSESSMENT_SUBMITTED = 'suitability.assessment_submitted';
     case SUITABILITY_PROFILE_VALIDATED = 'suitability.profile_validated';
     case SUITABILITY_PROFILE_REVOKED = 'suitability.profile_revoked';
+    case SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING = 'suitability.high_risk_low_capacity_warning';
 
     // --- FACTURATION & ABONNEMENT STRIPE ---
     case SUBSCRIPTION_ACTIVATED = 'billing.subscription_activated';
@@ -243,6 +244,7 @@ enum AuditEventType: string
             self::SUITABILITY_ASSESSMENT_SUBMITTED => 'Soumission du questionnaire profil investisseur',
             self::SUITABILITY_PROFILE_VALIDATED => 'Validation du profil investisseur',
             self::SUITABILITY_PROFILE_REVOKED => 'Révocation du profil investisseur',
+            self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'Mise en garde : appétence au risque élevée malgré une capacité à subir des pertes très faible',
 
             // Facturation
             self::SUBSCRIPTION_ACTIVATED => 'Activation de l\'abonnement SaaS',
@@ -305,7 +307,8 @@ enum AuditEventType: string
             self::SUITABILITY_ASSESSMENT_STARTED,
             self::SUITABILITY_ASSESSMENT_SUBMITTED,
             self::SUITABILITY_PROFILE_VALIDATED,
-            self::SUITABILITY_PROFILE_REVOKED => 'Profil investisseur',
+            self::SUITABILITY_PROFILE_REVOKED,
+            self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'Profil investisseur',
 
             self::KYC_FOLDER_INITIATED,
             self::KYC_PORTAL_ACCESSED,
@@ -406,7 +409,8 @@ enum AuditEventType: string
 
             self::ADMIN_IMPERSONATION_START,
             self::ADMIN_IMPERSONATION_EXIT,
-            self::SUBSCRIPTION_TRIAL_EXTENDED => 'bg-amber-50 text-amber-700 border-amber-200',
+            self::SUBSCRIPTION_TRIAL_EXTENDED,
+            self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'bg-amber-50 text-amber-700 border-amber-200',
 
             self::KYC_DOCUMENT_OCR_PROCESSED,
             self::SCREENING_PERFORMED,
@@ -432,6 +436,7 @@ enum AuditEventType: string
             self::DER_ACKNOWLEDGEMENT_REVOKED,
             self::DER_DECLINED,
             self::SUITABILITY_PROFILE_REVOKED,
+            self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING,
             self::KYC_LEGAL_HOLD_PLACED,
             self::CLIENT_ACCOUNT_DELETED,
             self::ADMIN_IMPERSONATION_START,

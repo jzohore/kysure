@@ -9,6 +9,7 @@ use App\Domain\Suitability\Entity\InvestorProfileAssessment;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 use App\Domain\Suitability\Event\InvestorProfileValidatedEvent;
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
+use App\Domain\Suitability\Service\TraderWithoutSafetyNetDetector;
 use App\Domain\Workspace\Service\CurrentUserProvider;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Webmozart\Assert\Assert;
@@ -33,6 +34,7 @@ final readonly class ValidateInvestorProfileUseCase
         private TransactionManagerInterface $transactionManager,
         private CurrentUserProvider $userProvider,
         private EventDispatcherInterface $eventDispatcher,
+        private TraderWithoutSafetyNetDetector $traderWithoutSafetyNetDetector,
     ) {
     }
 
@@ -78,6 +80,7 @@ final readonly class ValidateInvestorProfileUseCase
             retainedProfileLevel: $profile->retainedProfileLevel(),
             overridden: $profile->isOverridden(),
             validatedByName: $user->getFullName(),
+            hasHighRiskLowCapacityMismatch: $this->traderWithoutSafetyNetDetector->detect($assessment->scoreSnapshot ?? []),
         ));
 
         return $profile->slugId;

@@ -46,6 +46,24 @@ enum AdvisoryRiskProfile: string
         return self::cases();
     }
 
+    /**
+     * Niveau équivalent sur l'échelle 1-7 de {@see \App\Domain\Suitability\Enum\InvestorProfileLevel}
+     * (mêmes libellés partagés entre les deux échelles), utilisé pour détecter une divergence
+     * significative entre le profil perçu à l'entretien et le profil validé du questionnaire
+     * (décision lot 5). `null` pour NON_DETERMINE : rien à comparer tant que le CGP n'a pas
+     * caractérisé de tendance à l'entretien.
+     */
+    public function equivalentInvestorProfileLevel(): ?int
+    {
+        return match ($this) {
+            self::NON_DETERMINE => null,
+            self::PRUDENT => 2,
+            self::EQUILIBRE => 4,
+            self::DYNAMIQUE => 5,
+            self::OFFENSIF => 7,
+        };
+    }
+
     private static function normalize(?string $value): string
     {
         $value = mb_strtolower(trim((string) $value), 'UTF-8');

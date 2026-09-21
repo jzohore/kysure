@@ -48,6 +48,29 @@
                 {% endif %}
             </div>
 
+            {% if this.hasHighRiskLowCapacityMismatch %}
+                <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 mb-4 flex gap-2">
+                    <twig:ux:icon name="lucide:triangle-alert" class="size-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        <strong>Mise en garde :</strong> appétence au risque déclarée très forte malgré une capacité
+                        à subir des pertes très faible. Le profil final a été plafonné en conséquence, et cette
+                        situation est consignée dans la piste d'audit du cabinet.
+                    </p>
+                </div>
+            {% endif %}
+
+            {% if this.hasAdvisoryProfileDivergence %}
+                <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 mb-4 flex gap-2">
+                    <twig:ux:icon name="lucide:git-compare-arrows" class="size-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        <strong>Divergence détectée :</strong> le profil perçu à l'entretien
+                        (« {{ this.advisoryRiskProfile.value }} ») s'écarte sensiblement du profil retenu du
+                        questionnaire ci-dessus. Le questionnaire fait foi, mais un point avec le client peut être
+                        utile pour comprendre l'écart.
+                    </p>
+                </div>
+            {% endif %}
+
             {# ── Détail par dimension ── #}
             <dl class="grid grid-cols-2 gap-3 text-xs mb-4">
                 <div class="p-2.5 rounded-lg bg-white border border-slate-100">

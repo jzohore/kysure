@@ -1,0 +1,75 @@
+<div {{ attributes }}>
+    {% if this.isInReview %}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+            {% include 'components/partials/_live_alerts.html.twig' with {
+                message: this.actionMessage|default(null),
+                type: this.actionMessageType|default('error')
+            } %}
+
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <twig:ux:icon name="lucide:shield-check" class="size-4 text-slate-400" aria-hidden="true" />
+                Décision de conformité
+            </h2>
+
+            {% if not this.hasValidatedInvestorProfileInForce %}
+                <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 mb-4 flex gap-2">
+                    <twig:ux:icon name="lucide:triangle-alert" class="size-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        Ce dossier ne peut pas être approuvé : aucun profil investisseur validé n'est
+                        en vigueur pour ce client auprès de ce cabinet. Validez d'abord son profil
+                        investisseur depuis sa fiche client.
+                    </p>
+                </div>
+            {% endif %}
+
+            {% if this.canDecide %}
+                {% if this.isRejecting %}
+                    <div class="space-y-2">
+                        <label for="reject_reason" class="block text-xs font-medium text-slate-700">
+                            Motif de rejet <span class="font-normal text-slate-400">— obligatoire</span>
+                        </label>
+                        <textarea id="reject_reason" rows="2" data-model="rejectReason"
+                                  class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-red-400 focus:ring-red-400 text-sm"
+                                  placeholder="Ex : pièces incohérentes, profil non conforme à la politique du cabinet…"></textarea>
+                        <div class="flex items-center gap-2">
+                            <twig:Button as="button" type="button" variant="outline" size="sm" data-action="live#action" data-live-action-param="toggleReject">Annuler</twig:Button>
+                            <twig:Button as="button" type="button" variant="destructive" size="sm" data-action="live#action" data-live-action-param="reject">Confirmer le rejet</twig:Button>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="space-y-3">
+                        <div>
+                            <label for="risk_level" class="block text-xs font-medium text-slate-700 mb-1">Niveau de risque retenu</label>
+                            <select id="risk_level" data-model="norender|selectedRiskLevel"
+                                    class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-[#0B261C] focus:ring-[#0B261C] text-sm"
+                                    {{ this.hasValidatedInvestorProfileInForce ? '' : 'disabled' }}>
+                                <option value="">— Sélectionner —</option>
+                                {% for level in this.riskLevels %}
+                                    <option value="{{ level.value }}">{{ level.getLabel }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="approval_comments" class="block text-xs font-medium text-slate-700 mb-1">
+                                Commentaires <span class="font-normal text-slate-400">— optionnel</span>
+                            </label>
+                            <textarea id="approval_comments" rows="2" data-model="norender|comments"
+                                      class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-[#0B261C] focus:ring-[#0B261C] text-sm"
+                                      {{ this.hasValidatedInvestorProfileInForce ? '' : 'disabled' }}></textarea>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <twig:Button as="button" type="button" variant="outline" size="sm" data-action="live#action" data-live-action-param="toggleReject">
+                                Rejeter le dossier
+                            </twig:Button>
+                            <twig:Button as="button" type="button" variant="dark" size="sm" data-action="live#action" data-live-action-param="approve" disabled="{{ this.hasValidatedInvestorProfileInForce ? false : true }}">
+                                Déclarer conforme
+                            </twig:Button>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <p class="text-xs text-slate-400">Décision réservée à un administrateur du cabinet.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
