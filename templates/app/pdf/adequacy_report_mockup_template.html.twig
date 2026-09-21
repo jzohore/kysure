@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport d'adéquation (maquette) - {{ report.clientFullName }}</title>
+    <style>
+        /* =========================================================================
+           Maquette du rapport d'adéquation — lot 0 du chantier "rapport d'adéquation"
+           (cf. mémoire cif-pilot-roadmap-phase2). Données entièrement fictives.
+           Gabarit calqué sur investor_profile_synthesis_template.html.twig pour rester
+           cohérent visuellement avec les autres documents générés par KYSURE.
+           ========================================================================= */
+
+        * { box-sizing: border-box; }
+
+        @page {
+            size: A4 portrait;
+            margin: 14mm 16mm 15mm;
+        }
+
+        html {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10.5px;
+            line-height: 1.5;
+            color: #0f172a;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .mockup-banner {
+            margin-bottom: 14px;
+            padding: 8px 12px;
+            background: #fffbeb;
+            border: 1px solid #fbbf24;
+            border-left: 3px solid #d97706;
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #92400e;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 24px;
+            padding-bottom: 10px;
+            margin-bottom: 18px;
+            border-bottom: 2px solid #0f172a;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .header .logo {
+            display: block;
+            max-height: 46px;
+            max-width: 150px;
+        }
+        .header .firm-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .doc-meta {
+            flex-shrink: 0;
+            text-align: right;
+        }
+        .doc-meta .kicker {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #0f172a;
+        }
+        .doc-meta table {
+            margin-left: auto;
+            border-collapse: collapse;
+        }
+        .doc-meta td {
+            padding: 1px 0;
+            font-size: 8.5px;
+        }
+        .doc-meta td.k {
+            padding-right: 8px;
+            text-align: right;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #475569;
+        }
+        .doc-meta td.v {
+            text-align: right;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .info-grid {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 16px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .info-box {
+            flex: 1;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #94a3b8;
+            padding: 10px 12px;
+        }
+        .info-box .label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #475569;
+        }
+        .info-box .body {
+            font-size: 9.5px;
+            line-height: 1.5;
+            color: #0f172a;
+        }
+
+        h1 {
+            margin: 16px 0 7px;
+            padding-bottom: 4px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #0f172a;
+            border-bottom: 1.5px solid #0f172a;
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+        .sec {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        p {
+            margin: 5px 0 9px;
+        }
+        strong {
+            color: #0f172a;
+        }
+
+        .fine-print {
+            font-size: 8.5px;
+            line-height: 1.45;
+            color: #475569;
+        }
+
+        .profile-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #0f172a;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .profile-box .level {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        table.lines {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        table.lines tr {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        table.lines td {
+            padding: 4px 4px;
+            font-size: 9px;
+            vertical-align: top;
+        }
+        table.lines td.q {
+            width: 55%;
+            color: #475569;
+        }
+        table.lines td.a {
+            width: 25%;
+            font-weight: 600;
+            color: #0f172a;
+            text-align: right;
+        }
+        table.lines td.note {
+            width: 20%;
+            font-size: 8px;
+            color: #64748b;
+            text-align: right;
+        }
+
+        .totals-row td {
+            font-weight: 700;
+            border-top: 1.5px solid #0f172a;
+            border-bottom: none;
+        }
+
+        .product-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #0f172a;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .product-box .name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+
+        .scenarios {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .scenario-card {
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+        }
+        .scenario-card.unfavorable { border-left: 3px solid #b91c1c; }
+        .scenario-card.target { border-left: 3px solid #0f172a; }
+        .scenario-card.favorable { border-left: 3px solid #15803d; }
+        .scenario-card .name {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+            color: #0f172a;
+        }
+        .scenario-card .row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8.5px;
+            color: #475569;
+            margin-bottom: 3px;
+        }
+        .scenario-card .row .v {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .doc-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 16px;
+            padding-top: 8px;
+            font-size: 8px;
+            color: #475569;
+            border-top: 1px solid #e2e8f0;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .preview-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+        .preview-toolbar a {
+            display: inline-block;
+            padding: 7px 14px;
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 9.5px;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+{% if not is_pdf %}
+    <div class="preview-toolbar">
+        <a href="{{ path('app_adequacy_report_mockup_pdf') }}">Télécharger le PDF</a>
+    </div>
+{% endif %}
+
+<div class="mockup-banner">
+    🧪 Maquette — lot 0 du chantier « rapport d'adéquation ». Client, patrimoine, produit, frais et projections
+    entièrement fictifs. Ce document sert uniquement à valider les sections et les formulations avant tout
+    développement des lots suivants.
+</div>
+
+<div class="header">
+    <div class="brand">
+        {% if report.workspaceLogoStoragePath %}
+            <img src="{{ report.workspaceLogoStoragePath|private_url }}" class="logo" alt="Logo du cabinet">
+        {% else %}
+            <div class="firm-name">{{ report.workspaceName }}</div>
+        {% endif %}
+    </div>
+    <div class="doc-meta">
+        <span class="kicker">Rapport d'adéquation</span>
+        <table>
+            <tr><td class="k">Généré le</td><td class="v">{{ report.generatedAt|date("d/m/Y") }}</td></tr>
+        </table>
+    </div>
+</div>
+
+<div class="info-grid">
+    <div class="info-box">
+        <span class="label">Le cabinet</span>
+        <div class="body">
+            {{ report.workspaceLegalName ?: report.workspaceName }}<br>
+            {{ report.workspaceAddress|default('Adresse à compléter dans les Réglages') }}<br>
+            SIRET : {{ report.workspaceSiret|default('à compléter dans les Réglages') }}
+        </div>
+    </div>
+    <div class="info-box">
+        <span class="label">Le client</span>
+        <div class="body">
+            {{ report.clientFullName }}<br>
+            {{ report.clientSituationSummary }}
+        </div>
+    </div>
+</div>
+
+<section class="sec">
+    <h1>1. Objectifs d'investissement</h1>
+    <table class="lines">
+        {% for objective in report.objectives %}
+            <tr>
+                <td class="q">{{ objective.label }} <span class="fine-print">({{ objective.priority }})</span></td>
+                <td class="a">{{ objective.amount }}</td>
+                <td class="note">{{ objective.horizon }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</section>
+
+<section class="sec">
+    <h1>2. Profil investisseur</h1>
+    <div class="profile-box">
+        <div class="level">{{ report.investorProfileLevel }}/7 — {{ report.investorProfileLabel }}</div>
+    </div>
+    <p class="fine-print">
+        Profil issu du questionnaire d'évaluation de l'adéquation, validé par le conseiller (cf. déclaration
+        d'adéquation du profil investisseur, document distinct).
+    </p>
+</section>
+
+<section class="sec">
+    <h1>3. Situation patrimoniale</h1>
+    <table class="lines">
+        {% for line in report.netWorthLines %}
+            <tr>
+                <td class="q">{{ line.label }}</td>
+                <td class="a" colspan="2">{{ line.amount }}</td>
+            </tr>
+        {% endfor %}
+        <tr class="totals-row">
+            <td class="q">Patrimoine net</td>
+            <td class="a" colspan="2">{{ report.netWorthNet }}</td>
+        </tr>
+        <tr class="totals-row">
+            <td class="q">Capacité d'investissement disponible</td>
+            <td class="a" colspan="2">{{ report.investmentCapacity }}</td>
+        </tr>
+    </table>
+</section>
+
+<section class="sec">
+    <h1>4. Produit recommandé</h1>
+    <div class="product-box">
+        <div class="name">{{ report.productName }}</div>
+        <table class="lines">
+            <tr><td class="q">Producteur</td><td class="a" colspan="2">{{ report.productProducer }}</td></tr>
+            <tr><td class="q">Code ISIN</td><td class="a" colspan="2">{{ report.productIsin }}</td></tr>
+            <tr><td class="q">Typologie</td><td class="a" colspan="2">{{ report.productTypology }}</td></tr>
+            <tr><td class="q">Niveau de risque (SRI)</td><td class="a" colspan="2">{{ report.productSri }}/7</td></tr>
+            <tr><td class="q">Horizon recommandé</td><td class="a" colspan="2">{{ report.productRecommendedHorizon }}</td></tr>
+            <tr><td class="q">Investissement minimum</td><td class="a" colspan="2">{{ report.productMinInvestment }}</td></tr>
+            <tr><td class="q">Objectif de rendement</td><td class="a" colspan="2">{{ report.productReturnObjective }}</td></tr>
+        </table>
+    </div>
+</section>
+
+<section class="sec">
+    <h1>5. Justification de l'adéquation</h1>
+    <p>{{ report.adequacyJustification }}</p>
+</section>
+
+<section class="sec">
+    <h1>6. Coûts et frais</h1>
+    <p class="fine-print">{{ report.cifRemuneration }}</p>
+    <table class="lines">
+        {% for line in report.feeLines %}
+            <tr>
+                <td class="q">{{ line.label }}</td>
+                <td class="a">{{ line.amount }}</td>
+                <td class="note">{{ line.note }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+    <p class="fine-print" style="margin-top: 8px;">{{ report.totalFeesImpact }}</p>
+</section>
+
+<section class="sec">
+    <h1>7. Projections</h1>
+    <div class="scenarios">
+        {% for scenario in report.scenarios %}
+            <div class="scenario-card {{ scenario.name == 'Défavorable' ? 'unfavorable' : (scenario.name == 'Favorable' ? 'favorable' : 'target') }}">
+                <div class="name">{{ scenario.name }}</div>
+                <div class="row"><span>Hypothèse</span><span class="v">{{ scenario.hypothesis }}</span></div>
+                <div class="row"><span>Valeur finale estimée</span><span class="v">{{ scenario.finalValue }}</span></div>
+                <div class="row"><span>Frais cumulés</span><span class="v">{{ scenario.cumulativeFees }}</span></div>
+                <div class="row"><span>Rendement net estimé</span><span class="v">{{ scenario.netReturn }}</span></div>
+            </div>
+        {% endfor %}
+    </div>
+    <p class="fine-print">
+        Ces projections sont des simulations non contractuelles fondées sur des hypothèses de rendement
+        paramétrables. <strong>Les performances passées ne préjugent pas des performances futures</strong> et
+        aucun rendement n'est garanti, sauf mention contraire documentée du produit concerné.
+    </p>
+</section>
+
+<div class="doc-footer">
+    <span>{{ report.workspaceLegalName ?: report.workspaceName }} &mdash; SIRET {{ report.workspaceSiret }}</span>
+    <span>Rapport d'adéquation &middot; Maquette lot 0 &middot; Données fictives</span>
+</div>
+
+</body>
+</html>
