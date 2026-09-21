@@ -78,7 +78,7 @@
                         { icon: 'lucide:shield-alert', badge: 'bg-violet-100 text-violet-700', label: 'Criblages LCB-FT en cours', value: dashboard.pendingScreeningsCount, sub: 'à analyser', href: path('app_screening_list') },
                         { icon: 'lucide:alert-triangle', badge: 'bg-red-100 text-red-700', label: 'Corrections requises', value: dashboard.needsCorrectionCount, sub: 'dossiers à reprendre', href: path('app_compliance_list') },
                         { icon: 'lucide:badge-check', badge: 'bg-emerald-100 text-emerald-700', label: 'Dossiers conformes', value: dashboard.approvedCount, sub: 'validés', href: path('app_compliance_list') },
-                        { icon: 'lucide:bar-chart-3', badge: 'bg-indigo-100 text-indigo-700', label: 'Profils investisseurs', value: dashboard.investorProfilesToValidateCount, sub: 'à valider', href: path('app_clients_list') },
+                        { icon: 'lucide:bar-chart-3', badge: 'bg-indigo-100 text-indigo-700', label: 'Profils investisseurs', value: dashboard.investorProfilesToValidateCount, sub: 'à valider', href: '#profils-a-valider' },
                         { icon: 'lucide:users', badge: 'bg-slate-100 text-slate-700', label: 'Clients suivis', value: dashboard.clientsCount, sub: 'relations actives', href: path('app_clients_list') },
                     ] %}
                     {% for it in indicators %}
@@ -103,6 +103,44 @@
 
         {# ─────────── COLONNE DROITE : LISTES D'ACTIVITÉ ─────────── #}
         <div class="lg:col-span-8 space-y-6">
+
+            {# PROFILS INVESTISSEURS À VALIDER #}
+            <section id="profils-a-valider" class="bg-white rounded-xl border border-slate-200 shadow-sm scroll-mt-6">
+                <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        {{ ux_icon('lucide:bar-chart-3', { class: 'size-4 text-slate-400' }) }}
+                        Profils investisseurs à valider
+                    </h2>
+                </div>
+                <div class="p-2 space-y-1">
+                    {% for assessment in dashboard.pendingInvestorProfileValidations %}
+                        <a href="{{ path('app_clients_show', { slugId: assessment.client.slugId }) }}#profil-investisseur"
+                           class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50/80 transition-colors group">
+                            <div class="flex items-center gap-3 min-w-0 pr-2">
+                                <div class="size-8 shrink-0 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center" aria-hidden="true">
+                                    {{ ux_icon('lucide:bar-chart-3', { class: 'size-4' }) }}
+                                </div>
+                                <div class="flex flex-col min-w-0">
+                                    <span class="text-sm font-semibold text-slate-900 truncate group-hover:text-indigo-700">
+                                        {{ assessment.client.firstName }} {{ assessment.client.lastName }}
+                                    </span>
+                                    <span class="text-[11px] text-slate-500 tabular-nums">
+                                        Soumis le {{ assessment.submittedAt|date('d/m/Y') }}
+                                    </span>
+                                </div>
+                            </div>
+                            <span class="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                                À valider
+                            </span>
+                        </a>
+                    {% else %}
+                        <div class="text-center py-10 px-4 text-sm text-slate-500 flex flex-col items-center gap-2">
+                            {{ ux_icon('lucide:badge-check', { class: 'size-8 text-slate-300' }) }}
+                            <p>Aucun profil investisseur en attente de validation.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
 
             {# DERNIERS DOSSIERS #}
             <section class="bg-white rounded-xl border border-slate-200 shadow-sm">

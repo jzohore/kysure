@@ -10,6 +10,7 @@ use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Firm\Entity\RegulatoryProfile;
 use App\Domain\Firm\Repository\RegulatoryProfileRepositoryInterface;
 use App\Domain\Screening\Repository\ScreeningAuditRepositoryInterface;
+use App\Domain\Suitability\Entity\InvestorProfileAssessment;
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\User\Entity\User;
 use App\Domain\User\Repository\ClientRepositoryInterface;
@@ -61,6 +62,7 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
 
         $validatedInvestorProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
         $validatedInvestorProfileRepo->method('countPendingValidationForWorkspace')->willReturn(2);
+        $validatedInvestorProfileRepo->method('findPendingValidationForWorkspace')->willReturn([]);
 
         $workspaceProvider = $this->createStub(CurrentWorkspaceProvider::class);
         $workspaceProvider->method('getWorkspace')->willReturn($workspace);
@@ -125,9 +127,61 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
         self::assertSame(2, $stats->investorProfilesToValidateCount);
         self::assertSame([], $stats->latestFolders);
         self::assertSame([], $stats->latestScreenings);
+        self::assertSame([], $stats->pendingInvestorProfileValidations);
         self::assertTrue($stats->isOrgCompleted);
         self::assertTrue($stats->isRegProfileValid);
         self::assertTrue($stats->is2faEnabled);
+    }
+
+    public function testForwardsThePendingInvestorProfileValidationsList(): void
+    {
+        $workspace = $this->createEntityState(Workspace::class, [
+            'id' => Uuid::v7(),
+            'name' => 'Cabinet Durand',
+            'type' => WorkspaceType::FIRM,
+            'trialDossiersRemaining' => 3,
+            'meetingMinutesAllocated' => 90,
+            'meetingSecondsConsumed' => 30 * 60,
+            'subscription' => null,
+            'siret' => '12345678900011',
+            'siren' => '123456789',
+        ]);
+        $user = $this->createEntityState(User::class, []);
+        $assessment = $this->createStub(InvestorProfileAssessment::class);
+
+        $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
+        $folderRepo->method('findRecentByWorkspace')->willReturn([]);
+
+        $clientsPage = $this->createStub(Pagerfanta::class);
+        $clientRepo = $this->createStub(ClientRepositoryInterface::class);
+        $clientRepo->method('findAllByWorkspace')->willReturn($clientsPage);
+
+        $memberRepo = $this->createStub(WorkspaceMemberRepositoryInterface::class);
+        $memberRepo->method('findByWorkspace')->willReturn([]);
+
+        $profileRepo = $this->createStub(RegulatoryProfileRepositoryInterface::class);
+        $screeningRepo = $this->createStub(ScreeningAuditRepositoryInterface::class);
+
+        $validatedInvestorProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $validatedInvestorProfileRepo->method('findPendingValidationForWorkspace')->willReturn([$assessment]);
+
+        $workspaceProvider = $this->createStub(CurrentWorkspaceProvider::class);
+        $workspaceProvider->method('getWorkspace')->willReturn($workspace);
+        $userProvider = $this->createStub(CurrentUserProvider::class);
+        $userProvider->method('getUser')->willReturn($user);
+
+        $useCase = new GetUserDashboardStatsUseCase(
+            $folderRepo,
+            $clientRepo,
+            $memberRepo,
+            $profileRepo,
+            $screeningRepo,
+            $validatedInvestorProfileRepo,
+            $workspaceProvider,
+            $userProvider,
+        );
+
+        self::assertSame([$assessment], ($useCase)()->pendingInvestorProfileValidations);
     }
 
     public function testHandlesMissingRegulatoryProfile(): void

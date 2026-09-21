@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Suitability\Repository;
 
+use App\Domain\Suitability\Entity\InvestorProfileAssessment;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 use App\Domain\User\Entity\Client;
 use App\Domain\Workspace\Entity\Workspace;
@@ -55,4 +56,14 @@ interface ValidatedInvestorProfileRepositoryInterface
      * le tableau de bord conseiller.
      */
     public function countPendingValidationForWorkspace(Workspace $workspace): int;
+
+    /**
+     * Même lecture que {@see self::countPendingValidationForWorkspace()}, mais restitue la
+     * liste (pas seulement le compte) pour le tableau de bord conseiller — du plus ancien
+     * soumis au plus récent, pour faire remonter en premier les demandes en attente depuis le
+     * plus longtemps.
+     *
+     * @return list<InvestorProfileAssessment>
+     */
+    public function findPendingValidationForWorkspace(Workspace $workspace): array;
 }

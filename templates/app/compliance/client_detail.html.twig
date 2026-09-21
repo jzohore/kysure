@@ -203,7 +203,9 @@
                 </div>
             {% endfor %}
 
-            <twig:InvestorProfileReviewComponent clientSlugId="{{ client.slugId }}" />
+            <div id="profil-investisseur" class="scroll-mt-6">
+                <twig:InvestorProfileReviewComponent clientSlugId="{{ client.slugId }}" />
+            </div>
         </div>
 
         {# ===== Colonne latérale : actions ===== #}

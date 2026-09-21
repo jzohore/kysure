@@ -35,6 +35,7 @@ final class UserDashboardStatsTest extends TestCase
             'investorProfilesToValidateCount' => 0,
             'latestFolders' => [],
             'latestScreenings' => [],
+            'pendingInvestorProfileValidations' => [],
             'isOrgCompleted' => false,
             'isRegProfileValid' => false,
             'is2faEnabled' => false,

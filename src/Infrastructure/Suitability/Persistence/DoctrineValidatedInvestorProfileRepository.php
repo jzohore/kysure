@@ -110,4 +110,22 @@ readonly class DoctrineValidatedInvestorProfileRepository implements ValidatedIn
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    public function findPendingValidationForWorkspace(Workspace $workspace): array
+    {
+        return $this->entityManager->createQueryBuilder()
+            ->select('a')
+            ->from(InvestorProfileAssessment::class, 'a')
+            ->andWhere('a.workspace = :workspace')
+            ->andWhere('a.status = :status')
+            ->andWhere('NOT EXISTS (
+                SELECT 1 FROM ' . ValidatedInvestorProfile::class . ' p
+                WHERE p.assessment = a AND p.revokedAt IS NULL
+            )')
+            ->orderBy('a.submittedAt', 'ASC')
+            ->setParameter('workspace', $workspace)
+            ->setParameter('status', AssessmentStatus::SUBMITTED)
+            ->getQuery()
+            ->getResult();
+    }
 }

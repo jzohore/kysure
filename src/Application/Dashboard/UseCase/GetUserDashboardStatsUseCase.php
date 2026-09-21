@@ -61,6 +61,7 @@ readonly class GetUserDashboardStatsUseCase
             investorProfilesToValidateCount: $this->validatedInvestorProfileRepository->countPendingValidationForWorkspace($workspace),
             latestFolders: $this->complianceFolderRepository->findRecentByWorkspace($workspace, 5),
             latestScreenings: $this->screeningAuditRepository->findRecentByWorkspace($workspace, 5),
+            pendingInvestorProfileValidations: $this->validatedInvestorProfileRepository->findPendingValidationForWorkspace($workspace),
             isOrgCompleted: $workspace->isOrgCompleted(),
             isRegProfileValid: $isRegProfileValid,
             is2faEnabled: $user->isGoogleAuthenticatorEnabled(),
