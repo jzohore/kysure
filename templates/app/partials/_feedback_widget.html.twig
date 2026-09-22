@@ -1,0 +1,47 @@
+{#
+    Widget de feedback flottant — visible uniquement en dev/staging (garde posée dans
+    base_app.html.twig), jamais en production. Destiné au(x) testeur(s) pilote(s) : un message
+    libre + l'URL/titre de la page courante, envoyés à /app/feedback, consultables dans
+    /admin/feedback.
+#}
+<div data-controller="feedback-widget" data-feedback-widget-url-value="{{ path('app_feedback_submit') }}">
+    <button type="button"
+            data-action="feedback-widget#open"
+            aria-label="Envoyer un retour"
+            class="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-[#0A2540] text-white px-4 py-3 shadow-lg hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900">
+        <twig:ux:icon name="tabler:message-2" class="size-4" aria-hidden="true" />
+        <span class="text-xs font-semibold hidden sm:inline">Un retour ?</span>
+    </button>
+
+    <dialog data-feedback-widget-target="dialog"
+            data-action="click->feedback-widget#clickOutside"
+            class="backdrop:bg-slate-900/40 rounded-2xl p-0 w-full max-w-md m-auto">
+        <div class="p-5">
+            <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900">Un souci, une remarque ?</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Votre message part directement à l'équipe KYSURE, avec la page où vous êtes.</p>
+                </div>
+                <button type="button" data-action="feedback-widget#close" aria-label="Fermer"
+                        class="shrink-0 rounded p-1 text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900">
+                    <twig:ux:icon name="tabler:x" class="size-4" aria-hidden="true" />
+                </button>
+            </div>
+
+            <textarea data-feedback-widget-target="textarea" rows="4"
+                      placeholder="Décrivez ce que vous avez constaté..."
+                      class="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"></textarea>
+
+            <p data-feedback-widget-target="confirmation" hidden class="text-xs font-medium text-emerald-700 mt-2">
+                Merci, c'est envoyé !
+            </p>
+
+            <div class="flex items-center justify-end gap-3 mt-4">
+                <twig:Button type="button" data-action="feedback-widget#close" variant="ghost">Annuler</twig:Button>
+                <twig:Button type="button" data-action="feedback-widget#submit" data-feedback-widget-target="submitButton" variant="dark">
+                    Envoyer
+                </twig:Button>
+            </div>
+        </div>
+    </dialog>
+</div>

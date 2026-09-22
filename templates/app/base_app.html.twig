@@ -317,5 +317,8 @@
 {% if  app.user.profile.dismissOnboarding %}
 <twig:SupportChatComponent userUuid="{{ app.user.id }}" urlContext="{{ app.request.uri }}"></twig:SupportChatComponent>
 {% endif %}
+{% if app.environment in ['dev', 'staging'] %}
+    {% include '@app/partials/_feedback_widget.html.twig' %}
+{% endif %}
 </body>
 </html>
