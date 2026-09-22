@@ -17,7 +17,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[AsController]
-#[Route(path: '/app/settings/product-catalogue/{slugId}/toggle-archive', name: 'app_settings_product_catalogue_toggle_archive', methods: ['POST'])]
+#[Route(path: '/app/product-catalogue/{slugId}/toggle-archive', name: 'app_product_catalogue_toggle_archive', methods: ['POST'])]
 final class ToggleFinancialProductArchiveController extends AbstractController
 {
     public function __construct(
@@ -41,7 +41,7 @@ final class ToggleFinancialProductArchiveController extends AbstractController
         if (!$this->isCsrfTokenValid('product_toggle_archive_' . $slugId, (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'Jeton de sécurité invalide.');
 
-            return $this->redirectToRoute('app_settings_product_catalogue_list');
+            return $this->redirectToRoute('app_product_catalogue_list');
         }
 
         try {
@@ -56,6 +56,6 @@ final class ToggleFinancialProductArchiveController extends AbstractController
             $this->addFlash('error', $exception->getMessage());
         }
 
-        return $this->redirectToRoute('app_settings_product_catalogue_list');
+        return $this->redirectToRoute('app_product_catalogue_list');
     }
 }

@@ -13,6 +13,7 @@ enum ComplianceMenuItem: string
     case SCREENING = 'screening';
     case STAKEHOLDERS = 'stakeholders';
     case DOCUMENTS = 'documents';
+    case PRODUCTS = 'products';
 
     public function getLabel(): string
     {
@@ -24,6 +25,7 @@ enum ComplianceMenuItem: string
             self::SCREENING => 'Criblage LCB-FT',
             self::STAKEHOLDERS => 'Parties Prenantes',
             self::DOCUMENTS => 'Documents Collectés',
+            self::PRODUCTS => 'Produits',
         };
     }
 
@@ -37,6 +39,7 @@ enum ComplianceMenuItem: string
             self::SCREENING => 'lucide:user-round-search',
             self::STAKEHOLDERS => 'lucide:users-round',
             self::DOCUMENTS => 'lucide:folder-open',
+            self::PRODUCTS => 'lucide:package',
         };
     }
 
@@ -50,6 +53,7 @@ enum ComplianceMenuItem: string
             self::SCREENING => 'app_screening_list',
             self::STAKEHOLDERS => 'app_employees_list', // À ajuster vers app_stakeholders_list
             self::DOCUMENTS => 'app_employees_list',
+            self::PRODUCTS => 'app_product_catalogue_list',
         };
     }
 

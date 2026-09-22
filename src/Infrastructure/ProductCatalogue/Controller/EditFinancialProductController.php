@@ -18,7 +18,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[AsController]
-#[Route(path: '/app/settings/product-catalogue/{slugId}/edit', name: 'app_settings_product_catalogue_edit', methods: ['GET', 'POST'])]
+#[Route(path: '/app/product-catalogue/{slugId}/edit', name: 'app_product_catalogue_edit', methods: ['GET', 'POST'])]
 final class EditFinancialProductController extends AbstractController
 {
     public function __construct(
@@ -51,13 +51,13 @@ final class EditFinancialProductController extends AbstractController
                 ($this->updateFinancialProduct)($product, $dto);
                 $this->addFlash('success', 'Produit mis à jour.');
 
-                return $this->redirectToRoute('app_settings_product_catalogue_list');
+                return $this->redirectToRoute('app_product_catalogue_list');
             } catch (\DomainException $exception) {
                 $this->addFlash('error', $exception->getMessage());
             }
         }
 
-        return $this->render('@app/settings/product_catalogue_form.html.twig', [
+        return $this->render('@app/product_catalogue/product_catalogue_form.html.twig', [
             'page_title' => 'Modifier ' . $product->name,
             'product_form' => $form,
             'product' => $product,

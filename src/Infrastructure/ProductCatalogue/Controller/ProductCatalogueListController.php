@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[AsController]
-#[Route(path: '/app/settings/product-catalogue', name: 'app_settings_product_catalogue_list')]
+#[Route(path: '/app/product-catalogue', name: 'app_product_catalogue_list')]
 class ProductCatalogueListController extends AbstractController
 {
     public function __construct(
@@ -27,9 +27,8 @@ class ProductCatalogueListController extends AbstractController
         $workspace = $this->currentWorkspaceProvider->getWorkspace();
         $this->denyAccessUnlessGranted(WorkspaceInvitationVoter::WORKSPACE_EDIT, $workspace);
 
-        return $this->render('@app/settings/product_catalogue.html.twig', [
-            'page_title' => 'Paramètres - Catalogue produits',
-            'sub_title' => 'Les supports financiers que vous recommandez à vos clients.',
+        return $this->render('@app/product_catalogue/product_catalogue_list.html.twig', [
+            'page_title' => 'Produits',
             'products' => ($this->listFinancialProducts)($workspace),
         ]);
     }

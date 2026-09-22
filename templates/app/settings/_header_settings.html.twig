@@ -33,7 +33,6 @@
         {% if workspace_can('edit_cabinet') %}
             {{ ui.nav_link('app_settings_regulatory_profile', 'Profil réglementaire', current_route) }}
             {{ ui.nav_link('app_settings_organization', 'Organisation', current_route) }}
-            {{ ui.nav_link('app_settings_product_catalogue_list', 'Catalogue produits', current_route) }}
         {% endif %}
 
         {% if workspace_can('billing') %}
