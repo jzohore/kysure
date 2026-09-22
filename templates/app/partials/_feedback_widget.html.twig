@@ -5,10 +5,16 @@
     /admin/feedback.
 #}
 <div data-controller="feedback-widget" data-feedback-widget-url-value="{{ path('app_feedback_submit') }}">
+    {#
+        Ni bas-gauche (caché derrière la sidebar desktop, fixed + z-50, opaque) ni bas-droite
+        (chevauche SupportChatComponent, bottom-6 right-6 z-50) : onglet vertical sur le bord
+        droit, à mi-hauteur — pattern courant pour un widget de feedback (Canny, UserVoice...),
+        garanti sans collision avec les deux autres widgets fixes de ce gabarit.
+    #}
     <button type="button"
             data-action="feedback-widget#open"
             aria-label="Envoyer un retour"
-            class="fixed bottom-5 left-5 z-40 flex items-center gap-2 rounded-full bg-[#0A2540] text-white px-4 py-3 shadow-lg hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900">
+            class="fixed top-1/2 right-0 -translate-y-1/2 z-40 flex items-center gap-2 rounded-l-lg bg-[#0A2540] text-white px-3 py-2.5 shadow-lg hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900">
         <twig:ux:icon name="tabler:message-2" class="size-4" aria-hidden="true" />
         <span class="text-xs font-semibold hidden sm:inline">Un retour ?</span>
     </button>
