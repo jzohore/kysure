@@ -1,0 +1,65 @@
+{% extends '@app/base_app.html.twig' %}
+
+{% block title %}{{ page_title }} | {{ company_name }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+    {{ include('@app/settings/_header_settings.html.twig') }}
+    <div class="max-w-4xl space-y-6 pb-12">
+        <div class="flex items-center justify-end">
+            <twig:Button as="a" href="{{ path('app_settings_product_catalogue_new') }}" variant="dark">
+                <twig:ux:icon name="tabler:plus" class="size-4" aria-hidden="true" />
+                Ajouter un produit
+            </twig:Button>
+        </div>
+
+        {% if products is empty %}
+            <div class="bg-white rounded-2xl border border-slate-200 p-10 text-center">
+                <p class="text-sm text-slate-500">Aucun produit dans votre catalogue pour le moment.</p>
+                <p class="text-xs text-slate-400 mt-1">Ce catalogue alimentera le moteur d'adéquation et le rapport remis à vos clients.</p>
+            </div>
+        {% else %}
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <th class="px-5 py-3">Nom</th>
+                            <th class="px-5 py-3">Famille</th>
+                            <th class="px-5 py-3">SRI</th>
+                            <th class="px-5 py-3">Horizon mini</th>
+                            <th class="px-5 py-3">Frais/an</th>
+                            <th class="px-5 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for product in products %}
+                            <tr class="{{ product.isArchived ? 'opacity-50' : '' }}">
+                                <td class="px-5 py-3">
+                                    <p class="font-medium text-slate-900">{{ product.name }}</p>
+                                    {% if product.isin %}<p class="text-xs text-slate-400">{{ product.isin }}</p>{% endif %}
+                                    {% if product.isArchived %}
+                                        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 mt-1">Archivé</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-5 py-3 text-slate-600">{{ product.family.getLabel() }}</td>
+                                <td class="px-5 py-3 text-slate-600">{{ product.sriLevel }}/7</td>
+                                <td class="px-5 py-3 text-slate-600">{{ product.minimumHorizonYears }} an{{ product.minimumHorizonYears > 1 ? 's' : '' }}</td>
+                                <td class="px-5 py-3 text-slate-600">{{ (product.annualFeesBasisPoints / 100)|number_format(2, ',') }} %</td>
+                                <td class="px-5 py-3 text-right whitespace-nowrap">
+                                    <a href="{{ path('app_settings_product_catalogue_edit', {slugId: product.slugId}) }}"
+                                       class="text-xs font-medium text-slate-500 hover:text-slate-900 mr-3">Modifier</a>
+                                    <form method="post" action="{{ path('app_settings_product_catalogue_toggle_archive', {slugId: product.slugId}) }}" class="inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('product_toggle_archive_' ~ product.slugId) }}">
+                                        <button type="submit" class="text-xs font-medium text-slate-500 hover:text-red-600">
+                                            {{ product.isArchived ? 'Réactiver' : 'Archiver' }}
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
