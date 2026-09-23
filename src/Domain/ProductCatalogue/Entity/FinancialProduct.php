@@ -123,7 +123,7 @@ class FinancialProduct
         Assert::greaterThanEq($annualFeesBasisPoints, 0, 'Les frais annuels ne peuvent pas être négatifs.');
         Assert::notEmpty($targetInvestorProfiles, 'Sélectionnez au moins un profil investisseur cible.');
         foreach ($targetInvestorProfiles as $level) {
-            InvestorProfileLevel::from($level);
+            Assert::notNull(InvestorProfileLevel::tryFrom($level), 'Profil investisseur cible invalide.');
         }
 
         $this->name = trim($name);

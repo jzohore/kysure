@@ -21,7 +21,7 @@ final readonly class StopAudioUseCase
     {
         $folder = $this->complianceFolderRepository->findOneBySlugId($slugId);
 
-        if (!$folder) {
+        if (!$folder instanceof \App\Domain\Compliance\Entity\ComplianceFolder) {
             throw ComplianceFolderNotFoundException::withId($slugId);
         }
 

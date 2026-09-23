@@ -28,7 +28,7 @@ class DocumentValidator
         }
 
         // --- RÈGLES SPÉCIFIQUES POUR LA CNI ---
-        if (DocumentType::ID_CARD === $document->type && $stakeholder) {
+        if (DocumentType::ID_CARD === $document->type && $stakeholder instanceof \App\Domain\Kyc\Entity\Stakeholder) {
             // 1. CROISEMENT D'IDENTITÉ (Stakeholder VS OCR Zone Visuelle)
             $ocrLastName = $this->normalizeString($data['last_name'] ?? '');
             $userLastName = $this->normalizeString($stakeholder->lastName); // Assure-toi d'avoir cette méthode

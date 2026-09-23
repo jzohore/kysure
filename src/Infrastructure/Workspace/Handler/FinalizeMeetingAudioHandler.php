@@ -34,7 +34,7 @@ final readonly class FinalizeMeetingAudioHandler
     public function __invoke(FinalizeMeetingAudioMessage $message): void
     {
         $folder = $this->folderRepository->findOneBySlugId($message->folderSlugId);
-        if (!$folder) {
+        if (!$folder instanceof \App\Domain\Compliance\Entity\ComplianceFolder) {
             $this->logger->error('Finalisation avortée : Dossier introuvable.', ['slug' => $message->folderSlugId]);
 
             return;

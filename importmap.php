@@ -19,8 +19,6 @@ return [
     '@symfony/ux-live-component' => ['path' => './vendor/symfony/ux-live-component/assets/dist/live_controller.js'],
     '@hotwired/stimulus' => ['version' => '3.2.2'],
     '@hotwired/turbo' => ['version' => '8.0.23'],
-    'chart.js' => ['version' => '4.5.1'],
-    '@kurkle/color' => ['version' => '0.4.0'],
     'signature_pad' => ['version' => '5.1.3'],
     'recordrtc' => ['version' => '5.6.2'],
     'shadcn/dist/tailwind.css' => ['version' => '4.18.0', 'type' => 'css'],
