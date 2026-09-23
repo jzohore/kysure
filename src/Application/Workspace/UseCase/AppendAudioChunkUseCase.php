@@ -24,7 +24,7 @@ final readonly class AppendAudioChunkUseCase
     public function execute(string $folderSlugId, string $sessionId, UploadedFile $chunk, int $chunkIndex, ?string $mimeType = null): void
     {
         $folder = $this->folderRepository->findOneBySlugId($folderSlugId);
-        if (!$folder) {
+        if (!$folder instanceof \App\Domain\Compliance\Entity\ComplianceFolder) {
             throw new \InvalidArgumentException('Dossier introuvable.');
         }
 

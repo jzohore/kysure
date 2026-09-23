@@ -23,7 +23,7 @@ final readonly class LogMeetingRecordingUseCase
     {
         $folder = $this->folderRepository->findOneBySlugId($request->folderSlugId);
 
-        if (!$folder) {
+        if (!$folder instanceof \App\Domain\Compliance\Entity\ComplianceFolder) {
             throw ComplianceFolderNotFoundException::withId($request->folderSlugId);
         }
 

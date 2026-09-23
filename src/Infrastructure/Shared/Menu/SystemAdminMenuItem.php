@@ -14,6 +14,7 @@ enum SystemAdminMenuItem: string
     case ADMINS = 'admins';
     case AUDIT_LOGS = 'audit_logs';
     case CRONS = 'crons';
+    case FEEDBACK = 'feedback';
 
     public function getLabel(): string
     {
@@ -26,6 +27,7 @@ enum SystemAdminMenuItem: string
             self::ADMINS => 'Équipe Super-Admin',
             self::AUDIT_LOGS => 'Journal d\'Audit',
             self::CRONS => 'Tâches planifiées',
+            self::FEEDBACK => 'Retours des testeurs',
         };
     }
 
@@ -40,6 +42,7 @@ enum SystemAdminMenuItem: string
             self::ADMINS => 'lucide:shield-check',
             self::AUDIT_LOGS => 'lucide:scroll-text',
             self::CRONS => 'lucide:timer',
+            self::FEEDBACK => 'lucide:message-square-text',
         };
     }
 
@@ -66,6 +69,7 @@ enum SystemAdminMenuItem: string
             self::ADMINS => 'account_admin_list',
             self::AUDIT_LOGS => 'admin_audit_logs_list',
             self::CRONS => 'admin_crons_list',
+            self::FEEDBACK => 'admin_feedback_list',
         };
     }
 }

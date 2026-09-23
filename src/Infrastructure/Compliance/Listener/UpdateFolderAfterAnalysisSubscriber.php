@@ -34,7 +34,7 @@ final readonly class UpdateFolderAfterAnalysisSubscriber implements EventSubscri
         $folder = $this->folderRepository->findOneBySlugId($event->folderSlugId);
         $recording = $this->recordingRepository->findById($event->recordingId);
 
-        if (!$folder || !$recording || !$recording->geminiRawOutput) {
+        if (!$folder instanceof \App\Domain\Compliance\Entity\ComplianceFolder || !$recording instanceof \App\Domain\Compliance\Entity\MeetingRecording || !$recording->geminiRawOutput) {
             return;
         }
 

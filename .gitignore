@@ -40,3 +40,7 @@ phpstan.neon
 
 # Graphify — graphe de code local, régénérable (graphify update)
 src/graphify-out/
+
+# IDE / OS
+.idea/
+.DS_Store

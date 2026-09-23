@@ -25,7 +25,7 @@ final readonly class AnalyzeCompleteMeetingHandler
         // 1. On récupère la trace d'audit (qui contient l'URL S3 et le lien vers le dossier)
         $recording = $this->recordingRepository->findById($message->recordingId);
 
-        if (!$recording) {
+        if (!$recording instanceof \App\Domain\Compliance\Entity\MeetingRecording) {
             $this->logger->error('Analyse IA avortée : Enregistrement introuvable en base.', [
                 'recordingId' => $message->recordingId,
             ]);

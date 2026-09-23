@@ -34,7 +34,7 @@ readonly class ProcessAndStoreKycDocumentMessageHandler
         $folderUuid = Uuid::fromString($message->folderId);
         $folder = $this->complianceFolderRepository->findById($folderUuid);
 
-        if (!$document || !file_exists($message->localTempPath)) {
+        if (!$document instanceof \App\Domain\Compliance\Entity\ComplianceDocument || !file_exists($message->localTempPath)) {
             $this->logger->warning('KYC Processing failed: Document or local file missing', [
                 'document_id' => $message->documentId,
                 'path' => $message->localTempPath,
