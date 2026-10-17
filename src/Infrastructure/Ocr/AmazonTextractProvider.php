@@ -360,21 +360,27 @@ readonly class AmazonTextractProvider implements OcrProviderInterface
     private function extractPagesAsJpeg(string $filePathOrUrl): array
     {
         if (filter_var($filePathOrUrl, \FILTER_VALIDATE_URL)) {
-            $fileContent = file_get_contents($filePathOrUrl);
-            if (false === $fileContent) {
+            $localTmpFile = sys_get_temp_dir() . '/ocr_tmp_' . uniqid();
+            // copy() streame par blocs : le fichier n'est jamais entièrement en RAM PHP.
+            if (!copy($filePathOrUrl, $localTmpFile)) {
                 throw new \RuntimeException("Impossible de télécharger le fichier depuis l'URL.");
             }
-            $localTmpFile = sys_get_temp_dir() . '/ocr_tmp_' . uniqid();
-            file_put_contents($localTmpFile, $fileContent);
         } else {
             $localTmpFile = $filePathOrUrl;
         }
 
         try {
             if ('application/pdf' === mime_content_type($localTmpFile)) {
+                // 🛡️ ImageMagick alloue HORS memory_limit PHP : on le borne explicitement (process-wide),
+                // pour qu'un gros PDF ne fasse pas tuer le worker par le noyau en plein message.
+                \Imagick::setResourceLimit(\Imagick::RESOURCETYPE_MEMORY, 128 * 1024 * 1024);
+                \Imagick::setResourceLimit(\Imagick::RESOURCETYPE_MAP, 256 * 1024 * 1024);
+
                 $imagick = new \Imagick();
                 $imagick->setResolution(250, 250);
-                $imagick->readImage($localTmpFile);
+                // Seules les 2 premières pages partent à Textract : on ne rastérise QUE celles-là
+                // (un relevé de 30 pages coûtait ~48 Mo par page rastérisée pour rien).
+                $imagick->readImage($localTmpFile . '[0-1]');
 
                 $pages = [];
                 $numPages = min($imagick->getNumberImages(), 2);

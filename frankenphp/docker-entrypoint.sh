@@ -113,8 +113,16 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
     # ---------------------------------------------------------
     if [ "$KYSURE_ROLE" = 'worker' ]; then
        echo "⚙️ [KYSURE OPS] Démarrage en mode WORKER Messenger asynchrone..."
-       # On passe les queues standards explicites pour la production (modifie selon tes besoins)
-       exec php bin/console messenger:consume --all --memory-limit=128M --time-limit=3600
+       # Récepteurs surchargeables par conteneur (ex. worker e-mails : MESSENGER_RECEIVERS="async_priority").
+       # ⚠️ `failed` est EXCLU : avec --all, le worker rejouait les messages en échec définitif puis les
+       # SUPPRIMAIT (file d'analyse vidée, e-mails rejoués, appels Textract/Gemini refacturés).
+       # Rejouer un échec = décision humaine via `messenger:failed:retry`.
+       RECEIVERS="${MESSENGER_RECEIVERS:---all --exclude-receivers=failed}"
+       # memory_limit PHP < limite Docker : erreur PHP propre (message requeué + log) plutôt qu'un
+       # OOMKill silencieux du noyau en plein message. `--memory-limit` ne contrôle qu'entre deux messages.
+       # shellcheck disable=SC2086
+       exec php -d memory_limit="${WORKER_PHP_MEMORY_LIMIT:-256M}" bin/console messenger:consume $RECEIVERS \
+            --memory-limit=128M --time-limit=3600
     fi
 
     echo "🌐 [KYSURE OPS] Démarrage en mode WEB (FrankenPHP)..."
