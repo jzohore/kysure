@@ -48,6 +48,14 @@ readonly class MeetingRecordRepository implements MeetingRecordRepositoryInterfa
         return $this->repository->find($id);
     }
 
+    public function existsForSession(ComplianceFolder $complianceFolder, string $sessionId): bool
+    {
+        return null !== $this->repository->findOneBy([
+            'complianceFolder' => $complianceFolder,
+            'sessionId' => $sessionId,
+        ]);
+    }
+
     public function findAllByFolder(ComplianceFolder $complianceFolder): array
     {
         return $this->repository->findBy(['complianceFolder' => $complianceFolder]);

@@ -82,7 +82,8 @@ framework:
             'App\Infrastructure\Compliance\Message\GenerateDerPdfMessage': async_heavy
             # Génération du PDF de synthèse (déclaration d'adéquation) du profil investisseur.
             'App\Infrastructure\Suitability\Message\GenerateInvestorProfilePdfMessage': async_heavy
-            # Tes commandes de conformité lourdes
+            # Recollage des chunks S3 + ffmpeg (CPU et durée imprévisibles) : JAMAIS dans un thread web.
+            'App\Infrastructure\Compliance\Message\FinalizeMeetingAudioMessage': async_heavy
 
             # --- TÂCHES PLANIFIÉES (déclenchement manuel depuis le back-office) ---
             # Le déclenchement automatique passe par le transport `scheduler_cron`

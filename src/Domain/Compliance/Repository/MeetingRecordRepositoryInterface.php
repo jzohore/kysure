@@ -28,6 +28,11 @@ interface MeetingRecordRepositoryInterface
     public function findBySlugId(string $slugId): ?MeetingRecording;
 
     /**
+     * Clé d'idempotence de la finalisation audio (contrainte unique session + dossier).
+     */
+    public function existsForSession(ComplianceFolder $complianceFolder, string $sessionId): bool;
+
+    /**
      * Liste tous les dossiers actifs d'un espace de travail.
      *
      * @return MeetingRecording[]

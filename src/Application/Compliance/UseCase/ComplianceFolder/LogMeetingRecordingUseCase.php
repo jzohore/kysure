@@ -6,6 +6,7 @@ namespace App\Application\Compliance\UseCase\ComplianceFolder;
 
 use App\Application\Compliance\DTO\Request\LogMeetingRecordingRequest;
 use App\Domain\Compliance\Entity\MeetingRecording;
+use App\Domain\Compliance\Enum\MeetingProcessingStatus;
 use App\Domain\Compliance\Exception\ComplianceFolderNotFoundException;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Compliance\Repository\MeetingRecordRepositoryInterface;
@@ -34,6 +35,12 @@ final readonly class LogMeetingRecordingUseCase
             $request->s3Path,
             $request->consumedSeconds
         );
+
+        // 🛡️ Atomicité : débit du quota, statut d'analyse et trace d'audit partent dans UN SEUL flush
+        // (une transaction Doctrine). La trace porte la contrainte unique (session, dossier) qui sert de
+        // clé d'idempotence : un rejeu ne peut ni débiter deux fois ni laisser un état intermédiaire.
+        $folder->workspace->consumeMeetingSeconds($request->consumedSeconds);
+        $folder->setMeetingProcessingStatus(MeetingProcessingStatus::ANALYZING);
 
         $this->recordRepository->save($recording);
 
