@@ -1,6 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 import RecordRTC from 'recordrtc'; // 🛡️ Import de la librairie ultra-robuste
 
+/* stimulusFetch: 'lazy' */
+
 export default class extends Controller {
     static values = {
         chunkUrl: String,
@@ -54,13 +56,19 @@ export default class extends Controller {
         // 🚀 AJOUT : Génération de l'UUID pour isoler cet enregistrement sur S3
         this.sessionId = this.generateSafeUUID();
         try {
-            // 1. Capture propre du micro
+            // 1. Capture du micro SANS traitement navigateur.
+            // 🛡️ Compatibilité visio (Meet/Teams/Zoom ouverts en parallèle) : un second getUserMedia
+            // avec des traitements différents (écho/bruit/gain) peut reconfigurer la source audio
+            // partagée et couper le micro de la visio. De plus, l'annulation d'écho retire du signal
+            // la voix du client diffusée par les haut-parleurs → l'enregistrement perdrait ses réponses.
             this.microphone = await navigator.mediaDevices.getUserMedia({
-                audio: { echoCancellation: true, noiseSuppression: false }
+                audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
             });
 
             // 2. Sécurité Matérielle
             const audioTrack = this.microphone.getAudioTracks()[0];
+            // Diagnostic terrain (conflit avec une visio) : réglages réellement appliqués par le navigateur.
+            console.info('Micro ouvert :', audioTrack.label, audioTrack.getSettings());
             audioTrack.addEventListener('ended', () => this.handleHardwareError("Microphone déconnecté."));
             audioTrack.addEventListener('mute', () => this.handleHardwareError("Microphone muté par le système."));
 

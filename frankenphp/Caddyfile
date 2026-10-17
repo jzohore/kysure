@@ -57,6 +57,11 @@
     # Disable Topics tracking if not enabled explicitly: https://github.com/jkarlin/topics
     header ?Permissions-Policy "browsing-topics=()"
 
+    # AssetMapper versionne les fichiers (digest dans le nom) : cache navigateur permanent.
+    # Crucial tant que HTTP/1.1 est forcé (workaround #2535) : zéro revalidation par module JS.
+    @immutableAssets path /assets/*
+    header @immutableAssets Cache-Control "public, max-age=31536000, immutable"
+
     @phpRoute {
        not path /.well-known/mercure*
        not file {path}

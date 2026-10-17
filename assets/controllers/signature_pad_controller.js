@@ -1,6 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 import SignaturePad from 'signature_pad';
 
+/* stimulusFetch: 'lazy' */
+
 export default class extends Controller {
     static targets = ['canvas', 'input']
 
