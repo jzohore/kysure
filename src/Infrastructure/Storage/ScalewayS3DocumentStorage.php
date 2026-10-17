@@ -8,6 +8,7 @@ use App\Domain\Port\DocumentStorageInterface;
 use League\Flysystem\FilesystemException;
 use League\Flysystem\FilesystemOperator;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -15,7 +16,8 @@ readonly class ScalewayS3DocumentStorage implements DocumentStorageInterface
 {
     public function __construct(
         // Symfony va automatiquement injecter le disque S3 "kyc.storage"
-        // configuré dans flysystem.yaml grâce au nom de la variable $kycStorage
+        // configuré dans flysystem.yaml, ciblé explicitement par #[Target] (l'autowiring par nom est déprécié)
+        #[Target('kycStorage')]
         private FilesystemOperator $kycStorage,
         private SluggerInterface $slugger,
         private LoggerInterface $logger,

@@ -1,5 +1,106 @@
 {% extends '@app/base_app.html.twig' %}
 
+{# Macros au niveau racine du template (Twig 3.28+ : macro dans un block déprécié). Appel : _self.nom() #}
+{% macro render_ocr(ocrData) %}
+    {% set labels = {
+        'first_name': 'Prénom', 'last_name': 'Nom de famille', 'birth_date': 'Date de naissance',
+        'birth_place': 'Lieu de naissance', 'id_number': 'Numéro de pièce', 'nationality': 'Nationalité',
+        'gender': 'Sexe', 'document_type': 'Type de document', 'company_name': 'Nom de la société',
+        'registration_number': 'Immatriculation (SIREN/RCS)', 'legal_form': 'Forme juridique',
+        'share_capital': 'Capital social', 'date_of_registration': 'Date d\'immatriculation',
+        'registered_address': 'Siège social', 'duration_of_company': 'Durée de la société',
+        'activity_code_ape': 'Code APE', 'management': 'Dirigeants', 'establishments': 'Établissements secondaires',
+        'mrz': 'Bande de lecture optique (MRZ)', 'address': 'Adresse'
+    } %}
+
+    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+        {% for key, value in ocrData %}
+            <div class="{{ value is iterable ? 'col-span-1 sm:col-span-2 lg:col-span-3' : 'col-span-1' }}">
+                <dt class="text-slate-500 font-medium text-[11px] uppercase tracking-wider mb-1.5">
+                    {{ labels[key]|default(key|replace({'_': ' '})|capitalize) }}
+                </dt>
+                <dd class="text-slate-900 text-xs">
+                    {% if value is empty %}
+                        <span class="text-slate-300 italic">Non détecté</span>
+                    {% elseif key in ['birth_date', 'date_of_registration'] %}
+                        <span class="font-medium">{{ value|date('d/m/Y') }}</span>
+                    {% elseif key == 'share_capital' %}
+                        <span class="font-medium">{{ value|number_format(0, ',', ' ') }} €</span>
+                    {% elseif key == 'management' %}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-1">
+                            {% for person in value %}
+                                <div class="bg-slate-50 ring-1 ring-slate-900/5 p-3 rounded-xl flex flex-col justify-center">
+                                    <span class="font-bold text-slate-800">{{ person.name }}</span>
+                                    <span class="text-slate-500 text-[10px] uppercase tracking-wide mt-0.5">{{ person.role }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% elseif key == 'establishments' %}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                            {% for est in value %}
+                                <div class="bg-slate-50 ring-1 ring-slate-900/5 p-3 rounded-xl flex flex-col">
+                                    <span class="font-bold text-slate-800">{{ est.activity|default('Activité non précisée') }}</span>
+                                    <span class="text-slate-500 text-[10px] mt-1">{{ est.address }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% elseif key == 'mrz' %}
+                        <div class="bg-slate-900 text-emerald-400 font-mono text-[11px] p-3 rounded-xl overflow-x-auto tracking-widest shadow-inner mt-1" aria-label="Zone de lecture optique">
+                            {% for line_val in value %}
+                                <div class="whitespace-nowrap">{{ line_val }}</div>
+                            {% endfor %}
+                        </div>
+                    {% elseif key == 'address' %}
+                        <div class="text-slate-700">
+                            {{ value.full_address|default(value.city ~ (value.department ? ' (' ~ value.department ~ ')' : '')) }}
+                        </div>
+                    {% else %}
+                        <span class="font-medium">{{ value }}</span>
+                    {% endif %}
+                </dd>
+            </div>
+        {% endfor %}
+    </dl>
+{% endmacro %}
+
+{% macro render_findings(findings) %}
+    {% if findings is not empty %}
+        <div class="mt-3 p-3 bg-amber-50 rounded-lg ring-1 ring-inset ring-amber-600/20 text-xs text-amber-800 flex gap-2 items-start" role="status">
+            <twig:ux:icon name="tabler:alert-triangle" class="size-4 shrink-0 mt-0.5 text-amber-600" aria-hidden="true" />
+            <div>
+                <span class="font-bold">Points de vigilance de l'analyse automatique — à vérifier :</span>
+                <ul class="mt-1 list-disc pl-4 space-y-0.5">
+                    {% for finding in findings %}
+                        <li class="whitespace-pre-line">{{ finding }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{% macro status_badge(status, isRequestedToClient = false) %}
+    {% if isRequestedToClient or status == 'requested' %}
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20" role="status">
+            <twig:ux:icon name="tabler:mail-forward" class="size-3" aria-hidden="true" />
+            Demandé au client
+        </span>
+    {% else %}
+        {% set config = {
+            'draft':    { bg: 'bg-slate-50',   text: 'text-slate-700',   ring: 'ring-slate-600/20',   label: 'Brouillon' },
+            'pending':  { bg: 'bg-slate-50',   text: 'text-slate-700',   ring: 'ring-slate-600/20',   label: 'En attente' },
+            'uploaded': { bg: 'bg-amber-50',   text: 'text-amber-700',   ring: 'ring-amber-600/20',   label: 'À vérifier' },
+            'valid':    { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-600/20', label: 'Validé' },
+            'rejected': { bg: 'bg-rose-50',    text: 'text-rose-700',    ring: 'ring-rose-600/20',    label: 'Refusé' },
+            'expired':  { bg: 'bg-gray-50',    text: 'text-gray-700',    ring: 'ring-gray-600/20',    label: 'Expiré' }
+        } %}
+        {% set s = config[status]|default(config['pending']) %}
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold {{ s.bg }} {{ s.text }} ring-1 ring-inset {{ s.ring }}" role="status">
+            {{ s.label }}
+        </span>
+    {% endif %}
+{% endmacro %}
+
 {% block title %}Dossier {{ dto.reference }} | {{ company_name }}{% endblock %}
 {% block page_title %}Dossier {{ dto.reference }}{% endblock %}
 
@@ -17,107 +118,10 @@
     {# MACROS D'AFFICHAGE                                        #}
     {# --------------------------------------------------------- #}
 
-    {% macro render_ocr(ocrData) %}
-        {% set labels = {
-            'first_name': 'Prénom', 'last_name': 'Nom de famille', 'birth_date': 'Date de naissance',
-            'birth_place': 'Lieu de naissance', 'id_number': 'Numéro de pièce', 'nationality': 'Nationalité',
-            'gender': 'Sexe', 'document_type': 'Type de document', 'company_name': 'Nom de la société',
-            'registration_number': 'Immatriculation (SIREN/RCS)', 'legal_form': 'Forme juridique',
-            'share_capital': 'Capital social', 'date_of_registration': 'Date d\'immatriculation',
-            'registered_address': 'Siège social', 'duration_of_company': 'Durée de la société',
-            'activity_code_ape': 'Code APE', 'management': 'Dirigeants', 'establishments': 'Établissements secondaires',
-            'mrz': 'Bande de lecture optique (MRZ)', 'address': 'Adresse'
-        } %}
-
-        <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
-            {% for key, value in ocrData %}
-                <div class="{{ value is iterable ? 'col-span-1 sm:col-span-2 lg:col-span-3' : 'col-span-1' }}">
-                    <dt class="text-slate-500 font-medium text-[11px] uppercase tracking-wider mb-1.5">
-                        {{ labels[key]|default(key|replace({'_': ' '})|capitalize) }}
-                    </dt>
-                    <dd class="text-slate-900 text-xs">
-                        {% if value is empty %}
-                            <span class="text-slate-300 italic">Non détecté</span>
-                        {% elseif key in ['birth_date', 'date_of_registration'] %}
-                            <span class="font-medium">{{ value|date('d/m/Y') }}</span>
-                        {% elseif key == 'share_capital' %}
-                            <span class="font-medium">{{ value|number_format(0, ',', ' ') }} €</span>
-                        {% elseif key == 'management' %}
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-1">
-                                {% for person in value %}
-                                    <div class="bg-slate-50 ring-1 ring-slate-900/5 p-3 rounded-xl flex flex-col justify-center">
-                                        <span class="font-bold text-slate-800">{{ person.name }}</span>
-                                        <span class="text-slate-500 text-[10px] uppercase tracking-wide mt-0.5">{{ person.role }}</span>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% elseif key == 'establishments' %}
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                                {% for est in value %}
-                                    <div class="bg-slate-50 ring-1 ring-slate-900/5 p-3 rounded-xl flex flex-col">
-                                        <span class="font-bold text-slate-800">{{ est.activity|default('Activité non précisée') }}</span>
-                                        <span class="text-slate-500 text-[10px] mt-1">{{ est.address }}</span>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% elseif key == 'mrz' %}
-                            <div class="bg-slate-900 text-emerald-400 font-mono text-[11px] p-3 rounded-xl overflow-x-auto tracking-widest shadow-inner mt-1" aria-label="Zone de lecture optique">
-                                {% for line_val in value %}
-                                    <div class="whitespace-nowrap">{{ line_val }}</div>
-                                {% endfor %}
-                            </div>
-                        {% elseif key == 'address' %}
-                            <div class="text-slate-700">
-                                {{ value.full_address|default(value.city ~ (value.department ? ' (' ~ value.department ~ ')' : '')) }}
-                            </div>
-                        {% else %}
-                            <span class="font-medium">{{ value }}</span>
-                        {% endif %}
-                    </dd>
-                </div>
-            {% endfor %}
-        </dl>
-    {% endmacro %}
 
     {# Points de vigilance relevés par l'analyse automatique. Ce sont des
        signalements pour la revue du conseiller — jamais une décision de rejet. #}
-    {% macro render_findings(findings) %}
-        {% if findings is not empty %}
-            <div class="mt-3 p-3 bg-amber-50 rounded-lg ring-1 ring-inset ring-amber-600/20 text-xs text-amber-800 flex gap-2 items-start" role="status">
-                <twig:ux:icon name="tabler:alert-triangle" class="size-4 shrink-0 mt-0.5 text-amber-600" aria-hidden="true" />
-                <div>
-                    <span class="font-bold">Points de vigilance de l'analyse automatique — à vérifier :</span>
-                    <ul class="mt-1 list-disc pl-4 space-y-0.5">
-                        {% for finding in findings %}
-                            <li class="whitespace-pre-line">{{ finding }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-        {% endif %}
-    {% endmacro %}
 
-    {% macro status_badge(status, isRequestedToClient = false) %}
-        {% if isRequestedToClient or status == 'requested' %}
-            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20" role="status">
-                <twig:ux:icon name="tabler:mail-forward" class="size-3" aria-hidden="true" />
-                Demandé au client
-            </span>
-        {% else %}
-            {% set config = {
-                'draft':    { bg: 'bg-slate-50',   text: 'text-slate-700',   ring: 'ring-slate-600/20',   label: 'Brouillon' },
-                'pending':  { bg: 'bg-slate-50',   text: 'text-slate-700',   ring: 'ring-slate-600/20',   label: 'En attente' },
-                'uploaded': { bg: 'bg-amber-50',   text: 'text-amber-700',   ring: 'ring-amber-600/20',   label: 'À vérifier' },
-                'valid':    { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-600/20', label: 'Validé' },
-                'rejected': { bg: 'bg-rose-50',    text: 'text-rose-700',    ring: 'ring-rose-600/20',    label: 'Refusé' },
-                'expired':  { bg: 'bg-gray-50',    text: 'text-gray-700',    ring: 'ring-gray-600/20',    label: 'Expiré' }
-            } %}
-            {% set s = config[status]|default(config['pending']) %}
-            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold {{ s.bg }} {{ s.text }} ring-1 ring-inset {{ s.ring }}" role="status">
-                {{ s.label }}
-            </span>
-        {% endif %}
-    {% endmacro %}
 
 
 

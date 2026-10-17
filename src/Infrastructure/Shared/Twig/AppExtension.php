@@ -36,7 +36,7 @@ class AppExtension extends AbstractExtension
     }
 
     #[\Override]
-    public function getFunctions()
+    public function getFunctions(): array
     {
         return [
             new TwigFunction('workspaceInfo', $this->workspaceInfo(...)),

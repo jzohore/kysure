@@ -16,6 +16,7 @@ use App\Domain\User\Repository\UserRepositoryInterface;
 use App\Infrastructure\User\Message\SendMagicLinkMessage;
 use Psr\Log\LoggerInterface;
 use Random\RandomException;
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Webmozart\Assert\Assert;
@@ -27,6 +28,7 @@ final readonly class SendLoginUserUseCase
         private MessageBusInterface $messageBus,
         private ClientRepositoryInterface $clientRepository,
         private AdminRepositoryInterface $adminRepository,
+        #[Target('securityLogger')]
         private LoggerInterface $securityLogger, // 🛡️ SECOPS : Journal d'audit dédié
     ) {
     }
