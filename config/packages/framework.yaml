@@ -3,7 +3,9 @@ framework:
     secret: '%env(APP_SECRET)%'
     trusted_proxies: '%env(TRUSTED_PROXIES)%'
     trusted_headers: [ 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix' ]
-    session: true
+    session:
+        # Sessions en base (voir services.yaml) : /tmp du conteneur était perdu à chaque déploiement.
+        handler_id: Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
 
     router:
         utf8: true

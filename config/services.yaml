@@ -148,6 +148,14 @@ services:
     App\Domain\Workspace\Service\CurrentWorkspaceProvider:
         tags:
             - { name: 'kernel.reset', method: 'reset' }
+    # Sessions en PostgreSQL (aucune infra ajoutée) : elles survivent aux déploiements (plus de
+    # déconnexion de tous les CGP / clients du portail) et sont partagées si plusieurs conteneurs web.
+    # Connexion PDO dédiée + verrou consultatif (même sérialisation des requêtes concurrentes
+    # d'un utilisateur qu'avec les fichiers, sans transaction ouverte).
+    Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler:
+        arguments:
+            - '%env(DATABASE_URL)%'
+            - { lock_mode: !php/const Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler::LOCK_ADVISORY }
     App\Infrastructure\Security\MessageCipher:
         arguments:
             $encryptionKey: '%env(base64:default::ENCRYPTION_KEY)%'
