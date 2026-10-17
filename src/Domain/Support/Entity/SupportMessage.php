@@ -39,7 +39,7 @@ class SupportMessage
     public private(set) ?string $attachmentStoragePath = null;
 
     #[Encrypted]
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length: 512, nullable: true)]
     public private(set) ?string $attachmentFilename = null;
 
     #[ORM\Column(length: 100, nullable: true)]
