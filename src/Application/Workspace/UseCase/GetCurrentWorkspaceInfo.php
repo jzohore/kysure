@@ -7,9 +7,10 @@ namespace App\Application\Workspace\UseCase;
 use App\Application\Workspace\DTO\Response\WorkspaceInfoResponse;
 use App\Domain\Workspace\Repository\WorkspaceMemberRepositoryInterface;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Contracts\Service\ResetInterface;
 use Webmozart\Assert\Assert;
 
-final class GetCurrentWorkspaceInfo
+final class GetCurrentWorkspaceInfo implements ResetInterface
 {
     /**
      * @var array<string, WorkspaceInfoResponse>
@@ -46,5 +47,15 @@ final class GetCurrentWorkspaceInfo
         $this->cache[$userIdString] = $response;
 
         return $response;
+    }
+
+    /**
+     * 🛡️ Mode worker FrankenPHP : ce service survit entre les requêtes. Sans reset, un cabinet
+     * périmé (suspension, changement de cabinet, abonnement, minutes) serait servi jusqu'au
+     * redémarrage du worker. Tag `kernel.reset` posé par l'autoconfiguration.
+     */
+    public function reset(): void
+    {
+        $this->cache = [];
     }
 }

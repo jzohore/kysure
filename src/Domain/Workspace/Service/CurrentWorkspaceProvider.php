@@ -30,6 +30,7 @@ class CurrentWorkspaceProvider implements ResetInterface
     public function reset(): void
     {
         $this->cachedWorkspace = null;
+        $this->cachedUserId = null;
     }
 
     public function getWorkspace(): Workspace

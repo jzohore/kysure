@@ -14,11 +14,12 @@ use App\Domain\Workspace\Service\WorkspacePermissionChecker;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * @extends Voter<string, ComplianceFolder>
  */
-class ComplianceFolderVoter extends Voter
+class ComplianceFolderVoter extends Voter implements ResetInterface
 {
     public const string VIEW = 'VIEW';
     public const string EDIT = 'EDIT';
@@ -36,6 +37,15 @@ class ComplianceFolderVoter extends Voter
         private readonly WorkspaceMemberRepositoryInterface $workspaceMemberRepository,
         private readonly WorkspacePermissionChecker $permissionChecker,
     ) {
+    }
+
+    /**
+     * 🛡️ Le cache d'appartenance ne doit vivre QUE le temps d'une requête : en mode worker,
+     * un membre révoqué ou rétrogradé conserverait sinon ses droits sur ce thread.
+     */
+    public function reset(): void
+    {
+        $this->memberCache = [];
     }
 
     protected function supports(string $attribute, mixed $subject): bool

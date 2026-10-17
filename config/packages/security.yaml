@@ -142,6 +142,11 @@ security:
         # Protection de l'espace utilisateur et de l'application CGP
         - { path: ^/app/, roles: ROLE_USER }
 
+        # API internes du front CGP (enregistreur d'entretien, logo) : filet global.
+        # Le webhook Stripe (public, signé) est déclaré plus haut, donc non concerné.
+        # Le contrôle fin (cabinet + confidentialité) reste dans les voters.
+        - { path: ^/api/, roles: ROLE_USER }
+
         # Protection de l'espace administrateur (back-office KYSURE)
         # La gestion de l'équipe et les zones sensibles restent réservées au SUPER_ADMIN ;
         # les opérateurs (ROLE_ADMIN) accèdent au reste du back-office.
