@@ -28,6 +28,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final readonly class MinimizeScreeningResultsCommand
 {
+    private const int BATCH_SIZE = 50;
+
     public function __construct(
         private ScreeningAuditRepositoryInterface $auditRepository,
         private LoggerInterface $logger,
@@ -43,24 +45,19 @@ final readonly class MinimizeScreeningResultsCommand
     ): int {
         $threshold = now()->modify(sprintf('-%d days', ScreeningAudit::RESULTS_RETENTION_DAYS));
 
-        $audits = $this->auditRepository->findMinimizableResults($threshold, max(1, $limit));
+        $limit = max(1, $limit);
 
-        if ([] === $audits) {
+        if ($dryRun) {
+            $count = count($this->auditRepository->findMinimizableResults($threshold, $limit));
+        } else {
+            $count = $this->minimizeInBatches($threshold, $limit);
+        }
+
+        if (0 === $count) {
             $io->success(sprintf('Aucun résultat de screening à minimiser (seuil : %s).', $threshold->format('d/m/Y')));
 
             return Command::SUCCESS;
         }
-
-        foreach ($audits as $audit) {
-            if ($dryRun) {
-                continue;
-            }
-
-            $audit->minimizeResults();
-            $this->auditRepository->save($audit);
-        }
-
-        $count = count($audits);
 
         if (!$dryRun) {
             $this->logger->info('Minimisation RGPD des résultats de screening.', [
@@ -78,5 +75,32 @@ final readonly class MinimizeScreeningResultsCommand
         ));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * 🛡️ Traitement par lots : un flush par lot (et non par entité) et détachement après chaque lot,
+     * pour que la mémoire reste constante. Un audit minimisé sort de la requête (resultsMinimizedAt),
+     * donc relire « les N premiers » à chaque tour est sûr et rejouable.
+     */
+    private function minimizeInBatches(\DateTimeImmutable $threshold, int $limit): int
+    {
+        $processed = 0;
+
+        while ($processed < $limit) {
+            $batch = $this->auditRepository->findMinimizableResults($threshold, min(self::BATCH_SIZE, $limit - $processed));
+
+            if ([] === $batch) {
+                break;
+            }
+
+            foreach ($batch as $audit) {
+                $audit->minimizeResults();
+            }
+
+            $this->auditRepository->saveBatchAndDetach($batch);
+            $processed += count($batch);
+        }
+
+        return $processed;
     }
 }

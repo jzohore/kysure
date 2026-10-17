@@ -37,6 +37,19 @@ readonly class DoctrineScreeningAuditRepository implements ScreeningAuditReposit
         $this->entityManager->flush();
     }
 
+    public function saveBatchAndDetach(array $audits): void
+    {
+        foreach ($audits as $audit) {
+            $this->entityManager->persist($audit);
+        }
+
+        $this->entityManager->flush();
+
+        foreach ($audits as $audit) {
+            $this->entityManager->detach($audit);
+        }
+    }
+
     public function findRecentIdenticalSearch(Workspace $workspace, string $query, int $hoursLimit): ?ScreeningAudit
     {
         $limitDate = new \DateTimeImmutable()->modify("-{$hoursLimit} hours");

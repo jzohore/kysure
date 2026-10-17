@@ -38,7 +38,14 @@ readonly class GetUserDashboardStatsUseCase
         $profile = $this->regulatoryProfileRepository->findOneByWorkspace($workspace);
         $isRegProfileValid = $profile instanceof RegulatoryProfile && $profile->isProfileValid();
 
-        $workspaceId = $workspace->id?->toString() ?? '';
+        // 1 seule requête GROUP BY au lieu de 7 COUNT : tous les compteurs de dossiers en découlent.
+        $byStatus = $this->complianceFolderRepository->countsByStatusForWorkspace($workspace);
+        $count = static fn (ComplianceFolderStatus $status): int => $byStatus[$status->value] ?? 0;
+
+        // « En cours » = ni brouillon, ni supprimé, ni archivé, ni rejeté ; « total » = tout sauf supprimé.
+        $notActive = [ComplianceFolderStatus::DRAFT, ComplianceFolderStatus::DELETED, ComplianceFolderStatus::ARCHIVED, ComplianceFolderStatus::REJECTED];
+        $activeCount = array_sum($byStatus) - array_sum(array_map($count, $notActive));
+        $totalCount = array_sum($byStatus) - $count(ComplianceFolderStatus::DELETED);
 
         return new UserDashboardStats(
             workspaceName: $workspace->name,
@@ -48,16 +55,16 @@ readonly class GetUserDashboardStatsUseCase
             trialDossiersRemaining: $workspace->trialDossiersRemaining,
             remainingMeetingMinutes: $workspace->remainingMeetingMinutes(),
             meetingMinutesAllocated: $workspace->meetingMinutesAllocated,
-            activeFoldersCount: $this->complianceFolderRepository->countActiveForWorkspace($workspace),
-            draftFoldersCount: $this->complianceFolderRepository->countDraftsForWorkspace($workspace),
-            totalFoldersCount: $this->complianceFolderRepository->countForWorkspace($workspace),
+            activeFoldersCount: $activeCount,
+            draftFoldersCount: $count(ComplianceFolderStatus::DRAFT),
+            totalFoldersCount: $totalCount,
             clientsCount: $this->clientRepository->findAllByWorkspace($workspace, null, 'recent', true)->getNbResults(),
-            teamMembersCount: \count($this->workspaceMemberRepository->findByWorkspace($workspaceId)),
+            teamMembersCount: $this->workspaceMemberRepository->countByWorkspace($workspace),
             pendingScreeningsCount: $this->screeningAuditRepository->countInProgressForWorkspace($workspace),
-            pendingDocsCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::PENDING_DOCS]),
-            inReviewCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::IN_REVIEW]),
-            needsCorrectionCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::NEEDS_CORRECTION]),
-            approvedCount: $this->complianceFolderRepository->countByStatusesForWorkspace($workspace, [ComplianceFolderStatus::APPROVED]),
+            pendingDocsCount: $count(ComplianceFolderStatus::PENDING_DOCS),
+            inReviewCount: $count(ComplianceFolderStatus::IN_REVIEW),
+            needsCorrectionCount: $count(ComplianceFolderStatus::NEEDS_CORRECTION),
+            approvedCount: $count(ComplianceFolderStatus::APPROVED),
             investorProfilesToValidateCount: $this->validatedInvestorProfileRepository->countPendingValidationForWorkspace($workspace),
             latestFolders: $this->complianceFolderRepository->findRecentByWorkspace($workspace, 5),
             latestScreenings: $this->screeningAuditRepository->findRecentByWorkspace($workspace, 5),

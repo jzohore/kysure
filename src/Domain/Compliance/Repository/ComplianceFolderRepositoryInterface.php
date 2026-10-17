@@ -55,6 +55,14 @@ interface ComplianceFolderRepositoryInterface
     public function countByStatusesForWorkspace(Workspace $workspace, array $statuses): int;
 
     /**
+     * Répartition des dossiers de l'espace par statut, en UNE requête (GROUP BY).
+     * Alimente les compteurs du tableau de bord sans multiplier les COUNT.
+     *
+     * @return array<string, int> nombre de dossiers indexé par valeur de statut (les statuts absents n'y figurent pas)
+     */
+    public function countsByStatusForWorkspace(Workspace $workspace): array;
+
+    /**
      * Tous les dossiers non supprimés de l'espace (sert au « a déjà créé un dossier »).
      */
     public function countForWorkspace(Workspace $workspace): int;

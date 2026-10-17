@@ -31,18 +31,16 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
     private function buildUseCase(Workspace $workspace, User $user, ?RegulatoryProfile $profile): GetUserDashboardStatsUseCase
     {
         $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
-        $folderRepo->method('countActiveForWorkspace')->willReturn(4);
-        $folderRepo->method('countDraftsForWorkspace')->willReturn(2);
-        $folderRepo->method('countForWorkspace')->willReturn(6);
-        $folderRepo->method('countByStatusesForWorkspace')->willReturnCallback(
-            static fn (mixed $workspace, array $statuses): int => match ($statuses) {
-                [ComplianceFolderStatus::PENDING_DOCS] => 5,
-                [ComplianceFolderStatus::IN_REVIEW] => 3,
-                [ComplianceFolderStatus::NEEDS_CORRECTION] => 1,
-                [ComplianceFolderStatus::APPROVED] => 8,
-                default => 0,
-            }
-        );
+        $folderRepo->method('countsByStatusForWorkspace')->willReturn([
+            ComplianceFolderStatus::DRAFT->value => 2,
+            ComplianceFolderStatus::PENDING_DOCS->value => 5,
+            ComplianceFolderStatus::IN_REVIEW->value => 3,
+            ComplianceFolderStatus::NEEDS_CORRECTION->value => 1,
+            ComplianceFolderStatus::APPROVED->value => 8,
+            ComplianceFolderStatus::ARCHIVED->value => 1,
+            ComplianceFolderStatus::REJECTED->value => 1,
+            ComplianceFolderStatus::DELETED->value => 4,
+        ]);
         $folderRepo->method('findRecentByWorkspace')->willReturn([]);
 
         $clientsPage = $this->createStub(Pagerfanta::class);
@@ -51,7 +49,7 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
         $clientRepo->method('findAllByWorkspace')->willReturn($clientsPage);
 
         $memberRepo = $this->createStub(WorkspaceMemberRepositoryInterface::class);
-        $memberRepo->method('findByWorkspace')->willReturn([1, 2, 3]);
+        $memberRepo->method('countByWorkspace')->willReturn(3);
 
         $profileRepo = $this->createStub(RegulatoryProfileRepositoryInterface::class);
         $profileRepo->method('findOneByWorkspace')->willReturn($profile);
@@ -114,9 +112,11 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
         self::assertFalse($stats->hasActiveSubscription);
         self::assertSame(3, $stats->trialDossiersRemaining);
         self::assertSame(60, $stats->remainingMeetingMinutes);
-        self::assertSame(4, $stats->activeFoldersCount);
+        // 5 + 3 + 1 + 8 : ni brouillon, ni archivé, ni rejeté, ni supprimé.
+        self::assertSame(17, $stats->activeFoldersCount);
         self::assertSame(2, $stats->draftFoldersCount);
-        self::assertSame(6, $stats->totalFoldersCount);
+        // Tout sauf les 4 supprimés : 2 + 5 + 3 + 1 + 8 + 1 + 1.
+        self::assertSame(21, $stats->totalFoldersCount);
         self::assertSame(7, $stats->clientsCount);
         self::assertSame(3, $stats->teamMembersCount);
         self::assertSame(1, $stats->pendingScreeningsCount);
@@ -157,7 +157,7 @@ final class GetUserDashboardStatsUseCaseTest extends TestCase
         $clientRepo->method('findAllByWorkspace')->willReturn($clientsPage);
 
         $memberRepo = $this->createStub(WorkspaceMemberRepositoryInterface::class);
-        $memberRepo->method('findByWorkspace')->willReturn([]);
+        $memberRepo->method('countByWorkspace')->willReturn(0);
 
         $profileRepo = $this->createStub(RegulatoryProfileRepositoryInterface::class);
         $screeningRepo = $this->createStub(ScreeningAuditRepositoryInterface::class);

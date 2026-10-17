@@ -13,6 +13,15 @@ interface ScreeningAuditRepositoryInterface
 {
     public function save(ScreeningAudit $audit): void;
 
+    /**
+     * Persiste un lot d'audits en UN SEUL flush puis les détache de l'identity map (traitements
+     * de masse : la mémoire reste constante). `detach` plutôt que `clear` : les autres entités
+     * gérées par le contexte appelant (ex. journal d'exécution du cron) ne sont pas touchées.
+     *
+     * @param list<ScreeningAudit> $audits
+     */
+    public function saveBatchAndDetach(array $audits): void;
+
     public function findRecentIdenticalSearch(Workspace $workspace, string $query, int $hoursLimit): ?ScreeningAudit;
 
     public function findOneBySlug(string $id): ?ScreeningAudit;

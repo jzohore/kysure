@@ -176,6 +176,9 @@ class ComplianceFolderRepository implements ComplianceFolderRepositoryInterface
     public function findRecentByWorkspace(Workspace $workspace, int $limit = 5): array
     {
         return $this->repository->createQueryBuilder('cf')
+            // Le tableau de bord affiche le client de chaque dossier : jointure pour éviter 1 requête par ligne.
+            ->leftJoin('cf.client', 'client')
+            ->addSelect('client')
             ->where('cf.workspace = :workspace')
             ->andWhere('cf.status != :deletedStatus')
             ->setParameter('workspace', $workspace)
@@ -196,6 +199,26 @@ class ComplianceFolderRepository implements ComplianceFolderRepositoryInterface
             ->setParameter('statuses', $statuses)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    public function countsByStatusForWorkspace(Workspace $workspace): array
+    {
+        /** @var list<array{status: ComplianceFolderStatus|string, total: int|string}> $rows */
+        $rows = $this->repository->createQueryBuilder('cf')
+            ->select('cf.status AS status', 'COUNT(cf.id) AS total')
+            ->where('cf.workspace = :workspace')
+            ->setParameter('workspace', $workspace)
+            ->groupBy('cf.status')
+            ->getQuery()
+            ->getArrayResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $status = $row['status'] instanceof ComplianceFolderStatus ? $row['status']->value : $row['status'];
+            $counts[$status] = (int) $row['total'];
+        }
+
+        return $counts;
     }
 
     public function countForWorkspace(Workspace $workspace): int
