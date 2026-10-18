@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Compliance\Handler;
 
 use App\Application\Compliance\UseCase\ComplianceFolder\ComplianceFolderShowAssembler;
+use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Infrastructure\Compliance\Message\SendClientDerConfirmationMessage;
 use App\Infrastructure\Notification\Email\Compliance\DerSignedConfirmationClientEmail;
@@ -33,8 +34,12 @@ readonly class SendClientDerConfirmationHandler
         $email = new DerSignedConfirmationClientEmail(
             email: $folderResponse->contactEmail,
             clientName: $folderResponse->contactName,
-            loginPageUrl: $message->getLoginPageUrl(),
+            portalUrl: $message->getPortalUrl(),
             workspace_name: $folderResponse->workspaceName,
+            documentLabels: array_map(
+                static fn (ComplianceDocument $document): string => $document->type->getLabel(),
+                $folder->documentsAwaitingClient(),
+            ),
         );
 
         $this->mailer->send($email);

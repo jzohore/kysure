@@ -8,8 +8,11 @@ use App\Application\Compliance\DTO\Response\ComplianceDocumentResponse;
 use App\Application\Compliance\DTO\Response\ComplianceFolderShowResponse;
 use App\Domain\Compliance\Entity\BusinessFolder;
 use App\Domain\Compliance\Entity\ComplianceFolder;
+use App\Domain\Compliance\Entity\DerAcknowledgement;
 use App\Domain\Compliance\Entity\IndividualFolder;
 use App\Domain\Compliance\Enum\ComplianceFolderStatus;
+use App\Domain\Compliance\Enum\DocumentType;
+use App\Domain\Kyc\Enum\DocumentStatus;
 
 class ComplianceFolderShowAssembler
 {
@@ -65,7 +68,10 @@ class ComplianceFolderShowAssembler
             $docDto = new ComplianceDocumentResponse(
                 id: (string) $doc->id,
                 typeLabel: $doc->type->getLabel(), // Ou $doc->type->label() selon ton Enum
-                statusValue: $doc->status->value,
+                // Le DER n'a pas de cycle « à vérifier / validé » : sa preuve est l'accusé de réception.
+                statusValue: DocumentType::DER === $doc->type && $doc->acknowledgementInForce() instanceof DerAcknowledgement
+                    ? 'acknowledged'
+                    : $doc->status->value,
                 isAskToClient: $doc->isAskToClient, // À adapter selon ton Entité
                 storagePath: $doc->storagePath,
                 rejectionReason: $doc->rejectionReason ?? null,
@@ -75,6 +81,7 @@ class ComplianceFolderShowAssembler
                 filename: $doc->filename,
                 mimeType: $doc->mimeType,
                 size: $doc->size,
+                isAwaitingClient: $doc->isAskToClient && !$doc->isReceived() && DocumentStatus::PROCESSING !== $doc->status,
             );
 
             if ($isKyb && null === $docDto->stakeholderSlug) {

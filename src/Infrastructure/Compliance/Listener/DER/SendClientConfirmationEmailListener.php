@@ -33,11 +33,13 @@ readonly class SendClientConfirmationEmailListener
         Assert::notNull($folder);
         Assert::notNull($document->id);
 
-        $url = $this->urlGenerator->generate('app_login', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        // Lien profond vers le dépôt des pièces : le firewall du portail demande la connexion
+        // (lien magique par e-mail) si le client n'est pas déjà authentifié.
+        $url = $this->urlGenerator->generate('app_portal_folder_detail', ['id' => $folder->slugId], UrlGeneratorInterface::ABSOLUTE_URL);
 
         Assert::notNull($folder->id);
         $this->messageBus->dispatch(new SendClientDerConfirmationMessage(
-            loginPageUrl: $url,
+            portalUrl: $url,
             folderId: $folder->id->toString(),
         ));
     }

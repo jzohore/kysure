@@ -286,16 +286,77 @@ abstract class ComplianceFolder
         return true;
     }
 
+    /**
+     * Le client soumet SON dossier : toutes les pièces obligatoires doivent être
+     * réellement reçues (et non simplement demandées, cf. {@see hasAllMandatoryDocuments()}).
+     */
     public function canBeSubmitted(): bool
     {
-        // Règle 1 : Il doit être dans un état où la collecte est encore active.
-        $isCollectionActive = in_array($this->status, [
+        return $this->canReceiveClientDocuments() && $this->hasAllMandatoryDocumentsReceived();
+    }
+
+    /**
+     * La collecte est ouverte : le client peut déposer (ou redéposer) des pièces.
+     */
+    public function canReceiveClientDocuments(): bool
+    {
+        return in_array($this->status, [
             ComplianceFolderStatus::AWAITING_CLIENT,
             ComplianceFolderStatus::PENDING_DOCS,
+            ComplianceFolderStatus::NEEDS_CORRECTION,
         ], true);
+    }
 
-        // Règle 2 : Toutes les pièces obligatoires sont présentes.
-        return $isCollectionActive && $this->hasAllMandatoryDocuments();
+    public function hasAllMandatoryDocumentsReceived(): bool
+    {
+        foreach ($this->documents as $doc) {
+            if (DocumentType::DER !== $doc->type && $doc->isMandatory && !$doc->isReceived()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Pièces que le client doit encore fournir (demandées, ni reçues ni en cours de traitement).
+     *
+     * @return list<ComplianceDocument>
+     */
+    public function documentsAwaitingClient(): array
+    {
+        return array_values($this->documents->filter(
+            static fn (ComplianceDocument $doc): bool => $doc->isAwaitingClient()
+        )->toArray());
+    }
+
+    /**
+     * Demande au client toutes les pièces obligatoires qu'il n'a pas encore
+     * fournies. Idempotent : une pièce déjà demandée ou reçue n'est pas retouchée.
+     *
+     * @return list<DocumentType> types nouvellement demandés (vide au rejeu)
+     */
+    public function requestMandatoryDocumentsFromClient(): array
+    {
+        $requested = [];
+
+        foreach ($this->documents as $doc) {
+            if (DocumentType::DER === $doc->type || !$doc->isMandatory || $doc->isAskToClient || $doc->isReceived()) {
+                continue;
+            }
+
+            $doc->setAskToClient(true);
+            $requested[] = $doc->type;
+        }
+
+        if ([] !== $requested) {
+            $this->saveHistory(
+                'Pièces demandées au client',
+                sprintf('Pièces à fournir : %s.', implode(', ', array_map(static fn (DocumentType $type): string => $type->getLabel(), $requested)))
+            );
+        }
+
+        return $requested;
     }
 
     /**

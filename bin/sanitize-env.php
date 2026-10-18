@@ -48,6 +48,10 @@ $safeValueKeys = [
     // Service Modes / Endpoints public infrastructure
     'OCR_MODE',
     'OPEN_SANCTIONS_MODE',
+    // Antivirus : hôte/port internes. VIRUS_SCAN_MODE n'est volontairement PAS en liste
+    // blanche : un « disabled » local ne doit jamais fuiter dans le .env versionné.
+    'CLAMAV_HOST',
+    'CLAMAV_PORT',
     'IS_STAGING',
     'S3_REGION',
     'S3_ENDPOINT',

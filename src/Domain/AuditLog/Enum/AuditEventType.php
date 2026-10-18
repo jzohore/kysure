@@ -73,6 +73,7 @@ enum AuditEventType: string
     // --- DOCUMENTS KYC (PIÈCES JUSTIFICATIVES) ---
     case KYC_DOCUMENT_REQUESTED = 'document.requested';
     case KYC_DOCUMENT_UPLOADED = 'document.uploaded';
+    case KYC_DOCUMENT_MALWARE_BLOCKED = 'document.malware_blocked';
     case KYC_DOCUMENT_OCR_PROCESSED = 'document.ocr_processed';
     case KYC_DOCUMENT_VALIDATED = 'document.validated';
     case KYC_DOCUMENT_REJECTED = 'document.rejected';
@@ -219,6 +220,7 @@ enum AuditEventType: string
             // Documents
             self::KYC_DOCUMENT_REQUESTED => 'Nouvelle pièce justificative requise',
             self::KYC_DOCUMENT_UPLOADED => 'Dépôt d\'un document client',
+            self::KYC_DOCUMENT_MALWARE_BLOCKED => 'Document refusé par l\'antivirus',
             self::KYC_DOCUMENT_OCR_PROCESSED => 'Analyse OCR automatique (Textract)',
             self::KYC_DOCUMENT_VALIDATED => 'Validation d\'un document',
             self::KYC_DOCUMENT_REJECTED => 'Refus d\'un document',
@@ -323,6 +325,7 @@ enum AuditEventType: string
             self::KYC_STAKEHOLDER_REMOVED,
             self::KYC_DOCUMENT_REQUESTED,
             self::KYC_DOCUMENT_UPLOADED,
+            self::KYC_DOCUMENT_MALWARE_BLOCKED,
             self::KYC_DOCUMENT_OCR_PROCESSED,
             self::KYC_DOCUMENT_VALIDATED,
             self::KYC_DOCUMENT_REJECTED,
@@ -401,6 +404,7 @@ enum AuditEventType: string
             self::WORKSPACE_SUSPENDED,
             self::KYC_FOLDER_REJECTED,
             self::KYC_DOCUMENT_REJECTED,
+            self::KYC_DOCUMENT_MALWARE_BLOCKED,
             self::ORIAS_CHECK_FAILED,
             self::SIRET_CHECK_FAILED,
             self::MEETING_REPORT_REVOKED,
@@ -435,6 +439,7 @@ enum AuditEventType: string
             self::ORIAS_CHECK_FAILED,
             self::SIRET_CHECK_FAILED,
             self::KYC_FOLDER_REJECTED,
+            self::KYC_DOCUMENT_MALWARE_BLOCKED,
             self::MEETING_REPORT_REVOKED,
             self::DER_ACKNOWLEDGEMENT_REVOKED,
             self::DER_DECLINED,

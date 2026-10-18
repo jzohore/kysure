@@ -11,9 +11,11 @@ use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Entity\DerAcknowledgement;
 use App\Domain\Compliance\Enum\DocumentType;
 use App\Domain\Compliance\Event\DerAcknowledgedEvent;
+use App\Domain\Compliance\Event\DocumentsRequestedEvent;
 use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Compliance\Repository\DerAcknowledgementRepositoryInterface;
+use App\Domain\Compliance\Service\DocumentRequirementEngine;
 use App\Domain\Compliance\ValueObject\DerStatement;
 use App\Domain\Database\TransactionManagerInterface;
 use App\Domain\Kyc\Enum\DocumentStatus;
@@ -26,6 +28,10 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 /**
  * Enregistre l'accusé de réception d'un DER par le client, à partir du lien
  * nominatif qu'il a reçu par e-mail (il n'a pas encore de compte).
+ *
+ * L'accusé déclenche aussi la demande de pièces : socle réglementaire du dossier
+ * (créé s'il manque) puis pièces obligatoires demandées au client, dans la même
+ * transaction que l'accusé.
  */
 readonly class AcknowledgeDerUseCase
 {
@@ -36,6 +42,7 @@ readonly class AcknowledgeDerUseCase
         private ComplianceFolderShowAssembler $folderShowAssembler,
         private DocumentStorageInterface $storage,
         private ProvisionClientForFolderUseCase $provisionClientForFolder,
+        private DocumentRequirementEngine $documentRequirementEngine,
         private TransactionManagerInterface $transactionManager,
         private EventDispatcherInterface $eventDispatcher,
     ) {
@@ -106,6 +113,10 @@ readonly class AcknowledgeDerUseCase
         $folder->markAsDerAcknowledged($date);
         $folder->markAsAwaitingClient($date);
 
+        // Idempotent : ne crée que les pièces absentes, ne redemande pas ce qui l'est déjà.
+        $this->documentRequirementEngine->generateBaseRequirements($folder);
+        $folder->requestMandatoryDocumentsFromClient();
+
         $this->transactionManager->transactional(function () use ($acknowledgement, $folder): void {
             // Le compte client est une conséquence obligatoire de l'accusé, dans la même transaction.
             $this->provisionClientForFolder->__invoke($folder);
@@ -126,6 +137,18 @@ readonly class AcknowledgeDerUseCase
             acknowledgedAt: $acknowledgement->acknowledgedAt,
             pdfSha256: $acknowledgement->pdfSha256,
         ));
+
+        $awaitingTypes = array_map(
+            static fn (ComplianceDocument $doc): string => $doc->type->value,
+            $folder->documentsAwaitingClient(),
+        );
+        if ([] !== $awaitingTypes) {
+            $this->eventDispatcher->dispatch(new DocumentsRequestedEvent(
+                folderSlugId: $folder->slugId,
+                documentTypes: $awaitingTypes,
+                requestedAt: $acknowledgement->acknowledgedAt,
+            ));
+        }
 
         return $acknowledgement->slugId;
     }

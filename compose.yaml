@@ -97,6 +97,28 @@ services:
     logging: *default-logging
 ###< sensiolabs/gotenberg-bundle ###
 
+  # Antivirus (ClamAV / clamd) : analyse chaque pièce déposée par un client avant stockage.
+  # Écoute en interne sur clamav:3310 (jamais publié). Au premier démarrage, la base de
+  # signatures se télécharge (1 à 3 min) : tant que le démon n'est pas prêt, les dépôts sont
+  # refusés (fail-closed). Prévoir ~1 à 2 Go de RAM. En dev, VIRUS_SCAN_MODE=disabled dans
+  # .env.local évite de le lancer.
+  clamav:
+    image: clamav/clamav:1.4
+    # L'image officielle n'est publiée qu'en amd64 : émulée sur Mac Apple Silicon (dev), native en prod.
+    platform: linux/amd64
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      CLAMD_CONF_StreamMaxLength: 25M
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: [ "CMD", "/usr/local/bin/clamdcheck.sh" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+
   # Analytique self-hosted (visites, sources, campagnes UTM, conversions).
   # Sans cookie, sans PII → pas de bannière de consentement.
   # Base Postgres dédiée et isolée (ne touche pas la base applicative). Umami
@@ -137,6 +159,7 @@ volumes:
   caddy_config:
   db_data:
   umami_db_data:
+  clamav_data:
 ###> symfony/mercure-bundle ###
 ###< symfony/mercure-bundle ###
 

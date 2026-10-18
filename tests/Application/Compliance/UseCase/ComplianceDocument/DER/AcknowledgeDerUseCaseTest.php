@@ -15,9 +15,11 @@ use App\Domain\Compliance\Entity\DerAcknowledgement;
 use App\Domain\Compliance\Enum\ComplianceFolderStatus;
 use App\Domain\Compliance\Enum\DocumentType;
 use App\Domain\Compliance\Event\DerAcknowledgedEvent;
+use App\Domain\Compliance\Event\DocumentsRequestedEvent;
 use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Compliance\Repository\DerAcknowledgementRepositoryInterface;
+use App\Domain\Compliance\Service\DocumentRequirementEngine;
 use App\Domain\Compliance\ValueObject\DerStatement;
 use App\Domain\Database\TransactionManagerInterface;
 use App\Domain\Kyc\Enum\DocumentStatus;
@@ -68,6 +70,7 @@ final class AcknowledgeDerUseCaseTest extends TestCase
             $this->folderShowAssembler,
             $this->storage,
             $this->provisionClient,
+            new DocumentRequirementEngine(),
             $transactionManager,
             $this->eventDispatcher,
         );
@@ -82,6 +85,7 @@ final class AcknowledgeDerUseCaseTest extends TestCase
             'slugId' => 'comp_fol_1',
             'reference' => 'DOS-2026-018',
             'history' => [],
+            'documents' => new ArrayCollection(),
         ]);
 
         return $this->createEntityState(ComplianceDocument::class, array_merge([
@@ -137,18 +141,84 @@ final class AcknowledgeDerUseCaseTest extends TestCase
         $this->acknowledgementRepository->expects($this->once())->method('save');
         $this->folderRepository->expects($this->once())->method('save')->with($document->folder);
 
-        $this->eventDispatcher->expects($this->once())
+        $dispatched = [];
+        $this->eventDispatcher->expects($this->exactly(2))
             ->method('dispatch')
-            ->with($this->callback(static fn (DerAcknowledgedEvent $event): bool => 'comp_fol_1' === $event->getFolderSlugId()
-                && 'Alice Martin' === $event->getDeclaredName()
-                && hash('sha256', self::PDF) === $event->getPdfSha256()
-                && str_starts_with($event->getAcknowledgementSlugId(), 'der_ack_')))
-            ->willReturnArgument(0);
+            ->willReturnCallback(static function (object $event) use (&$dispatched): object {
+                $dispatched[] = $event;
+
+                return $event;
+            });
 
         $slugId = ($this->useCase)($this->request());
 
+        $acknowledged = $dispatched[0];
+        self::assertInstanceOf(DerAcknowledgedEvent::class, $acknowledged);
+        self::assertSame('comp_fol_1', $acknowledged->getFolderSlugId());
+        self::assertSame('Alice Martin', $acknowledged->getDeclaredName());
+        self::assertSame(hash('sha256', self::PDF), $acknowledged->getPdfSha256());
+        self::assertStringStartsWith('der_ack_', $acknowledged->getAcknowledgementSlugId());
+
         self::assertStringStartsWith('der_ack_', $slugId);
         self::assertSame(ComplianceFolderStatus::AWAITING_CLIENT, $document->folder->status);
+    }
+
+    #[AllowMockObjectsWithoutExpectations]
+    public function testRequestsTheMandatoryDocumentsFromTheClientOnce(): void
+    {
+        $document = $this->document();
+        $this->documentRepository->method('findOneByAcknowledgementTokenHash')->willReturn($document);
+        $this->assemblerReturns('client@acme.test');
+        $this->storage->method('getContents')->willReturn(self::PDF);
+
+        $dispatched = [];
+        $this->eventDispatcher->method('dispatch')->willReturnCallback(static function (object $event) use (&$dispatched): object {
+            $dispatched[] = $event;
+
+            return $event;
+        });
+
+        ($this->useCase)($this->request());
+
+        // Socle réglementaire d'un dossier entreprise, créé puis demandé au client.
+        $expected = [DocumentType::KBIS, DocumentType::ARTICLES_OF_ASSOC, DocumentType::RBE];
+        $folder = $document->folder;
+        self::assertCount(3, $folder->documents);
+        foreach ($folder->documents as $requested) {
+            self::assertContains($requested->type, $expected);
+            self::assertTrue($requested->isAskToClient);
+        }
+
+        $requestedEvents = array_values(array_filter($dispatched, static fn (object $event): bool => $event instanceof DocumentsRequestedEvent));
+        self::assertCount(1, $requestedEvents);
+        self::assertSame('comp_fol_1', $requestedEvents[0]->getFolderSlugId());
+        self::assertEqualsCanonicalizing(['kbis', 'articles_of_assoc', 'rbe'], $requestedEvents[0]->getDocumentTypes());
+    }
+
+    #[AllowMockObjectsWithoutExpectations]
+    public function testDoesNotRecreateNorRerequestDocumentsAlreadyInTheFolder(): void
+    {
+        $document = $this->document();
+        $folder = $document->folder;
+        $folder->requireDocument(DocumentType::KBIS, isMandatory: true);
+        $folder->documents->first()->markAsUploaded('compliance_folders/comp_fol_1/kbis.pdf', 'kbis.pdf', 'application/pdf', 2048);
+
+        $this->documentRepository->method('findOneByAcknowledgementTokenHash')->willReturn($document);
+        $this->assemblerReturns('client@acme.test');
+        $this->storage->method('getContents')->willReturn(self::PDF);
+
+        $dispatched = [];
+        $this->eventDispatcher->method('dispatch')->willReturnCallback(static function (object $event) use (&$dispatched): object {
+            $dispatched[] = $event;
+
+            return $event;
+        });
+
+        ($this->useCase)($this->request());
+
+        self::assertCount(3, $folder->documents, 'Le K-bis déjà présent n\'est pas recréé.');
+        $requestedEvents = array_values(array_filter($dispatched, static fn (object $event): bool => $event instanceof DocumentsRequestedEvent));
+        self::assertEqualsCanonicalizing(['articles_of_assoc', 'rbe'], $requestedEvents[0]->getDocumentTypes());
     }
 
     public function testIsIdempotentWhenTheDerIsAlreadyAcknowledged(): void

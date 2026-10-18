@@ -89,6 +89,9 @@
         {% set config = {
             'draft':    { bg: 'bg-slate-50',   text: 'text-slate-700',   ring: 'ring-slate-600/20',   label: 'Brouillon' },
             'pending':  { bg: 'bg-slate-50',   text: 'text-slate-700',   ring: 'ring-slate-600/20',   label: 'En attente' },
+            'processing': { bg: 'bg-indigo-50', text: 'text-indigo-700', ring: 'ring-indigo-600/20', label: 'Traitement' },
+            'generated': { bg: 'bg-slate-50',   text: 'text-slate-700',   ring: 'ring-slate-600/20',   label: 'Généré' },
+            'acknowledged': { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-600/20', label: 'Accusé de réception' },
             'uploaded': { bg: 'bg-amber-50',   text: 'text-amber-700',   ring: 'ring-amber-600/20',   label: 'À vérifier' },
             'valid':    { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-600/20', label: 'Validé' },
             'rejected': { bg: 'bg-rose-50',    text: 'text-rose-700',    ring: 'ring-rose-600/20',    label: 'Refusé' },
@@ -234,7 +237,7 @@
                             {% else %}
                                 <ul class="divide-y divide-slate-900/5">
                                     {% for doc in dto.companyDocuments %}
-                                        <li class="p-4 sm:p-5 hover:bg-slate-50/50 transition-colors {{ doc.isAskToClient ? 'bg-violet-50/30' : '' }}">
+                                        <li class="p-4 sm:p-5 hover:bg-slate-50/50 transition-colors {{ doc.isAwaitingClient ? 'bg-violet-50/30' : '' }}">
                                             <div class="flex flex-col sm:flex-row sm:items-center justify-between group gap-4">
                                                 <div class="flex items-start sm:items-center gap-3 sm:gap-4">
                                                     <div class="p-2.5 bg-slate-50 rounded-xl text-slate-500 ring-1 ring-slate-900/5 shrink-0">
@@ -242,7 +245,7 @@
                                                     </div>
                                                     <div class="min-w-0">
                                                         <p class="text-sm font-semibold text-slate-900 truncate">{{ doc.typeLabel }}</p>
-                                                        {% if doc.isAskToClient %}
+                                                        {% if doc.isAwaitingClient %}
                                                             <p class="text-xs text-violet-600 mt-0.5 font-medium flex items-center gap-1">
                                                                 <twig:ux:icon name="tabler:clock-hour-4" class="size-3" aria-hidden="true" /> En attente du client
                                                             </p>
@@ -260,7 +263,7 @@
                                                         </span>
                                                     {% endif %}
 
-                                                    {{ _self.status_badge(doc.statusValue, doc.isAskToClient) }}
+                                                    {{ _self.status_badge(doc.statusValue, doc.isAwaitingClient) }}
 
                                                     {% if doc.storagePath %}
                                                         <twig:Button target="_blank" variant="link" as="a" href="{{ doc.storagePath|private_url }}" aria-label="Visualiser le document {{ doc.typeLabel }}" class="focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md !p-1">
@@ -345,7 +348,7 @@
                                                                 <twig:ux:icon name="tabler:robot" class="size-3" aria-hidden="true" /> OCR
                                                             </span>
                                                         {% endif %}
-                                                        {{ _self.status_badge(doc.statusValue, doc.isAskToClient) }}
+                                                        {{ _self.status_badge(doc.statusValue, doc.isAwaitingClient) }}
                                                         {% if doc.storagePath %}
                                                             <twig:Button target="_blank" variant="link" as="a" href="{{ doc.storagePath|private_url }}" aria-label="Visualiser le document de {{ stakeholder.fullName }}" class="focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md !p-1">
                                                                 <twig:ux:icon name="tabler:eye" class="size-5 text-indigo-600 hover:text-indigo-800" aria-hidden="true" />
@@ -392,7 +395,7 @@
                         <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 overflow-hidden">
                             <ul class="divide-y divide-slate-900/5">
                                 {% for doc in dto.individualDocuments %}
-                                    <li class="p-4 sm:p-5 hover:bg-slate-50/50 transition-colors {{ doc.isAskToClient ? 'bg-violet-50/30' : '' }}">
+                                    <li class="p-4 sm:p-5 hover:bg-slate-50/50 transition-colors {{ doc.isAwaitingClient ? 'bg-violet-50/30' : '' }}">
                                         <div class="flex flex-col sm:flex-row sm:items-center justify-between group gap-4">
                                             <div class="flex items-start sm:items-center gap-3 sm:gap-4">
                                                 <div class="p-2.5 bg-slate-50 rounded-xl text-slate-500 ring-1 ring-slate-900/5 shrink-0">
@@ -400,7 +403,7 @@
                                                 </div>
                                                 <div class="min-w-0">
                                                     <p class="text-sm font-semibold text-slate-900 truncate">{{ doc.typeLabel }}</p>
-                                                    {% if doc.isAskToClient %}
+                                                    {% if doc.isAwaitingClient %}
                                                         <p class="text-xs text-violet-600 mt-0.5 font-medium flex items-center gap-1">
                                                             <twig:ux:icon name="tabler:clock-hour-4" class="size-3" aria-hidden="true" /> En attente du client
                                                         </p>
@@ -414,7 +417,7 @@
                                             <div class="flex items-center gap-3 self-start sm:self-auto ml-12 sm:ml-0">
 
                                                 {# Le badge de statut existant #}
-                                                {{ _self.status_badge(doc.statusValue, doc.isAskToClient) }}
+                                                {{ _self.status_badge(doc.statusValue, doc.isAwaitingClient) }}
 
                                                 <div class="flex items-center gap-1">
                                                     {# Bouton de visualisation existant #}

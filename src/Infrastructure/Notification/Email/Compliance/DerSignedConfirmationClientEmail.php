@@ -9,7 +9,10 @@ use Symfony\Component\Mime\Address;
 
 class DerSignedConfirmationClientEmail extends TemplatedEmail
 {
-    public function __construct(string $email, string $clientName, string $loginPageUrl, string $workspace_name)
+    /**
+     * @param list<string> $documentLabels pièces que le client doit encore déposer
+     */
+    public function __construct(string $email, string $clientName, string $portalUrl, string $workspace_name, array $documentLabels = [])
     {
         parent::__construct();
 
@@ -19,7 +22,8 @@ class DerSignedConfirmationClientEmail extends TemplatedEmail
             ->htmlTemplate('emails/compliance/der_signed_confirmation.html.twig')
             ->context([
                 'client_name' => $clientName,
-                'kysure_login_url' => $loginPageUrl,
+                'kysure_portal_url' => $portalUrl,
+                'document_labels' => $documentLabels,
                 'workspace_name' => $workspace_name,
             ]);
     }

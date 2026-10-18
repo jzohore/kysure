@@ -12,20 +12,37 @@
 
     <p>Cette étape est essentielle pour garantir la sécurité et la conformité de notre accompagnement. Vous trouverez en pièce jointe de cet email une copie PDF de votre document signé et de son certificat légal.</p>
 
-    {# 🪄 LA NOUVELLE ZONE RASSURANTE KYSURE #}
-    <p style="margin-top: 20px;">
-        <strong>Votre espace personnel :</strong><br>
-        À tout moment, vous pouvez retrouver ce document, ainsi que l'ensemble de votre dossier, sur votre <strong>espace sécurisé Kysure</strong>. Il vous suffit de vous y connecter en utilisant cette adresse email.
-    </p>
+    {% if document_labels is not empty %}
+        <p style="margin-top: 20px;">
+            <strong>Prochaine étape : déposer vos pièces justificatives</strong><br>
+            Pour finaliser votre entrée en relation, votre conseiller a besoin de :
+        </p>
 
-    <div class="btn-container">
-        <a href="{{ kysure_login_url }}" class="btn">Accéder à mon espace sécurisé</a>
-    </div>
+        <ul style="margin: 0 0 16px 20px; padding: 0; color: #0f172a;">
+            {% for label in document_labels %}
+                <li style="margin-bottom: 4px;">{{ label }}</li>
+            {% endfor %}
+        </ul>
 
-    {# 🪄 LE RESTE DU WORKFLOW #}
+        <p>Le dépôt se fait en quelques instants depuis votre téléphone ou votre ordinateur, sur votre <strong>espace sécurisé Kysure</strong>.</p>
+
+        <div class="btn-container">
+            <a href="{{ kysure_portal_url }}" class="btn">Déposer mes pièces</a>
+        </div>
+    {% else %}
+        <p style="margin-top: 20px;">
+            <strong>Votre espace personnel :</strong><br>
+            À tout moment, vous pouvez retrouver ce document, ainsi que l'ensemble de votre dossier, sur votre <strong>espace sécurisé Kysure</strong>.
+        </p>
+
+        <div class="btn-container">
+            <a href="{{ kysure_portal_url }}" class="btn">Accéder à mon espace sécurisé</a>
+        </div>
+    {% endif %}
+
     <p style="font-size: 13px; color: #64748b; margin-top: 30px; padding: 15px; background-color: #f8fafc; border-radius: 6px; border-left: 4px solid #3b82f6;">
-        <strong>Et maintenant ?</strong><br>
-        Si des pièces justificatives complémentaires sont nécessaires (KYC), vous recevrez très prochainement une nouvelle notification pour les déposer directement sur votre espace.
+        <strong>Connexion :</strong><br>
+        Utilisez l'adresse e-mail à laquelle vous avez reçu ce message : un lien de connexion sécurisé vous y sera envoyé, sans mot de passe à retenir.
     </p>
 
     <p style="margin-top: 30px;">

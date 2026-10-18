@@ -10,14 +10,14 @@ use Symfony\Component\Messenger\Attribute\AsMessage;
 readonly class SendClientDerConfirmationMessage
 {
     public function __construct(
-        private string $loginPageUrl,
+        private string $portalUrl,
         private string $folderId,
     ) {
     }
 
-    public function getLoginPageUrl(): string
+    public function getPortalUrl(): string
     {
-        return $this->loginPageUrl;
+        return $this->portalUrl;
     }
 
     public function getFolderId(): string

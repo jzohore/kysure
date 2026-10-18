@@ -1,11 +1,12 @@
-{% set kycDocuments = this.folder.documents|filter(d => d.type.value != 'der') %}
+{# Pièces visibles du client : celles qui lui sont demandées, ou qu'il a déjà déposées. #}
+{% set kycDocuments = this.folder.documents|filter(d => d.type.value != 'der' and (d.requestedFromClient or d.status.value in ['processing', 'uploaded', 'valid'])) %}
 
 <div {{ attributes }}
     {% if this.hasProcessingDocuments %}data-poll="delay(2000)|$render"{% endif %}
     data-action="live:render->live#$render"
     class="relative space-y-6">
 
-    <div data-loading class="absolute inset-0 bg-slate-50/50 backdrop-blur-[1px] z-10 hidden rounded-2xl flex items-center justify-center">
+    <div data-loading="action(submitForReview)|show" class="absolute inset-0 bg-slate-50/50 backdrop-blur-[1px] z-10 hidden rounded-2xl flex items-center justify-center">
         <twig:ux:icon name="tabler:loader" class="size-8 text-[#0B261C] animate-spin" aria-hidden="true" />
         <span class="sr-only" role="status">Mise à jour en cours…</span>
     </div>
@@ -18,7 +19,14 @@
 
         {# 📱 FIX 1 : Header flex-col sur mobile, flex-row sur desktop, padding réduit #}
         <div class="px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h2 class="text-xs sm:text-sm font-semibold text-slate-900 uppercase tracking-wider">Vos pièces justificatives</h2>
+            <div>
+                <h2 class="text-xs sm:text-sm font-semibold text-slate-900 uppercase tracking-wider">Vos pièces justificatives</h2>
+                {% set totalCount = kycDocuments|length %}
+                {% set doneCount = kycDocuments|filter(d => d.status.value in ['processing', 'uploaded', 'valid'])|length %}
+                {% if totalCount > 0 %}
+                    <p class="mt-1 text-xs text-slate-600" role="status">{{ doneCount }} sur {{ totalCount }} pièce{{ totalCount > 1 ? 's' : '' }} déposée{{ doneCount > 1 ? 's' : '' }}</p>
+                {% endif %}
+            </div>
             <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wide w-fit">
                 Niveau {{ this.folder.diligenceLevel.label|default('Standard') }}
             </span>
@@ -27,9 +35,21 @@
         <ul class="divide-y divide-slate-100">
             {% for doc in kycDocuments %}
                 {% set isProcessing = doc.status.value == 'processing' %}
+                {% set uploadable = doc.canBeReplacedByClient and this.folder.canReceiveClientDocuments %}
 
                 {# 📱 FIX 2 : Padding réduit sur mobile (p-4 au lieu de p-6) #}
                 <li class="p-4 sm:p-6 transition-colors hover:bg-slate-50/50">
+                  {# Zone de dépôt : glisser-déposer sur toute la ligne, aperçu avant envoi (document_dropzone_controller.js) #}
+                  <div class="transition-colors"
+                       {% if uploadable %}
+                           {{ stimulus_controller('document-dropzone', {
+                               url: path('portal_kyc_document_upload', { documentId: doc.id, folderId: this.folder.id }),
+                               maxSize: 10485760,
+                               types: ['application/pdf', 'image/jpeg', 'image/png'],
+                           }) }}
+                           data-document-dropzone-active-class="ring-2 ring-blue-500/40 bg-blue-50/50 rounded-xl"
+                           data-action="dragenter->document-dropzone#dragOver dragover->document-dropzone#dragOver dragleave->document-dropzone#dragLeave drop->document-dropzone#drop"
+                       {% endif %}>
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5 sm:gap-4">
 
                         {# 📱 FIX 3 : Ajout de min-w-0 essentiel pour que le truncate enfant fonctionne #}
@@ -89,6 +109,10 @@
                                     <p class="text-xs sm:text-sm text-slate-400 mt-1 italic">En attente de transmission</p>
                                 {% endif %}
 
+                                {% if doc.status.value == 'uploaded' %}
+                                    <p class="text-xs sm:text-sm text-slate-500 mt-2">Pièce reçue — votre conseiller la vérifie.</p>
+                                {% endif %}
+
                                 {% if doc.status.value == 'rejected' and doc.rejectionReason %}
                                     <div class="mt-3 p-2.5 sm:p-3 rounded-md bg-red-50 border border-red-100 flex gap-2 text-xs sm:text-sm text-red-800">
                                         <twig:ux:icon name="tabler:alert-circle" class="size-4 shrink-0 mt-0.5" />
@@ -112,28 +136,74 @@
                                     Traitement...
                                 </span>
 
-                            {% else %}
-                                {% if this.folder.canBeSubmitted()  %}
-                                    <div {{ stimulus_controller('document-upload', {
-                                        url: path('portal_kyc_document_upload', { documentId: doc.id, folderId: this.folder.id })
-                                    }) }}>
-                                        <input type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png" data-document-upload-target="input" data-action="change->document-upload#upload">
-                                        {# Bouton 100% largeur sur mobile (w-full) et adapté au contenu sur desktop (sm:w-auto) #}
-                                        <button type="button" data-document-upload-target="button" data-action="click->document-upload#browse" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#0B261C] text-white px-5 py-3 sm:py-2.5 rounded-lg text-sm font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#0B261C] focus:ring-offset-2 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                                        <span data-document-upload-target="icon" class="flex items-center">
-                                            <twig:ux:icon name="tabler:upload" class="size-4" />
-                                        </span>
-                                            <span data-document-upload-target="label">
-                                            {{ doc.status.value == 'rejected' ? 'Renvoyer' : 'Téléverser' }}
-                                        </span>
-                                        </button>
-                                    </div>
-                                {% endif %}
+                            {% elseif uploadable %}
+                                <div data-document-dropzone-target="idle" class="flex flex-col sm:flex-row gap-2">
+                                    <input type="file" class="sr-only" tabindex="-1" aria-hidden="true"
+                                           accept="application/pdf,image/jpeg,image/png"
+                                           data-document-dropzone-target="input"
+                                           data-action="change->document-dropzone#selected">
+                                    <input type="file" class="sr-only" tabindex="-1" aria-hidden="true"
+                                           accept="image/jpeg,image/png" capture="environment"
+                                           data-document-dropzone-target="cameraInput"
+                                           data-action="change->document-dropzone#selected">
 
+                                    <twig:Button type="button" variant="dark" data-action="click->document-dropzone#browse" class="h-11 sm:h-9 w-full sm:w-auto">
+                                        <twig:ux:icon name="tabler:upload" aria-hidden="true" />
+                                        {{ doc.status.value == 'rejected' ? 'Renvoyer un fichier' : (doc.status.value == 'uploaded' ? 'Remplacer le fichier' : 'Choisir un fichier') }}
+                                    </twig:Button>
+                                    {# Sur mobile : ouvre directement l'appareil photo #}
+                                    <twig:Button type="button" variant="outline" data-action="click->document-dropzone#takePhoto" class="h-11 w-full sm:hidden">
+                                        <twig:ux:icon name="tabler:camera" aria-hidden="true" />
+                                        Prendre en photo
+                                    </twig:Button>
+                                </div>
                             {% endif %}
                         </div>
 
                     </div>
+
+                    {% if uploadable %}
+                        <p data-document-dropzone-target="error" role="alert" hidden
+                           class="mt-3 rounded-md border-l-4 border-l-red-500 bg-white px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200"></p>
+
+                        {# Aperçu avant envoi : rien ne part tant que le client n'a pas cliqué sur « Envoyer » #}
+                        <div data-document-dropzone-target="panel" hidden class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                            <div class="flex items-start gap-3 sm:gap-4">
+                                <div data-document-dropzone-target="thumb" class="size-20 sm:size-24 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-slate-200 flex items-center justify-center"></div>
+                                <div class="min-w-0 flex-1">
+                                    <p data-document-dropzone-target="fileName" class="truncate text-sm font-medium text-slate-900"></p>
+                                    <p data-document-dropzone-target="fileMeta" class="mt-0.5 text-xs text-slate-600"></p>
+                                    <a data-document-dropzone-target="previewLink" href="#" target="_blank" rel="noopener noreferrer"
+                                       class="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline focus-visible:ring-2 focus-visible:ring-blue-600/30 rounded">
+                                        <twig:ux:icon name="tabler:eye" class="size-3.5" aria-hidden="true" />
+                                        Voir en grand
+                                    </a>
+
+                                    <div data-document-dropzone-target="progress" hidden role="progressbar" aria-label="Envoi de la pièce"
+                                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" class="mt-3">
+                                        <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                                            <div data-document-dropzone-target="bar" class="h-full w-0 rounded-full bg-blue-600 transition-[width] duration-200"></div>
+                                        </div>
+                                        <p data-document-dropzone-target="progressLabel" class="mt-1.5 text-xs text-slate-600" aria-live="polite"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                <twig:Button type="button" variant="ghost" data-document-dropzone-target="cancelButton" data-action="click->document-dropzone#cancel" class="h-11 sm:h-9">
+                                    Annuler
+                                </twig:Button>
+                                <twig:Button type="button" variant="outline" data-document-dropzone-target="changeButton" data-action="click->document-dropzone#browse" class="h-11 sm:h-9">
+                                    Changer de fichier
+                                </twig:Button>
+                                <twig:Button type="button" variant="primary" data-document-dropzone-target="sendButton" data-action="click->document-dropzone#send" class="h-11 sm:h-9">
+                                    <twig:ux:icon name="tabler:send" aria-hidden="true" />
+                                    <span data-document-dropzone-target="sendLabel">Envoyer</span>
+                                </twig:Button>
+                            </div>
+                        </div>
+                    {% endif %}
+                  </div>
                 </li>
             {% else %}
                 <li class="p-8 text-center text-sm text-slate-500">

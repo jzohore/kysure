@@ -46,17 +46,12 @@ readonly class ProcessAndStoreKycDocumentMessageHandler
         $processedPath = $message->localTempPath;
 
         try {
-            // 1. Nettoyage de l'ancien fichier S3
-            if ($message->oldStoragePath) {
-                $this->storage->delete($message->oldStoragePath);
-            }
-
-            // 2. Traitement & Optimisation (Délégué à l'Infrastructure)
+            // 1. Traitement & Optimisation (Délégué à l'Infrastructure)
             if ($this->isProcessableImage($message->mimeType)) {
                 $processedPath = $this->imageOptimizer->preProcessForOcr($message->localTempPath);
             }
 
-            // 3. Préparation du fichier pour le stockage
+            // 2. Préparation du fichier pour le stockage
             // Note: On utilise l'objet interne de Symfony pour l'abstraction Storage
             $fileToStore = new UploadedFile(
                 $processedPath,
@@ -66,13 +61,18 @@ readonly class ProcessAndStoreKycDocumentMessageHandler
                 true // Mode test activé car fichier généré localement
             );
 
-            // 4. Upload S3
+            // 3. Upload S3
             $directory = sprintf('compliance_folders/%s', $folder->slugId);
             $finalStoragePath = $this->storage->store($fileToStore, $directory);
 
-            // 5. Persistance Domaine
+            // 4. Persistance Domaine
             $document->markAsUploaded($finalStoragePath, $message->originalName, $message->mimeType, $message->size);
             $this->complianceDocumentRepository->save($document);
+
+            // 5. L'ancien fichier n'est supprimé qu'une fois le nouveau stocké : un échec ne fait rien perdre.
+            if ($message->oldStoragePath && $message->oldStoragePath !== $finalStoragePath) {
+                $this->storage->delete($message->oldStoragePath);
+            }
         } catch (\Throwable $e) {
             $this->logger->error('Error during KYC processing: ' . $e->getMessage());
             throw $e; // Re-throw pour la retry policy de Messenger

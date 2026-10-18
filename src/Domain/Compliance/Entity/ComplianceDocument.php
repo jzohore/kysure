@@ -222,6 +222,15 @@ class ComplianceDocument
     }
 
     /**
+     * Le stockage du fichier déposé a échoué : la pièce n'est plus « en traitement ».
+     * Elle retrouve son état d'avant le dépôt, pour que le client puisse réessayer.
+     */
+    public function markAsUploadFailed(): void
+    {
+        $this->status = null !== $this->storagePath ? DocumentStatus::UPLOADED : DocumentStatus::PENDING;
+    }
+
+    /**
      * Enregistre le résultat de l'analyse automatique (OCR + contrôles). L'analyse
      * ne décide jamais d'un rejet : elle extrait les données et liste des points
      * de vigilance que le CGP tranchera. Le document reste « reçu / à vérifier »
@@ -291,6 +300,46 @@ class ComplianceDocument
         // Si tu stockes le nom du fichier ou son chemin,
         // le document est complet si cette propriété n'est pas nulle.
         return $this->isAskToClient || null !== $this->storagePath;
+    }
+
+    /**
+     * Le fichier est effectivement stocké et disponible pour le cabinet (reçu à
+     * vérifier, ou validé). Distinct de {@see self::isComplete()}, qui compte
+     * aussi une pièce simplement « demandée au client ».
+     */
+    public function isReceived(): bool
+    {
+        return in_array($this->status, [DocumentStatus::UPLOADED, DocumentStatus::VALID], true);
+    }
+
+    /**
+     * La pièce est attendue du client : demandée explicitement par le cabinet, ou
+     * obligatoire (les dossiers acquittés avant l'automatisation de la demande n'ont
+     * pas le drapeau posé, sans que le client doive en pâtir).
+     */
+    public function isRequestedFromClient(): bool
+    {
+        return DocumentType::DER !== $this->type && ($this->isAskToClient || $this->isMandatory);
+    }
+
+    /**
+     * Le client doit encore agir sur cette pièce : demandée, ni reçue ni en cours de traitement.
+     */
+    public function isAwaitingClient(): bool
+    {
+        return $this->isRequestedFromClient()
+            && !$this->isReceived()
+            && DocumentStatus::PROCESSING !== $this->status;
+    }
+
+    /**
+     * Le client peut (re)déposer un fichier sur cette pièce. Une pièce déjà
+     * validée par le cabinet ou en cours de traitement n'est plus remplaçable.
+     */
+    public function canBeReplacedByClient(): bool
+    {
+        return $this->isRequestedFromClient()
+            && !in_array($this->status, [DocumentStatus::PROCESSING, DocumentStatus::VALID], true);
     }
 
     public function setAskToClient(bool $ask): void

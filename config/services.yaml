@@ -65,6 +65,16 @@ services:
         arguments:
             $mode: '%env(OCR_MODE)%'
 
+    # Antivirus des pièces déposées par les clients : ClamAV (clamd) sauf mode « disabled » explicite
+    App\Domain\Port\VirusScannerInterface:
+        factory: [ '@App\Infrastructure\Security\Antivirus\VirusScannerFactory', 'create' ]
+        arguments:
+            $mode: '%env(VIRUS_SCAN_MODE)%'
+    App\Infrastructure\Security\Antivirus\ClamAvScanner:
+        arguments:
+            $host: '%env(CLAMAV_HOST)%'
+            $port: '%env(int:CLAMAV_PORT)%'
+
     # Résolution du client LCB-FT via sa Factory
     App\Domain\Port\OpenSanctionsClientInterface:
         factory: [ '@App\Infrastructure\Screening\Service\OpenSanctionsFactory', 'create' ]

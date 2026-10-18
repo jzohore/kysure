@@ -23,6 +23,8 @@ readonly class ComplianceDocumentResponse
         public ?string $filename,
         public ?string $mimeType,
         public ?int $size,
+        // Demandée au client ET pas encore déposée : c'est ce qui justifie « En attente du client ».
+        public bool $isAwaitingClient = false,
     ) {
     }
 }

@@ -49,4 +49,37 @@
             </span>
         </p>
     </div>
+
+    {# ============================================================= #}
+    {# PROCHAINE ÉTAPE : une seule action primaire                    #}
+    {# ============================================================= #}
+    <section class="mt-6 rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white shadow-sm px-6 py-6" aria-labelledby="next-step-title">
+        <h2 id="next-step-title" class="text-base font-semibold text-slate-900">
+            {{ documents_to_provide is not empty ? 'Prochaine étape : déposez vos pièces' : 'Votre espace sécurisé' }}
+        </h2>
+
+        {% if documents_to_provide is not empty %}
+            <p class="mt-1 text-sm text-slate-600">Votre conseiller a besoin des pièces suivantes pour finaliser votre entrée en relation :</p>
+            <ul class="mt-3 space-y-1.5 text-sm text-slate-700">
+                {% for doc in documents_to_provide %}
+                    <li class="flex items-start gap-2">
+                        <twig:ux:icon name="lucide:file-up" class="mt-0.5 size-4 text-slate-400 shrink-0" aria-hidden="true" />
+                        <span>{{ doc.type.label }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="mt-1 text-sm text-slate-600">Retrouvez votre dossier et vos documents à tout moment.</p>
+        {% endif %}
+
+        <div class="mt-5">
+            <twig:Button as="a" variant="primary" href="{{ portal_url }}">
+                {{ documents_to_provide is not empty ? 'Déposer mes pièces' : 'Accéder à mon espace' }}
+                <twig:ux:icon name="lucide:arrow-right" aria-hidden="true" />
+            </twig:Button>
+            <p class="mt-3 text-xs text-slate-500">
+                Connexion sécurisée : un lien de connexion est envoyé à votre adresse e-mail, sans mot de passe.
+            </p>
+        </div>
+    </section>
 {% endblock %}
