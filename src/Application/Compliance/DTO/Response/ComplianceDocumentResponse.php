@@ -25,6 +25,8 @@ readonly class ComplianceDocumentResponse
         public ?int $size,
         // Demandée au client ET pas encore déposée : c'est ce qui justifie « En attente du client ».
         public bool $isAwaitingClient = false,
+        // État de l'analyse automatique ({@see \App\Domain\Compliance\Enum\OcrAnalysisState}) : informatif, ne décide de rien.
+        public string $ocrState = 'not_applicable',
     ) {
     }
 }

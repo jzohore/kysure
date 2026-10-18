@@ -63,6 +63,25 @@
     </dl>
 {% endmacro %}
 
+{% macro render_ocr_state(state, findings) %}
+    {% if state == 'in_progress' %}
+        <p class="mt-3 text-xs text-slate-600 flex items-center gap-1.5" role="status">
+            <twig:ux:icon name="tabler:clock-hour-4" class="size-3.5 text-slate-400" aria-hidden="true" />
+            Analyse automatique en cours…
+        </p>
+    {% elseif state == 'manual_check' %}
+        <p class="mt-3 text-xs text-slate-600 flex items-center gap-1.5">
+            <twig:ux:icon name="tabler:eye" class="size-3.5 text-slate-400" aria-hidden="true" />
+            Vérification manuelle : ce type de pièce n'est pas analysé automatiquement.
+        </p>
+    {% elseif state == 'unavailable' and findings is empty %}
+        <p class="mt-3 text-xs text-amber-800 flex items-center gap-1.5" role="status">
+            <twig:ux:icon name="tabler:alert-triangle" class="size-3.5 text-amber-600" aria-hidden="true" />
+            L'analyse automatique n'a pas abouti. Vérification manuelle requise.
+        </p>
+    {% endif %}
+{% endmacro %}
+
 {% macro render_findings(findings) %}
     {% if findings is not empty %}
         <div class="mt-3 p-3 bg-amber-50 rounded-lg ring-1 ring-inset ring-amber-600/20 text-xs text-amber-800 flex gap-2 items-start" role="status">
@@ -139,7 +158,7 @@
         <div class="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row gap-6 lg:gap-10">
 
             {# COLONNE GAUCHE (Contenu Principal) #}
-            <div class="flex-1 min-w-0 space-y-8 lg:space-y-10">
+            <div class="flex-1 min-w-0 space-y-8 lg:space-y-10" data-controller="mercure-reload" data-mercure-reload-topic-value="{{ mercure('folder_' ~ dto.slugId) }}">
 
                 {% if dto.isArchived %}
                     <div class="rounded-lg border-l-4 border-slate-500 bg-slate-50 p-4 shadow-sm">
@@ -220,7 +239,7 @@
                 {% if dto.isKyb %}
 
                     {# SECTION 1 : SOCIÉTÉ (KYB) #}
-                    <section aria-labelledby="heading-company-docs">
+                    <section id="ocr-zone-company" data-ocr-zone aria-labelledby="heading-company-docs">
                         <div class="flex items-center justify-between mb-4 px-2">
                             <h2 id="heading-company-docs" class="text-xs font-bold text-slate-500 uppercase tracking-widest">1. Pièces de la société</h2>
                         </div>
@@ -283,6 +302,7 @@
                                                 </div>
                                             {% endif %}
 
+                                            {{ _self.render_ocr_state(doc.ocrState, doc.ocrFindings) }}
                                             {{ _self.render_findings(doc.ocrFindings) }}
 
                                             {% if doc.ocrData %}
@@ -304,7 +324,7 @@
                     </section>
 
                     {# SECTION 2 : INTERVENANTS (KYB) #}
-                    <section class="mt-8 lg:mt-10" aria-labelledby="heading-stakeholders">
+                    <section id="ocr-zone-stakeholders" data-ocr-zone class="mt-8 lg:mt-10" aria-labelledby="heading-stakeholders">
                         <div class="flex items-center justify-between mb-4 px-2">
                             <h2 id="heading-stakeholders" class="text-xs font-bold text-slate-500 uppercase tracking-widest">2. Intervenants & Bénéficiaires</h2>
                         </div>
@@ -356,6 +376,7 @@
                                                         {% endif %}
                                                     </div>
                                                 </div>
+                                                {{ _self.render_ocr_state(doc.ocrState, doc.ocrFindings) }}
                                                 {{ _self.render_findings(doc.ocrFindings) }}
 
                                                 {% if doc.ocrData %}
@@ -387,7 +408,7 @@
 
                 {% else %}
                     {# SECTION 1 : INDIVIDU (KYC) #}
-                    <section aria-labelledby="heading-kyc-docs">
+                    <section id="ocr-zone-individual" data-ocr-zone aria-labelledby="heading-kyc-docs">
                         <div class="flex items-center justify-between mb-4 px-2">
                             <h2 id="heading-kyc-docs" class="text-xs font-bold text-slate-500 uppercase tracking-widest">1. Pièces d'identité & Justificatifs</h2>
                         </div>
@@ -454,6 +475,7 @@
                                             </div>
                                         {% endif %}
 
+                                        {{ _self.render_ocr_state(doc.ocrState, doc.ocrFindings) }}
                                         {{ _self.render_findings(doc.ocrFindings) }}
 
                                         {% if doc.ocrData %}

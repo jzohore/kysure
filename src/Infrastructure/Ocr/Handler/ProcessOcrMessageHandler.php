@@ -7,7 +7,6 @@ namespace App\Infrastructure\Ocr\Handler;
 use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Event\DocumentOcrProcessedEvent;
 use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
-use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Domain\Kyc\Validator\DocumentValidator;
 use App\Domain\Port\DocumentStorageInterface;
 use App\Domain\Port\OcrProviderInterface;
@@ -41,15 +40,13 @@ final readonly class ProcessOcrMessageHandler
 
     public function __invoke(ProcessOcrMessage $message): void
     {
-        $doc = $this->repository->findById($message->documentSlugId);
-        Assert::notNull($doc, sprintf('Document introuvable pour le slug: %s', $message->documentSlugId));
+        $doc = $this->repository->findById($message->documentId);
+        Assert::notNull($doc, sprintf('Document introuvable : %s', $message->documentId));
 
-        // 🛡️ Idempotence : ne pas réanalyser (rappel Textract facturé) et surtout
-        // ne jamais écraser une analyse déjà faite ou une décision humaine.
-        if (null !== $doc->ocrData
-            || null !== $doc->ocrFindings
-            || in_array($doc->status, [DocumentStatus::VALID, DocumentStatus::REJECTED], true)
-        ) {
+        // 🛡️ Idempotence : ne pas réanalyser (rappel Textract facturé) et surtout ne jamais
+        // écraser une analyse déjà faite ni une décision humaine (statut VALID / REJECTED).
+        // Un nouveau fichier a, lui, remis l'analyse à zéro (ComplianceDocument::markAsUploaded).
+        if (!$doc->needsOcrAnalysis()) {
             return;
         }
 
@@ -64,7 +61,7 @@ final readonly class ProcessOcrMessageHandler
             // ou non pris en charge. Condition définitive → pas de retry, on
             // signale et on laisse le CGP demander une nouvelle version.
             $this->logger->info('OCR : document non exploitable, signalé pour vérification humaine.', [
-                'document_slug_id' => $message->documentSlugId,
+                'document_id' => $message->documentId,
                 'reason' => $exception->getMessage(),
             ]);
 

@@ -9,8 +9,10 @@ use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
 use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Infrastructure\KYC\Handler\ProcessAndStoreKycDocumentMessageHandler;
 use App\Infrastructure\KYC\Message\ProcessAndStoreKycDocumentMessage;
+use App\Infrastructure\Ocr\Message\ProcessOcrMessage;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Webmozart\Assert\Assert;
 
 /**
@@ -20,7 +22,7 @@ use Webmozart\Assert\Assert;
  * web (`var/uploads/kyc_temp`, volume propre à chaque conteneur), que le conteneur worker ne
  * voit pas — la pièce restait indéfiniment « en traitement ». Le coût est d'une à deux
  * secondes (10 Mo max), masquées par la barre de progression côté client. L'OCR, lui, reste
- * asynchrone : il lit le fichier depuis S3.
+ * asynchrone : il lit le fichier depuis S3, et n'est demandé qu'une fois la pièce stockée.
  */
 #[AsEventListener]
 readonly class DocumentReceivedListener
@@ -28,6 +30,7 @@ readonly class DocumentReceivedListener
     public function __construct(
         private ProcessAndStoreKycDocumentMessageHandler $storeHandler,
         private ComplianceDocumentRepositoryInterface $documentRepository,
+        private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
     ) {
     }
@@ -61,6 +64,26 @@ readonly class DocumentReceivedListener
             $this->releaseDocument($event, 'fichier temporaire introuvable');
 
             throw new \RuntimeException('Le stockage de la pièce a échoué.');
+        }
+
+        if ($document->type->supportsOcr()) {
+            $this->requestOcrAnalysis($documentId->toString());
+        }
+    }
+
+    /**
+     * Lance l'analyse automatique en tâche de fond. Jamais bloquant : si la file est injoignable,
+     * le dépôt du client a réussi et reste valable — le CGP verra la pièce « à vérifier » sans analyse.
+     */
+    private function requestOcrAnalysis(string $documentId): void
+    {
+        try {
+            $this->messageBus->dispatch(new ProcessOcrMessage($documentId));
+        } catch (\Throwable $exception) {
+            $this->logger->error('OCR : impossible de mettre l\'analyse en file, la pièce reste à vérifier manuellement.', [
+                'document_id' => $documentId,
+                'reason' => $exception->getMessage(),
+            ]);
         }
     }
 

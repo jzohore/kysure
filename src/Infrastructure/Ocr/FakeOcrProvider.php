@@ -32,6 +32,7 @@ class FakeOcrProvider implements OcrProviderInterface
             DocumentType::KBIS => [
                 'company_name' => 'CONIBI (MOCK)',
                 'registration_number' => '429 225 683 R.C.S. Bobigny',
+                'document_date' => new \DateTimeImmutable('-1 month')->format('Y-m-d'),
                 'legal_form' => 'Société par actions simplifiée',
                 'share_capital' => 762500,
                 'date_of_registration' => '2000-01-27',
@@ -54,6 +55,12 @@ class FakeOcrProvider implements OcrProviderInterface
                         'activity' => 'Collecte et recyclage',
                     ],
                 ],
+            ],
+
+            DocumentType::PROOF_OF_ADDRESS => [
+                'holder_name' => 'ALOIS PAUL (MOCK)',
+                'address' => '12 rue des Lilas 75011 Paris',
+                'document_date' => new \DateTimeImmutable('-1 month')->format('Y-m-d'),
             ],
 
             default => throw new \Exception("Mock non implémenté pour le type de document: {$type->value}"),

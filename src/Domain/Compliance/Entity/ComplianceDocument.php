@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Compliance\Entity;
 
 use App\Domain\Compliance\Enum\DocumentType;
+use App\Domain\Compliance\Enum\OcrAnalysisState;
 use App\Domain\Kyc\Entity\Stakeholder;
 use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Infrastructure\Trait\GenerateSlugPrefixedTrait;
@@ -28,6 +29,13 @@ class ComplianceDocument
 
     /** Durée de validité du lien d'accusé de réception envoyé au client (jours). */
     private const int ACKNOWLEDGEMENT_TOKEN_TTL_DAYS = 30;
+
+    /**
+     * Au-delà, une pièce sans analyse n'est plus « en cours » : les 3 essais Messenger
+     * (≈ 10 s d'écart) sont largement épuisés. On l'affiche comme indisponible plutôt que
+     * de laisser un « en cours » éternel (message perdu, worker arrêté).
+     */
+    private const int OCR_IN_PROGRESS_MAX_MINUTES = 30;
 
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
@@ -73,6 +81,13 @@ class ComplianceDocument
     /** Version des règles de contrôle ayant produit {@see self::$ocrFindings}. */
     #[ORM\Column(length: 20, nullable: true)]
     public private(set) ?string $ocrValidatorVersion = null;
+
+    /**
+     * L'analyse automatique a définitivement échoué (retries épuisés). Garde d'idempotence du
+     * signal « analyse indisponible » : posé une seule fois, effacé dès qu'une analyse aboutit.
+     */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    public private(set) ?\DateTimeImmutable $ocrUnavailableAt = null;
 
     /**
      * Si le type est "OTHER", on utilise ce label pour afficher au client
@@ -180,6 +195,9 @@ class ComplianceDocument
         $this->storagePath = $storagePath;
         $this->status = DocumentStatus::UPLOADED;
         $this->rejectionReason = null;
+        // Un nouveau fichier invalide l'analyse du précédent : sans cela, le garde d'idempotence
+        // de l'OCR ne relirait pas le remplaçant et le CGP verrait les données de l'ancienne pièce.
+        $this->resetOcrAnalysis();
         $this->uploadedAt = now();
         $this->filename = $filename;
         $this->mimeType = $mimeType;
@@ -244,6 +262,7 @@ class ComplianceDocument
         $this->ocrData = $extractedData;
         $this->ocrFindings = [] === $findings ? null : $findings;
         $this->ocrValidatorVersion = $validatorVersion;
+        $this->ocrUnavailableAt = null;
         // Le document reste « reçu / à vérifier » : l'analyse ne le fait pas
         // avancer, elle éclaire la revue humaine. Jamais actionnable par le client.
         $this->status = DocumentStatus::UPLOADED;
@@ -264,6 +283,88 @@ class ComplianceDocument
                     : sprintf('%d point(s) de vigilance', count($findings)),
             )
         );
+    }
+
+    /**
+     * L'analyse automatique n'a pas pu aboutir malgré les nouvelles tentatives (service OCR
+     * indisponible, limitation, erreur réseau). La pièce ne reste jamais sans signal : un point
+     * de vigilance invite le CGP à la vérifier à la main. Idempotent : un échec rejoué n'écrase
+     * pas le signal déjà posé.
+     *
+     * @return bool true si le signal vient d'être posé (false = déjà signalé, ou analyse déjà faite)
+     */
+    public function markOcrUnavailable(): bool
+    {
+        if ($this->ocrUnavailableAt instanceof \DateTimeImmutable || $this->hasOcrAnalysis()) {
+            return false;
+        }
+
+        $this->ocrData = null;
+        $this->ocrFindings = ['L\'analyse automatique est momentanément indisponible. Vérification manuelle requise.'];
+        $this->ocrValidatorVersion = null;
+        $this->ocrUnavailableAt = now();
+
+        $this->folder->saveHistory(
+            'Analyse automatique indisponible',
+            sprintf('Le document "%s" n\'a pas pu être analysé automatiquement : vérification manuelle requise.', $this->type->getLabel())
+        );
+
+        return true;
+    }
+
+    /**
+     * Une analyse aboutie (données lues et/ou points de vigilance) est stockée pour le fichier courant.
+     * Un signal « indisponible » n'en est pas une : il laisse la porte ouverte à un rejeu.
+     */
+    public function hasOcrAnalysis(): bool
+    {
+        return !$this->ocrUnavailableAt instanceof \DateTimeImmutable
+            && (null !== $this->ocrData || null !== $this->ocrFindings);
+    }
+
+    /**
+     * Le fichier courant doit être envoyé à l'OCR : reçu, de type analysable, pas encore analysé
+     * (ou analyse précédemment indisponible → rejeu manuel possible), et jamais tranché par un humain.
+     */
+    public function needsOcrAnalysis(): bool
+    {
+        return DocumentStatus::UPLOADED === $this->status
+            && null !== $this->storagePath
+            && $this->type->supportsOcr()
+            && !$this->hasOcrAnalysis();
+    }
+
+    public function ocrAnalysisState(): OcrAnalysisState
+    {
+        if (!$this->isReceived() || DocumentType::DER === $this->type) {
+            return OcrAnalysisState::NOT_APPLICABLE;
+        }
+
+        if (!$this->type->supportsOcr()) {
+            return OcrAnalysisState::MANUAL_CHECK;
+        }
+
+        if ($this->hasOcrAnalysis()) {
+            return OcrAnalysisState::COMPLETED;
+        }
+
+        if ($this->ocrUnavailableAt instanceof \DateTimeImmutable) {
+            return OcrAnalysisState::UNAVAILABLE;
+        }
+
+        $limit = now()->modify(sprintf('-%d minutes', self::OCR_IN_PROGRESS_MAX_MINUTES));
+
+        return $this->uploadedAt instanceof \DateTimeImmutable && $this->uploadedAt >= $limit
+            ? OcrAnalysisState::IN_PROGRESS
+            : OcrAnalysisState::UNAVAILABLE;
+    }
+
+    private function resetOcrAnalysis(): void
+    {
+        $this->ocrData = null;
+        $this->ocrFindings = null;
+        $this->ocrValidatorVersion = null;
+        $this->ocrUnavailableAt = null;
     }
 
     public function markAsGenerated(string $pdfPath): void

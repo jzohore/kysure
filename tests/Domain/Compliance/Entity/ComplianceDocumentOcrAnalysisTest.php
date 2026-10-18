@@ -7,6 +7,7 @@ namespace App\Tests\Domain\Compliance\Entity;
 use App\Domain\Compliance\Entity\BusinessFolder;
 use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Enum\DocumentType;
+use App\Domain\Compliance\Enum\OcrAnalysisState;
 use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Tests\Application\ReflectionHelperTrait;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -71,6 +72,108 @@ final class ComplianceDocumentOcrAnalysisTest extends TestCase
 
         self::assertNull($document->ocrFindings);
         self::assertNull($document->ocrValidatorVersion);
+    }
+
+    public function testReplacingTheFileInvalidatesThePreviousAnalysis(): void
+    {
+        $document = $this->document(['storagePath' => 'old.pdf']);
+        $document->attachOcrAnalysis(['holder_name' => 'Ancien titulaire'], ['ancien point'], 'v1');
+        self::assertFalse($document->needsOcrAnalysis());
+
+        $document->markAsUploaded('new.pdf', 'new.pdf', 'application/pdf', 100);
+
+        self::assertNull($document->ocrData);
+        self::assertNull($document->ocrFindings);
+        self::assertNull($document->ocrValidatorVersion);
+        self::assertTrue($document->needsOcrAnalysis());
+    }
+
+    public function testAnAnalysedFileIsNotAnalysedAgain(): void
+    {
+        $document = $this->document(['storagePath' => 'doc.pdf']);
+        self::assertTrue($document->needsOcrAnalysis());
+
+        $document->attachOcrAnalysis(null, ['Aucune donnée n\'a pu être extraite.'], 'v1');
+
+        self::assertFalse($document->needsOcrAnalysis());
+    }
+
+    public function testAHumanDecisionIsNeverOverwrittenByANewAnalysisRequest(): void
+    {
+        self::assertFalse($this->document(['storagePath' => 'doc.pdf', 'status' => DocumentStatus::VALID])->needsOcrAnalysis());
+        self::assertFalse($this->document(['storagePath' => 'doc.pdf', 'status' => DocumentStatus::REJECTED])->needsOcrAnalysis());
+    }
+
+    public function testATypeWithoutAutomaticAnalysisNeverNeedsOcr(): void
+    {
+        self::assertFalse($this->document(['storagePath' => 'doc.pdf', 'type' => DocumentType::RBE])->needsOcrAnalysis());
+    }
+
+    public function testMarkOcrUnavailableLeavesAVisibleSignalAndStaysUploaded(): void
+    {
+        $document = $this->document(['storagePath' => 'doc.pdf']);
+
+        self::assertTrue($document->markOcrUnavailable());
+
+        self::assertNotNull($document->ocrUnavailableAt);
+        self::assertNotEmpty($document->ocrFindings);
+        self::assertNull($document->ocrData);
+        self::assertSame(DocumentStatus::UPLOADED, $document->status);
+        // Le signal laisse la porte ouverte à un rejeu (messenger:failed:retry).
+        self::assertTrue($document->needsOcrAnalysis());
+        self::assertCount(1, $document->folder->history);
+    }
+
+    public function testMarkOcrUnavailableIsIdempotent(): void
+    {
+        $document = $this->document(['storagePath' => 'doc.pdf']);
+        $document->markOcrUnavailable();
+        $firstSignalAt = $document->ocrUnavailableAt;
+
+        self::assertFalse($document->markOcrUnavailable());
+
+        self::assertSame($firstSignalAt, $document->ocrUnavailableAt);
+        self::assertCount(1, $document->folder->history);
+    }
+
+    public function testMarkOcrUnavailableNeverReplacesAnAnalysisThatSucceeded(): void
+    {
+        $document = $this->document(['storagePath' => 'doc.pdf']);
+        $document->attachOcrAnalysis(['holder_name' => 'Jean'], [], 'v1');
+
+        self::assertFalse($document->markOcrUnavailable());
+
+        self::assertSame(['holder_name' => 'Jean'], $document->ocrData);
+        self::assertNull($document->ocrUnavailableAt);
+    }
+
+    public function testASuccessfulReplayClearsTheUnavailableSignal(): void
+    {
+        $document = $this->document(['storagePath' => 'doc.pdf']);
+        $document->markOcrUnavailable();
+
+        $document->attachOcrAnalysis(['holder_name' => 'Jean'], [], 'v1');
+
+        self::assertNull($document->ocrUnavailableAt);
+        self::assertSame(OcrAnalysisState::COMPLETED, $document->ocrAnalysisState());
+    }
+
+    public function testAnalysisStateForTheCgp(): void
+    {
+        self::assertSame(OcrAnalysisState::NOT_APPLICABLE, $this->document(['status' => DocumentStatus::PENDING])->ocrAnalysisState());
+        self::assertSame(OcrAnalysisState::MANUAL_CHECK, $this->document(['type' => DocumentType::RBE])->ocrAnalysisState());
+        self::assertSame(
+            OcrAnalysisState::IN_PROGRESS,
+            $this->document(['uploadedAt' => new \DateTimeImmutable('-2 minutes')])->ocrAnalysisState(),
+        );
+    }
+
+    public function testAPieceStillWithoutAnalysisLongAfterTheUploadIsShownAsUnavailable(): void
+    {
+        // Message perdu / worker arrêté : jamais de « en cours » éternel.
+        $document = $this->document(['uploadedAt' => new \DateTimeImmutable('-3 hours')]);
+
+        self::assertSame(OcrAnalysisState::UNAVAILABLE, $document->ocrAnalysisState());
     }
 
     public function testClearsAnyPreviousRejectionReason(): void

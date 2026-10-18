@@ -29,6 +29,8 @@ final class ProcessOcrMessageHandlerTest extends TestCase
 {
     use ReflectionHelperTrait;
 
+    private const string DOCUMENT_ID = '0192f0a0-0000-7000-8000-000000000001';
+
     private ComplianceDocumentRepositoryInterface&MockObject $repository;
     private OcrProviderInterface&Stub $ocrProvider;
     private DocumentStorageInterface&Stub $storage;
@@ -70,7 +72,7 @@ final class ProcessOcrMessageHandlerTest extends TestCase
         ]);
 
         return $this->createEntityState(ComplianceDocument::class, array_merge([
-            'id' => Uuid::v7(),
+            'id' => Uuid::fromString(self::DOCUMENT_ID),
             'slugId' => 'comp_doc_1',
             'folder' => $folder,
             'type' => DocumentType::PROOF_OF_ADDRESS,
@@ -86,8 +88,12 @@ final class ProcessOcrMessageHandlerTest extends TestCase
     {
         $document = $this->document();
         $this->repository->method('findById')->willReturn($document);
-        // Justificatif lisible, non périmé : DocumentValidator ne remonte rien.
-        $extracted = ['date_of_expiry' => '2999-12-31', 'first_name' => 'Jean'];
+        // Justificatif lisible et récent : DocumentValidator ne remonte rien.
+        $extracted = [
+            'holder_name' => 'Jean Dupont',
+            'address' => '12 rue des Lilas 75011 Paris',
+            'document_date' => new \DateTimeImmutable('-1 month')->format('Y-m-d'),
+        ];
         $this->ocrProvider->method('extractData')->willReturn($extracted);
 
         $this->repository->expects($this->once())->method('save')->with($document);
@@ -98,7 +104,7 @@ final class ProcessOcrMessageHandlerTest extends TestCase
                 && [] === $e->findings))
             ->willReturnArgument(0);
 
-        ($this->handler)(new ProcessOcrMessage('comp_doc_1'));
+        ($this->handler)(new ProcessOcrMessage(self::DOCUMENT_ID));
 
         self::assertSame(DocumentStatus::UPLOADED, $document->status);
         self::assertSame($extracted, $document->ocrData);
@@ -111,8 +117,8 @@ final class ProcessOcrMessageHandlerTest extends TestCase
     {
         $document = $this->document();
         $this->repository->method('findById')->willReturn($document);
-        // Pas de date d'expiration : DocumentValidator produit un point de vigilance.
-        $extracted = ['first_name' => 'Jean'];
+        // Ni adresse ni date : DocumentValidator produit des points de vigilance.
+        $extracted = ['holder_name' => 'Jean Dupont'];
         $this->ocrProvider->method('extractData')->willReturn($extracted);
 
         $this->repository->expects($this->once())->method('save')->with($document);
@@ -122,7 +128,7 @@ final class ProcessOcrMessageHandlerTest extends TestCase
                 && [] !== $e->findings))
             ->willReturnArgument(0);
 
-        ($this->handler)(new ProcessOcrMessage('comp_doc_1'));
+        ($this->handler)(new ProcessOcrMessage(self::DOCUMENT_ID));
 
         self::assertSame(DocumentStatus::UPLOADED, $document->status);
         self::assertNotSame(DocumentStatus::REJECTED, $document->status);
@@ -150,7 +156,7 @@ final class ProcessOcrMessageHandlerTest extends TestCase
             ->willReturnArgument(0);
 
         // Le handler ne relance pas l'exception (sinon Messenger déclencherait un retry).
-        ($this->handler)(new ProcessOcrMessage('comp_doc_1'));
+        ($this->handler)(new ProcessOcrMessage(self::DOCUMENT_ID));
 
         self::assertSame(DocumentStatus::UPLOADED, $document->status);
         self::assertNull($document->ocrData);
@@ -172,7 +178,7 @@ final class ProcessOcrMessageHandlerTest extends TestCase
                 && 1 === count($e->findings)))
             ->willReturnArgument(0);
 
-        ($this->handler)(new ProcessOcrMessage('comp_doc_1'));
+        ($this->handler)(new ProcessOcrMessage(self::DOCUMENT_ID));
 
         self::assertSame(DocumentStatus::UPLOADED, $document->status);
         self::assertNull($document->ocrData);
@@ -207,7 +213,38 @@ final class ProcessOcrMessageHandlerTest extends TestCase
         $this->repository->expects($this->never())->method('save');
         $this->eventDispatcher->expects($this->never())->method('dispatch');
 
-        ($this->handlerWith($ocrProvider))(new ProcessOcrMessage('comp_doc_1'));
+        ($this->handlerWith($ocrProvider))(new ProcessOcrMessage(self::DOCUMENT_ID));
+    }
+
+    public function testDoesNotCallOcrForATypeWithoutAutomaticAnalysis(): void
+    {
+        $document = $this->document(['type' => DocumentType::RBE]);
+        $this->repository->method('findById')->willReturn($document);
+
+        $ocrProvider = $this->createMock(OcrProviderInterface::class);
+        $ocrProvider->expects($this->never())->method('extractData');
+        $this->repository->expects($this->never())->method('save');
+        $this->eventDispatcher->expects($this->never())->method('dispatch');
+
+        ($this->handlerWith($ocrProvider))(new ProcessOcrMessage(self::DOCUMENT_ID));
+    }
+
+    public function testReplayedAfterAnUnavailableSignalAnalysesTheFileAgain(): void
+    {
+        $document = $this->document([
+            'ocrFindings' => ['L\'analyse automatique est momentanément indisponible.'],
+            'ocrUnavailableAt' => new \DateTimeImmutable('-1 hour'),
+        ]);
+        $this->repository->method('findById')->willReturn($document);
+        $this->ocrProvider->method('extractData')->willReturn(['holder_name' => 'Jean Dupont']);
+
+        $this->repository->expects($this->once())->method('save')->with($document);
+        $this->eventDispatcher->expects($this->once())->method('dispatch')->willReturnArgument(0);
+
+        ($this->handler)(new ProcessOcrMessage(self::DOCUMENT_ID));
+
+        self::assertNull($document->ocrUnavailableAt);
+        self::assertSame(['holder_name' => 'Jean Dupont'], $document->ocrData);
     }
 
     public function testThrowsWhenDocumentIsUnknown(): void
@@ -220,6 +257,6 @@ final class ProcessOcrMessageHandlerTest extends TestCase
         $this->eventDispatcher->expects($this->never())->method('dispatch');
 
         $this->expectException(\InvalidArgumentException::class);
-        ($this->handlerWith($ocrProvider))(new ProcessOcrMessage('missing'));
+        ($this->handlerWith($ocrProvider))(new ProcessOcrMessage(self::DOCUMENT_ID));
     }
 }

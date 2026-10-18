@@ -6,12 +6,28 @@ namespace App\Domain\Kyc\Validator;
 
 use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Enum\DocumentType;
+
+use function Symfony\Component\Clock\now;
+
 use Webmozart\Assert\Assert;
 
+/**
+ * Contrôles métier appliqués aux données lues par l'OCR, **par type de pièce**.
+ *
+ * Ne produit que des points de vigilance : jamais une décision. Seul le CGP accepte ou rejette.
+ * Un type sans règle (pas d'OCR au MVP) ne produit aucun signalement — ce n'est pas une erreur,
+ * la pièce relève d'une vérification manuelle.
+ */
 class DocumentValidator
 {
     /** Version des règles de contrôle — à incrémenter à chaque évolution des règles ci-dessous. */
-    public const string VERSION = '2026-09-01';
+    public const string VERSION = '2026-10-19';
+
+    /** Ancienneté maximale d'un justificatif de domicile / d'un extrait K-bis (libellés de {@see DocumentType}). */
+    private const int MAX_DOCUMENT_AGE_MONTHS = 3;
+
+    /** Tolérance (distance de Levenshtein) pour absorber les fautes de lecture OCR. */
+    private const int NAME_TOLERANCE = 2;
 
     /**
      * @return list<string> Points de vigilance détectés. Si vide, aucun signalement.
@@ -19,88 +35,237 @@ class DocumentValidator
      */
     public function validate(ComplianceDocument $document): array
     {
-        $errors = [];
-        $data = $document->ocrData; // On accède au JSON stocké
-        $stakeholder = $document->stakeholder;
+        $data = $document->ocrData;
 
         if (null === $data || [] === $data) {
             return ["Aucune donnée n'a pu être extraite du document."];
         }
 
-        // --- RÈGLES SPÉCIFIQUES POUR LA CNI ---
-        if (DocumentType::ID_CARD === $document->type && $stakeholder instanceof \App\Domain\Kyc\Entity\Stakeholder) {
-            // 1. CROISEMENT D'IDENTITÉ (Stakeholder VS OCR Zone Visuelle)
-            $ocrLastName = $this->normalizeString($data['last_name'] ?? '');
-            $userLastName = $this->normalizeString($stakeholder->lastName); // Assure-toi d'avoir cette méthode
+        $expected = ExpectedIdentity::forDocument($document);
 
-            $ocrFirstName = $this->normalizeString($data['first_name'] ?? '');
-            $userFirstName = $this->normalizeString($stakeholder->firstName);
+        return match ($document->type) {
+            DocumentType::ID_CARD, DocumentType::PASSPORT, DocumentType::RESIDENCE_PERMIT => $this->validateIdentityDocument($document->type, $data, $expected),
+            DocumentType::PROOF_OF_ADDRESS => $this->validateProofOfAddress($data, $expected),
+            DocumentType::KBIS => $this->validateKbis($data, $expected),
+            default => [],
+        };
+    }
 
-            // Tolérance de 2 caractères (distance de Levenshtein) pour les fautes de frappe
-            if (levenshtein($ocrLastName, $userLastName) > 2) {
-                $errors[] = "Identité non correspondante : Le nom sur la pièce ({$data['last_name']}) diffère du profil déclaré.";
-            }
+    // =========================================================================
+    // PIÈCES D'IDENTITÉ
+    // =========================================================================
 
-            // On vérifie si le prénom déclaré est au moins contenu dans les prénoms de la CNI
-            // (ex: CNI = "JEAN PAUL", Déclaré = "JEAN")
-            if (!str_contains($ocrFirstName, $userFirstName) && levenshtein($ocrFirstName, $userFirstName) > 2) {
-                $errors[] = "Identité non correspondante : Le prénom sur la pièce ({$data['first_name']}) diffère du profil déclaré.";
-            }
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return list<string>
+     */
+    private function validateIdentityDocument(DocumentType $type, array $data, ExpectedIdentity $expected): array
+    {
+        $errors = [];
 
-            // 2. LUTTE ANTI-FRAUDE (Zone Visuelle VS Bande MRZ)
-            $mrz = $data['mrz'] ?? null;
-            if ($mrz && !empty($mrz['line_1']) && !empty($mrz['line_2'])) {
-                $mrzLine1 = $this->normalizeString($mrz['line_1']);
-                $mrzLine2 = $this->normalizeString($mrz['line_2']);
+        $ocrLastName = $this->normalizeString($this->text($data, 'last_name'));
+        $ocrFirstName = $this->normalizeString($this->text($data, 'first_name'));
 
-                // Le nom de famille doit être encodé dans la ligne 1 de la MRZ
-                // Ex: IDFRAALOIS<<<<< (ALOIS est bien dedans)
-                if ('' !== $ocrLastName && !str_contains($mrzLine1, $ocrLastName)) {
-                    $errors[] = 'Anomalie de sécurité : Le nom de famille ne correspond pas à la bande optique (MRZ). Falsification suspectée.';
-                }
+        // 1. CROISEMENT D'IDENTITÉ (identité du dossier VS zone visuelle)
+        if (null !== $expected->lastName) {
+            $userLastName = $this->normalizeString($expected->lastName);
 
-                // La date de naissance (format YYMMDD) doit être encodée dans la ligne 2
-                // Ex: 1980-01-21 devient 800121.
-                if (!empty($data['birth_date'])) {
-                    $birthDate = \DateTimeImmutable::createFromFormat('Y-m-d', $data['birth_date']);
-                    if ($birthDate) {
-                        $mrzDate = $birthDate->format('ymd');
-                        if (!str_contains($mrzLine2, $mrzDate)) {
-                            $errors[] = 'Anomalie de sécurité : La date de naissance visuelle ne correspond pas à celle de la bande optique (MRZ).';
-                        }
-                    }
-                }
-            } else {
-                // Si Mindee ne trouve pas de MRZ sur une CNI, c'est très louche (ou la photo est coupée)
-                $errors[] = 'Bande de lecture optique (MRZ) illisible ou absente. Veuillez fournir une photo complète de la pièce.';
+            if ('' === $ocrLastName) {
+                $errors[] = 'Nom illisible sur la pièce : recoupement avec le dossier impossible, vérification manuelle requise.';
+            } elseif (levenshtein($ocrLastName, $userLastName) > self::NAME_TOLERANCE) {
+                $errors[] = sprintf('Identité non correspondante : le nom sur la pièce (%s) diffère de celui du dossier.', $this->text($data, 'last_name'));
             }
         }
 
-        // 3. VÉRIFICATION DE LA VALIDITÉ (Péremption)
-        $expiryDateStr = $data['date_of_expiry'] ?? null;
+        if (null !== $expected->firstName) {
+            $userFirstName = $this->normalizeString($expected->firstName);
 
-        if (!$expiryDateStr) {
-            // Si Mindee n'a pas trouvé la date, c'est souvent qu'il manque le Recto (nouveau format)
-            // ou que la photo est coupée/floue.
-            $errors[] = "Date d'expiration introuvable. Veuillez vous assurer de fournir une copie claire du Recto ET du Verso de la pièce d'identité.";
-        } else {
-            // Vérification de la péremption
-            $expiryDate = \DateTimeImmutable::createFromFormat('Y-m-d', $expiryDateStr);
-            $today = new \DateTimeImmutable('today'); // Heure à 00:00:00
-
-            if ($expiryDate && $expiryDate < $today) {
-                $errors[] = "Document expiré : La pièce d'identité n'est plus valide depuis le " . $expiryDate->format('d/m/Y') . '.';
-
-                // Note de Lead Dev : En France, les anciennes cartes (bleues) majeures ont eu +5 ans de validité automatique.
-                // Si ton business le permet légalement, tu pourrais rajouter +5 ans à $expiryDate ici avant de faire la comparaison.
+            if ('' === $ocrFirstName) {
+                $errors[] = 'Prénom illisible sur la pièce : recoupement avec le dossier impossible, vérification manuelle requise.';
+            } elseif (!str_contains($ocrFirstName, $userFirstName) && levenshtein($ocrFirstName, $userFirstName) > self::NAME_TOLERANCE) {
+                // Prénom déclaré au moins contenu dans les prénoms de la pièce (ex: pièce « JEAN PAUL », dossier « JEAN »).
+                $errors[] = sprintf('Identité non correspondante : le prénom sur la pièce (%s) diffère de celui du dossier.', $this->text($data, 'first_name'));
             }
+        }
+
+        // 2. COHÉRENCE ZONE VISUELLE VS BANDE MRZ (hors titre de séjour : pas de MRZ exigée)
+        $mrz = $data['mrz'] ?? null;
+        if (is_array($mrz) && !empty($mrz['line_1']) && !empty($mrz['line_2'])) {
+            $errors = [...$errors, ...$this->checkMrzCoherence($mrz, $ocrLastName, $data)];
+        } elseif (in_array($type, [DocumentType::ID_CARD, DocumentType::PASSPORT], true)) {
+            // Une photo du seul recto (CNI) ou coupée n'a pas la bande : on demande une pièce complète.
+            $errors[] = 'Bande de lecture optique (MRZ) illisible ou absente. Veuillez fournir une photo complète de la pièce.';
+        }
+
+        // 3. VALIDITÉ (péremption)
+        $expiryDate = $this->date($data, 'date_of_expiry');
+        if (!$expiryDate instanceof \DateTimeImmutable) {
+            $errors[] = "Date d'expiration introuvable. Veuillez vous assurer de fournir une copie claire du recto ET du verso de la pièce d'identité.";
+        } elseif ($expiryDate < now()->setTime(0, 0)) {
+            $errors[] = sprintf("Document expiré : la pièce d'identité n'est plus valide depuis le %s.", $expiryDate->format('d/m/Y'));
         }
 
         return $errors;
     }
 
     /**
-     * Nettoie une chaîne pour la comparaison : Majuscules, sans accents, sans espaces, sans tirets.
+     * @param array<array-key, mixed> $mrz
+     * @param array<string, mixed>    $data
+     *
+     * @return list<string>
+     */
+    private function checkMrzCoherence(array $mrz, string $ocrLastName, array $data): array
+    {
+        $errors = [];
+
+        // Le nom est encodé en ligne 1 (ancien format 2 lignes / passeport) ou en ligne 3 (CNI 3 lignes).
+        $mrzNames = $this->normalizeString(sprintf('%s %s', $this->text($mrz, 'line_1'), $this->text($mrz, 'line_3')));
+        $mrzLine2 = $this->normalizeString($this->text($mrz, 'line_2'));
+
+        if ('' !== $ocrLastName && !str_contains($mrzNames, $ocrLastName)) {
+            $errors[] = 'Incohérence : le nom de famille lu sur la pièce ne correspond pas à la bande optique (MRZ). À vérifier.';
+        }
+
+        // La date de naissance (YYMMDD) est encodée en ligne 2. Ex : 1980-01-21 → 800121.
+        $birthDate = $this->date($data, 'birth_date');
+        if ($birthDate instanceof \DateTimeImmutable && !str_contains($mrzLine2, $birthDate->format('ymd'))) {
+            $errors[] = 'Incohérence : la date de naissance lue sur la pièce ne correspond pas à la bande optique (MRZ). À vérifier.';
+        }
+
+        return $errors;
+    }
+
+    // =========================================================================
+    // JUSTIFICATIF DE DOMICILE
+    // =========================================================================
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return list<string>
+     */
+    private function validateProofOfAddress(array $data, ExpectedIdentity $expected): array
+    {
+        $errors = [];
+
+        $holder = $this->text($data, 'holder_name');
+        if (null !== $expected->lastName) {
+            if ('' === $holder) {
+                $errors[] = 'Titulaire du justificatif illisible : recoupement avec le dossier impossible, vérification manuelle requise.';
+            } elseif (!$this->holderMatches($holder, $expected->lastName)) {
+                $errors[] = sprintf('Le titulaire du justificatif (%s) ne correspond pas au client du dossier.', $holder);
+            }
+        }
+
+        if ('' === $this->text($data, 'address')) {
+            $errors[] = 'Adresse illisible sur le justificatif : vérification manuelle requise.';
+        }
+
+        return [...$errors, ...$this->checkFreshness($data, 'justificatif', 'du justificatif')];
+    }
+
+    // =========================================================================
+    // EXTRAIT K-BIS
+    // =========================================================================
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return list<string>
+     */
+    private function validateKbis(array $data, ExpectedIdentity $expected): array
+    {
+        $errors = [];
+
+        $companyName = $this->text($data, 'company_name');
+        if (null !== $expected->companyName && '' !== $companyName) {
+            $found = $this->normalizeString($companyName);
+            $declared = $this->normalizeString($expected->companyName);
+
+            if (!str_contains($found, $declared) && !str_contains($declared, $found) && levenshtein($found, $declared) > self::NAME_TOLERANCE) {
+                $errors[] = sprintf('La dénomination de l\'extrait K-bis (%s) diffère de celle du dossier.', $companyName);
+            }
+        }
+
+        $registration = preg_replace('/\D/', '', $this->text($data, 'registration_number'));
+        if (null !== $expected->siren && '' !== (string) $registration && !str_contains((string) $registration, $expected->siren)) {
+            $errors[] = 'Le SIREN de l\'extrait K-bis diffère de celui du dossier.';
+        }
+
+        return [...$errors, ...$this->checkFreshness($data, 'extrait', 'de l\'extrait')];
+    }
+
+    // =========================================================================
+    // OUTILS
+    // =========================================================================
+
+    /**
+     * Fraîcheur (« moins de 3 mois ») d'un justificatif ou d'un extrait daté.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return list<string>
+     */
+    private function checkFreshness(array $data, string $noun, string $ofTheNoun): array
+    {
+        $documentDate = $this->date($data, 'document_date');
+
+        if (!$documentDate instanceof \DateTimeImmutable) {
+            return [sprintf('Date %s introuvable : fraîcheur (moins de %d mois) à vérifier.', $ofTheNoun, self::MAX_DOCUMENT_AGE_MONTHS)];
+        }
+
+        if ($documentDate < now()->setTime(0, 0)->modify(sprintf('-%d months', self::MAX_DOCUMENT_AGE_MONTHS))) {
+            return [sprintf('Le %s date du %s : il a plus de %d mois.', $noun, $documentDate->format('d/m/Y'), self::MAX_DOCUMENT_AGE_MONTHS)];
+        }
+
+        return [];
+    }
+
+    /**
+     * Le titulaire d'un justificatif peut être « M. et Mme DUPONT » ou « DUPONT Jean » : on cherche le nom
+     * attendu dans l'ensemble du libellé, puis mot à mot avec la tolérance de lecture.
+     */
+    private function holderMatches(string $holder, string $expectedLastName): bool
+    {
+        $expected = $this->normalizeString($expectedLastName);
+        if ('' === $expected || str_contains($this->normalizeString($holder), $expected)) {
+            return true;
+        }
+
+        $tokens = preg_split('/[^\p{L}\p{N}]+/u', $holder, -1, \PREG_SPLIT_NO_EMPTY);
+        Assert::isArray($tokens);
+
+        return array_any($tokens, fn (string $token): bool => levenshtein($this->normalizeString($token), $expected) <= self::NAME_TOLERANCE);
+    }
+
+    /**
+     * @param array<array-key, mixed> $data
+     */
+    private function text(array $data, string $key): string
+    {
+        $value = $data[$key] ?? '';
+
+        return is_scalar($value) ? trim((string) $value) : '';
+    }
+
+    /**
+     * @param array<array-key, mixed> $data
+     */
+    private function date(array $data, string $key): ?\DateTimeImmutable
+    {
+        $value = $this->text($data, $key);
+        if ('' === $value) {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+
+        return false === $date ? null : $date;
+    }
+
+    /**
+     * Nettoie une chaîne pour la comparaison : majuscules, sans accents, sans espaces, sans tirets.
      * Ex : "Jean-François" → "JEANFRANCOIS".
      */
     private function normalizeString(string $string): string

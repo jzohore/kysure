@@ -61,6 +61,18 @@ enum DocumentType: string
     }
 
     /**
+     * Une analyse automatique (OCR + contrôles) existe pour ce type de pièce. Les autres
+     * relèvent d'une vérification manuelle : ne pas les envoyer à l'OCR (coût, faux signalements).
+     */
+    public function supportsOcr(): bool
+    {
+        return match ($this) {
+            self::ID_CARD, self::PASSPORT, self::RESIDENCE_PERMIT, self::PROOF_OF_ADDRESS, self::KBIS => true,
+            default => false,
+        };
+    }
+
+    /**
      * Définit si le système doit surveiller la péremption temporelle de cette pièce.
      * Crucial pour le Worker de relance automatique (Event-Driven).
      */

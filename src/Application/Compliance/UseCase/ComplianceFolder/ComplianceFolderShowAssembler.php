@@ -82,6 +82,7 @@ class ComplianceFolderShowAssembler
                 mimeType: $doc->mimeType,
                 size: $doc->size,
                 isAwaitingClient: $doc->isAskToClient && !$doc->isReceived() && DocumentStatus::PROCESSING !== $doc->status,
+                ocrState: $doc->ocrAnalysisState()->value,
             );
 
             if ($isKyb && null === $docDto->stakeholderSlug) {

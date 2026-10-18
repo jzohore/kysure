@@ -6,6 +6,7 @@ namespace App\Infrastructure\Ocr;
 
 use App\Domain\Compliance\Enum\DocumentType;
 use App\Domain\Port\OcrProviderInterface;
+use App\Infrastructure\Ocr\Parser\FrenchDateParser;
 use Aws\Textract\TextractClient;
 use Psr\Log\LoggerInterface;
 
@@ -60,7 +61,7 @@ readonly class AmazonTextractProvider implements OcrProviderInterface
                 'QueriesConfig' => ['Queries' => $queries],
             ]);
 
-            return $this->formatQueryResponse($result->toArray());
+            return $this->normalizeDocumentDate($this->formatQueryResponse($result->toArray()));
         } catch (\Exception $e) {
             $this->logger->error('Erreur AWS Textract : ' . $e->getMessage());
             throw $e;
@@ -308,6 +309,13 @@ readonly class AmazonTextractProvider implements OcrProviderInterface
             DocumentType::KBIS => [
                 ['Text' => 'What is the company name?', 'Alias' => 'company_name'],
                 ['Text' => 'What is the SIREN or registration number?', 'Alias' => 'registration_number'],
+                ['Text' => 'What is the date of the extract?', 'Alias' => 'document_date'],
+            ],
+            // Facture, quittance ou avis : titulaire, adresse et date du document (fraîcheur « moins de 3 mois »).
+            DocumentType::PROOF_OF_ADDRESS => [
+                ['Text' => 'What is the name of the customer or account holder?', 'Alias' => 'holder_name'],
+                ['Text' => 'What is the customer address?', 'Alias' => 'address'],
+                ['Text' => 'What is the date of the document or invoice?', 'Alias' => 'document_date'],
             ],
             DocumentType::SOURCE_OF_FUNDS => [
                 ['Text' => 'What is the total amount?', 'Alias' => 'amount'],
@@ -319,6 +327,28 @@ readonly class AmazonTextractProvider implements OcrProviderInterface
             ],
             default => [],
         };
+    }
+
+    /**
+     * `document_date` revient en texte libre (« 3 janvier 2026 ») : on le ramène en `Y-m-d`, ou on
+     * l'écarte s'il n'est pas fiable (le validateur signale alors « date introuvable »).
+     *
+     * @param array<string, string> $data
+     *
+     * @return array<string, string>
+     */
+    private function normalizeDocumentDate(array $data): array
+    {
+        if (isset($data['document_date'])) {
+            $date = FrenchDateParser::parse($data['document_date']);
+            if (null === $date) {
+                unset($data['document_date']);
+            } else {
+                $data['document_date'] = $date;
+            }
+        }
+
+        return $data;
     }
 
     /**

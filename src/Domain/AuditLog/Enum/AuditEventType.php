@@ -75,6 +75,7 @@ enum AuditEventType: string
     case KYC_DOCUMENT_UPLOADED = 'document.uploaded';
     case KYC_DOCUMENT_MALWARE_BLOCKED = 'document.malware_blocked';
     case KYC_DOCUMENT_OCR_PROCESSED = 'document.ocr_processed';
+    case KYC_DOCUMENT_OCR_UNAVAILABLE = 'document.ocr_unavailable';
     case KYC_DOCUMENT_VALIDATED = 'document.validated';
     case KYC_DOCUMENT_REJECTED = 'document.rejected';
     case KYC_DOCUMENT_EXPIRED = 'document.expired';
@@ -222,6 +223,7 @@ enum AuditEventType: string
             self::KYC_DOCUMENT_UPLOADED => 'Dépôt d\'un document client',
             self::KYC_DOCUMENT_MALWARE_BLOCKED => 'Document refusé par l\'antivirus',
             self::KYC_DOCUMENT_OCR_PROCESSED => 'Analyse OCR automatique (Textract)',
+            self::KYC_DOCUMENT_OCR_UNAVAILABLE => 'Analyse OCR indisponible (vérification manuelle)',
             self::KYC_DOCUMENT_VALIDATED => 'Validation d\'un document',
             self::KYC_DOCUMENT_REJECTED => 'Refus d\'un document',
             self::KYC_DOCUMENT_EXPIRED => 'Expiration d\'un document',
@@ -327,6 +329,7 @@ enum AuditEventType: string
             self::KYC_DOCUMENT_UPLOADED,
             self::KYC_DOCUMENT_MALWARE_BLOCKED,
             self::KYC_DOCUMENT_OCR_PROCESSED,
+            self::KYC_DOCUMENT_OCR_UNAVAILABLE,
             self::KYC_DOCUMENT_VALIDATED,
             self::KYC_DOCUMENT_REJECTED,
             self::KYC_DOCUMENT_EXPIRED,
@@ -417,6 +420,7 @@ enum AuditEventType: string
             self::ADMIN_IMPERSONATION_START,
             self::ADMIN_IMPERSONATION_EXIT,
             self::SUBSCRIPTION_TRIAL_EXTENDED,
+            self::KYC_DOCUMENT_OCR_UNAVAILABLE,
             self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'bg-amber-50 text-amber-700 border-amber-200',
 
             self::KYC_DOCUMENT_OCR_PROCESSED,
@@ -466,6 +470,7 @@ enum AuditEventType: string
             self::USER_MAGIC_LINK_REQUESTED,
             self::USER_LOGGED_OUT,
             self::KYC_DOCUMENT_OCR_PROCESSED,
+            self::KYC_DOCUMENT_OCR_UNAVAILABLE,
             self::ONBOARDING_COMPLETED,
             self::CRON_DEFINITION_ENABLED,
             self::CRON_DEFINITION_DISABLED,
