@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>{% block title %}Document d'Entrée en Relation{% endblock %}</title>
-    <link rel="icon" href="{{ absolute_url(asset('kysure_favicon/favicon.ico')) }}">
+    {% include '_favicons.html.twig' %}
     {{ importmap('app') }}
 </head>
 <body class="h-full font-sans text-slate-900 bg-slate-50">
