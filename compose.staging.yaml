@@ -45,6 +45,10 @@ services:
       # Analytique Umami : le <script> n'est rendu que si les deux sont non vides.
       UMAMI_SCRIPT_URL: 'https://analytics.staging.kysure.fr/script.js'
       UMAMI_WEBSITE_ID: '${UMAMI_WEBSITE_ID}'
+      # Antivirus des pièces déposées par les clients (le scan se fait dans la requête web).
+      VIRUS_SCAN_MODE: clamav
+      CLAMAV_HOST: clamav-staging
+      CLAMAV_PORT: '3310'
     logging: *default-logging
     deploy:
       resources:
@@ -55,6 +59,11 @@ services:
         condition: service_healthy
       rabbitmq-staging:
         condition: service_healthy
+      # service_started (pas service_healthy) : la 1re synchro des signatures prend plusieurs
+      # minutes et ne doit pas bloquer le déploiement. Tant que clamd n'est pas prêt, les
+      # dépôts de pièces sont refusés (fail-closed), le reste du site fonctionne.
+      clamav-staging:
+        condition: service_started
 
   worker-staging:
     build:
@@ -127,6 +136,30 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+
+  # Antivirus (ClamAV / clamd) : analyse chaque pièce déposée par un client avant stockage S3.
+  # Joignable en interne sur clamav-staging:3310 (jamais publié). La base de signatures est
+  # persistée (sinon re-téléchargement à chaque déploiement) et se met à jour seule (freshclam).
+  # RAM : clamd charge toutes les signatures en mémoire (~1 Go+) ; sous 1,5 Go il est tué par l'OOM.
+  clamav-staging:
+    image: 'clamav/clamav:1.4'
+    container_name: kysure_clamav_staging
+    restart: unless-stopped
+    environment:
+      CLAMD_CONF_StreamMaxLength: 25M
+    volumes:
+      - 'clamav_staging_data:/var/lib/clamav'
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+    healthcheck:
+      test: [ "CMD", "/usr/local/bin/clamdcheck.sh" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
 
   mailpit-staging:
     image: 'axllent/mailpit:latest'
@@ -220,3 +253,4 @@ volumes:
   rabbitmq_staging_data: null
   mailpit_staging_data: null
   umami_db_staging_data: null
+  clamav_staging_data: null
