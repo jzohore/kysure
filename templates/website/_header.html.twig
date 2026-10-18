@@ -1,44 +1,37 @@
 <header role="banner">
-    <nav aria-label="Navigation principale" class="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-[#e6e6e6]">
+    <nav aria-label="Navigation principale" class="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
         <div class="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4 sm:px-6">
 
             {# Logo #}
-            <div class="flex items-center gap-2 shrink-0">
-                <div class="flex size-7 items-center justify-center rounded bg-black text-white font-bold text-sm" aria-hidden="true">K</div>
+            <div class="flex shrink-0 items-center gap-2">
+                <div class="flex size-7 items-center justify-center rounded bg-black text-sm font-bold text-white" aria-hidden="true">K</div>
                 <a href="{{ path('website_home') }}"
-                   class="text-[17px] font-bold tracking-tight text-[#1a1a1a]"
+                   class="rounded text-[17px] font-bold tracking-tight text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40"
                    title="Retour à l'accueil {{ company_name }}">
                     {{ company_name }}
                 </a>
             </div>
 
-            {# Liens desktop #}
-            <div class="hidden md:flex items-center gap-6 text-[14px] font-medium text-[#4d4d4d]">
-                <a href="#produit" class="hover:text-black transition-colors">
-                    Produit
-                </a>
-
-                <a href="#usage" class="hover:text-black transition-colors">
-                    Solutions
-                </a>
-
-                <a href="#tarifs" class="hover:text-black transition-colors">
-                    Tarifs
-                </a>
+            {# Liens desktop (ancres de la page d'accueil, valables depuis les autres pages du site) #}
+            <div class="hidden items-center gap-7 text-[14px] font-medium text-slate-600 md:flex">
+                <a href="{{ path('website_home') }}#parcours" class="rounded transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40">Parcours</a>
+                <a href="{{ path('website_home') }}#temps-gagne" class="rounded transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40">Temps gagné</a>
+                <a href="{{ path('website_home') }}#tarifs" class="rounded transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40">Tarifs</a>
             </div>
 
-            {# CTAs nav #}
-            <div class="flex items-center gap-3">
+            {# Accès : espace client (clients des cabinets) bien distinct de la connexion cabinet (CGP) #}
+            <div class="flex items-center gap-1 sm:gap-2">
+                <a href="{{ path('website_client_access') }}"
+                   class="rounded-full px-3 py-2 text-[14px] font-medium text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40">
+                    Espace client
+                </a>
                 <a href="{{ path('app_login') }}"
-                   class="hidden sm:block text-[14px] font-medium text-[#4d4d4d] hover:text-black transition-colors">
-                    Connexion
+                   class="hidden rounded-full px-3 py-2 text-[14px] font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 sm:block">
+                    Connexion cabinet
                 </a>
-
-                <a href="{{ path('app_register') }}"
-                   class="rounded-[6px] bg-[#0060df] px-4 py-2 text-[14px] font-bold text-white hover:bg-[#0050bc] transition-all focus:outline-none focus:ring-2 focus:ring-[#0060df] focus:ring-offset-2"
-                   aria-label="Créer un compte {{ company_name }} gratuitement">
-                    Essayer gratuitement
-                </a>
+                <twig:Button as="a" href="{{ path('app_register') }}" variant="dark" size="sm" class="rounded-full px-4" aria-label="Créer un compte {{ company_name }} gratuitement">
+                    Essayer<span class="hidden sm:inline">&nbsp;gratuitement</span>
+                </twig:Button>
             </div>
         </div>
     </nav>

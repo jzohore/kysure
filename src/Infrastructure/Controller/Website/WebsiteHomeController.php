@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Controller\Website;
 
+use App\Application\Billing\UseCase\Pricing\GetPublicPricingUseCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
@@ -16,6 +17,11 @@ use Twig\Error\SyntaxError;
 #[Route(path: '/home', name: 'website_home')]
 final readonly class WebsiteHomeController
 {
+    public function __construct(
+        private GetPublicPricingUseCase $getPublicPricing,
+    ) {
+    }
+
     /**
      * @throws RuntimeError
      * @throws SyntaxError
@@ -25,7 +31,9 @@ final readonly class WebsiteHomeController
         Environment $twig,
     ): Response {
         return new Response(
-            $twig->render('@website/home.html.twig')
+            $twig->render('@website/home.html.twig', [
+                'pricing' => ($this->getPublicPricing)(),
+            ])
         );
     }
 }

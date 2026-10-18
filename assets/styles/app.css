@@ -197,3 +197,112 @@ body.kysure-chat-open .kysure-chat-container {
         @apply bg-background text-foreground;
     }
 }
+
+/* =========================================================
+   VITRINE — effet « Apple » (templates/website/home.html.twig)
+   Piloté par les contrôleurs Stimulus reveal / scroll-progress / scroll-story.
+   Les états « masqué » ne s'appliquent que si JavaScript est actif ET que le visiteur
+   n'a pas demandé de réduire les animations : sinon tout est visible, statique.
+   ========================================================= */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+    .reveal {
+        opacity: 0;
+        transform: translateY(32px);
+        transition:
+            opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+            transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+        transition-delay: var(--reveal-delay, 0ms);
+    }
+
+    .reveal-scale {
+        transform: translateY(24px) scale(0.96);
+    }
+
+    .reveal[data-revealed] {
+        opacity: 1;
+        transform: none;
+    }
+
+    /* Étapes du parcours : l'étape active ressort, les autres s'estompent. */
+    .story-step {
+        opacity: 0.35;
+        transition: opacity 0.5s ease;
+    }
+
+    .story-step[data-active] {
+        opacity: 1;
+    }
+
+    /* Mot à mot : un mot s'éclaire quand la progression de la section l'atteint. */
+    .word-reveal > span {
+        opacity: clamp(0.16, calc(var(--progress, 1) * (var(--n) + 3) - var(--i)), 1);
+        transition: opacity 0.25s linear;
+    }
+
+    /* Hero : le texte s'efface en sortant, la maquette se redresse en arrivant. */
+    .hero-copy {
+        opacity: calc(1 - var(--progress, 0) * 1.15);
+        transform: translateY(calc(var(--progress, 0) * -48px));
+    }
+
+    .hero-mock {
+        transform-origin: 50% 0;
+        transform: perspective(1600px) rotateX(calc((1 - var(--progress, 1)) * 14deg))
+            scale(calc(0.94 + var(--progress, 1) * 0.06));
+    }
+}
+
+/* Maquette collante : une seule visible à la fois (étape active). */
+.story-panel {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+    pointer-events: none;
+    transition:
+        opacity 0.6s ease,
+        transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.story-panel[data-active] {
+    opacity: 1;
+    transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .story-panel {
+        transition: none;
+    }
+}
+
+/* Barres du récapitulatif « temps gagné » : elles se remplissent quand la ligne est révélée. */
+.bar-grow {
+    width: var(--w);
+}
+
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+    .bar-grow {
+        width: 0;
+        transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.25s;
+    }
+
+    .reveal[data-revealed] .bar-grow {
+        width: var(--w);
+    }
+}
+
+/* Hero : apparition au chargement par pure animation CSS (aucune dépendance à JavaScript :
+   le premier écran — et donc le LCP — ne reste jamais invisible en attendant Stimulus). */
+@media (prefers-reduced-motion: no-preference) {
+    .hero-enter {
+        animation: hero-enter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation-delay: var(--reveal-delay, 0ms);
+    }
+
+    @keyframes hero-enter {
+        from {
+            opacity: 0;
+            transform: translateY(32px);
+        }
+    }
+}

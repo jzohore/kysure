@@ -31,6 +31,11 @@ use Symfony\Component\Uid\Uuid;
 class Workspace
 {
     use GenerateSlugPrefixedTrait;
+    /** Dossiers offerts à la création du cabinet (essai gratuit). Source unique, aussi affichée sur la vitrine. */
+    public const int TRIAL_DOSSIERS = 5;
+
+    /** Minutes d'entretien offertes à la création du cabinet (essai gratuit). */
+    public const int TRIAL_MEETING_MINUTES = 180;
 
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
@@ -163,8 +168,8 @@ class Workspace
     #[ORM\Column(options: ['default' => false])]
     public private(set) bool $hasClaimed2faBonus = false;
 
-    #[ORM\Column(type: Types::INTEGER, options: ['default' => 180])]
-    public private(set) int $meetingMinutesAllocated = 180;
+    #[ORM\Column(type: Types::INTEGER, options: ['default' => self::TRIAL_MEETING_MINUTES])]
+    public private(set) int $meetingMinutesAllocated = self::TRIAL_MEETING_MINUTES;
 
     #[ORM\Column(type: Types::INTEGER, options: ['default' => 0])]
     public private(set) int $meetingSecondsConsumed = 0;
@@ -174,8 +179,8 @@ class Workspace
      * abonnement est actif (dossiers illimités en fair-use). Rechargé par un
      * administrateur KYSURE le cas échéant.
      */
-    #[ORM\Column(type: Types::INTEGER, options: ['default' => 5])]
-    public private(set) int $trialDossiersRemaining = 5;
+    #[ORM\Column(type: Types::INTEGER, options: ['default' => self::TRIAL_DOSSIERS])]
+    public private(set) int $trialDossiersRemaining = self::TRIAL_DOSSIERS;
 
     // --- DÉLÉGATION DE DROITS AUX COLLABORATEURS (géré par un administrateur) ---
 

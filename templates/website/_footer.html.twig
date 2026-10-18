@@ -7,16 +7,24 @@
                     <div class="flex size-7 items-center justify-center rounded bg-black text-white font-bold text-sm" aria-hidden="true">K</div>
                     <span class="font-bold text-[17px] tracking-tight">{{ company_name }}</span>
                 </div>
-                <p class="text-[13px] text-[#666] leading-relaxed">La plateforme KYC & KYB pour les professionnels réglementés. ACPR-ready, hébergement souverain France.</p>
+                <p class="text-[13px] text-[#666] leading-relaxed">Le parcours de conformité des CGP et courtiers : DER, pièces justificatives, KYC, LCB-FT, entretien et rapport.</p>
             </div>
 
             <nav aria-label="Liens du footer" class="grid grid-cols-2 sm:grid-cols-3 gap-8 text-[14px]">
                 <div>
                     <h3 class="font-bold text-[12px] uppercase tracking-widest text-[#999] mb-3">Produit</h3>
                     <ul class="space-y-2">
-                        <li><a href="#produit" class="text-[#555] hover:text-black transition-colors">Fonctionnalités</a></li>
-                        <li><a href="#tarifs" class="text-[#555] hover:text-black transition-colors">Tarifs</a></li>
-                        <li><a href="#usage" class="text-[#555] hover:text-black transition-colors">Solutions</a></li>
+                        <li><a href="{{ path('website_home') }}#parcours" class="text-[#555] hover:text-black transition-colors">Le parcours</a></li>
+                        <li><a href="{{ path('website_home') }}#temps-gagne" class="text-[#555] hover:text-black transition-colors">Temps gagné</a></li>
+                        <li><a href="{{ path('website_home') }}#tarifs" class="text-[#555] hover:text-black transition-colors">Tarifs</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-[12px] uppercase tracking-widest text-[#999] mb-3">Accès</h3>
+                    <ul class="space-y-2">
+                        <li><a href="{{ path('website_client_access') }}" class="text-[#555] hover:text-black transition-colors">Espace client</a></li>
+                        <li><a href="{{ path('app_login') }}" class="text-[#555] hover:text-black transition-colors">Connexion cabinet</a></li>
+                        <li><a href="{{ path('app_register') }}" class="text-[#555] hover:text-black transition-colors">Créer un compte</a></li>
                     </ul>
                 </div>
                 <div>

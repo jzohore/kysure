@@ -1,608 +1,472 @@
 {% extends '@website/base.html.twig' %}
 
-{% block title %}{{ company_name }} — KYC & KYB automatisé pour les professionnels réglementés{% endblock %}
+{% block title %}Le parcours de conformité des CGP et courtiers{% endblock %}
 
-{% block meta_description %}{{ company_name }} automatise vos vérifications KYC et KYB en 60 secondes. Piste d'audit ACPR, conformité LCB-FT, hébergement souverain. 5 vérifications gratuites.{% endblock %}
+{% block meta_description %}{{ company_name }} automatise le parcours réglementaire des CGP et courtiers : DER et signature électronique, collecte des pièces, OCR, vérification sanctions/PPE, entretien et rapport validé. Un appui pour votre conformité AMF, ACPR et LCB-FT.{% endblock %}
 
 {% block body %}
-    <div class="min-h-screen bg-white text-[#1a1a1a] font-sans antialiased selection:bg-[#cce4ff]">
+    {#
+       Étapes du parcours produit — source unique de la section « parcours » ET du récapitulatif « temps gagné ».
+
+       ⚠️ `minutes` : ORDRES DE GRANDEUR INDICATIFS, NON MESURÉS (par dossier, comparés à un traitement manuel).
+       À valider / ajuster par le fondateur avant mise en avant commerciale. Le total et les barres du récap
+       se recalculent automatiquement.
+    #}
+    {% set steps = [
+        {
+            id: 'der',
+            icon: 'lucide:pen-line',
+            kicker: 'Entrée en relation',
+            title: 'Le DER part et revient signé, sans papier.',
+            text: 'Vous éditez le Document d’entrée en relation à partir de votre profil réglementaire (ORIAS, association professionnelle, assurance RC Pro), puis votre client le signe électroniquement depuis son téléphone. La preuve de signature est horodatée et archivée au dossier.',
+            before: 'Impression, envoi ou scan, relances, classement de l’exemplaire signé.',
+            after: 'Un envoi, une signature électronique, un accusé et un archivage automatiques.',
+            minutes: 15,
+            mock: '@website/home/_mock_der.html.twig',
+        },
+        {
+            id: 'pieces',
+            icon: 'lucide:folder-open',
+            kicker: 'Collecte des pièces',
+            title: 'Vos clients déposent leurs pièces au bon endroit.',
+            text: 'Chaque client dispose d’un espace client sécurisé, accessible par lien magique : pas de mot de passe à retenir. Il voit la liste des pièces attendues et les dépose directement dans son dossier.',
+            before: 'Pièces dispersées dans des e-mails, relances une à une, fichiers à renommer.',
+            after: 'Une liste claire, des dépôts rattachés au dossier, des relances ciblées sur ce qui manque.',
+            minutes: 20,
+            mock: '@website/home/_mock_pieces.html.twig',
+        },
+        {
+            id: 'ocr',
+            icon: 'lucide:scan-text',
+            kicker: 'Lecture des pièces',
+            title: 'Les informations sont lues, vous les contrôlez.',
+            text: 'L’OCR extrait les informations des pièces d’identité et des justificatifs, puis les propose pré-remplies. Vous relisez, corrigez si besoin et validez : rien n’est figé sans votre contrôle.',
+            before: 'Ressaisie manuelle de chaque champ, avec le risque de faute de frappe.',
+            after: 'Des champs pré-remplis à vérifier plutôt qu’à retaper.',
+            minutes: 10,
+            mock: '@website/home/_mock_ocr.html.twig',
+        },
+        {
+            id: 'sanctions',
+            icon: 'lucide:shield-check',
+            kicker: 'Sanctions et PPE',
+            title: 'La vérification LCB-FT est faite, datée et conservée.',
+            text: 'Votre client est confronté aux listes de sanctions et aux personnes politiquement exposées. Le résultat est daté et rattaché au dossier ; en cas de correspondance, c’est à vous d’apprécier la suite.',
+            before: 'Recherches manuelles sur plusieurs sites, captures d’écran pour garder une trace.',
+            after: 'Une vérification, un résultat daté au dossier, une alerte seulement quand elle se justifie.',
+            minutes: 10,
+            mock: '@website/home/_mock_sanctions.html.twig',
+        },
+        {
+            id: 'entretien',
+            icon: 'lucide:mic',
+            kicker: 'Entretien et rapport',
+            title: 'L’entretien devient un rapport que vous validez.',
+            text: 'Avec l’accord de votre client, l’entretien est enregistré. Une synthèse est proposée par l’IA ; vous la relisez, la corrigez et la validez. Le rapport est alors figé et daté, et sa révocation éventuelle est tracée.',
+            before: 'Prise de notes pendant l’entretien, puis rédaction du compte rendu après coup.',
+            after: 'Une synthèse structurée à relire : l’IA propose, le conseiller décide.',
+            minutes: 45,
+            mock: '@website/home/_mock_entretien.html.twig',
+        },
+    ] %}
+    {% set total_minutes = steps|map(s => s.minutes)|reduce((carry, m) => carry + m, 0) %}
+    {% set max_minutes = max(steps|map(s => s.minutes)) %}
+    {% set manifesto = 'Chaque dossier client suit le même chemin réglementaire. Aujourd’hui, vous le parcourez à la main : imprimer, relancer, ressaisir, rechercher, rédiger. ' ~ company_name ~ ' automatise ce qui est mécanique, et vous laisse ce qui engage votre responsabilité : conseiller et décider.' %}
+    {% set manifesto_words = manifesto|split(' ') %}
+
+    <div class="bg-white text-slate-900 selection:bg-blue-100" data-controller="reveal">
 
         {% include '@website/_header.html.twig' %}
-        <main id="contenu-principal">
 
-            {# ==========================================
-           1. HERO — Impact maximal, CTA double
+        {# ==========================================
+           1. HERO — plein écran, texte qui s'efface, maquette qui se redresse
            ========================================== #}
-            <section aria-labelledby="hero-heading" class="relative pt-20 pb-16 px-4 sm:px-6 overflow-hidden">
+        <section aria-labelledby="hero-heading"
+                 class="relative isolate overflow-hidden"
+                 data-controller="scroll-progress"
+                 data-scroll-progress-mode-value="exit">
 
-                {# Glow de fond discret #}
-                <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
-                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-blue-50 rounded-full blur-3xl opacity-60"></div>
-                </div>
+            <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] bg-gradient-to-b from-slate-50 to-white" aria-hidden="true">
+                <div class="absolute left-1/2 top-10 h-[360px] w-[720px] -translate-x-1/2 rounded-full bg-blue-100/50 blur-3xl"></div>
+            </div>
 
-                <div class="relative mx-auto max-w-5xl text-center">
-
-                    {# Pill badge — légitimité #}
-
-                    {# H1 — proposition de valeur claire, mots-clés SEO #}
-                    <h1 id="hero-heading" class="text-[36px] sm:text-[48px] md:text-[48px] font-bold leading-[1.1] tracking-tight mb-6">
-                        Vos dossiers clients,<br>
-                        <span class="text-[#0060df]">pilotés simplement et sans friction.</span>
+            <div class="mx-auto flex min-h-[calc(100svh-60px)] max-w-6xl flex-col items-center justify-center px-5 pb-12 pt-16 text-center sm:px-6">
+                <div class="hero-copy">
+                    <p class="hero-enter text-[13px] font-semibold uppercase tracking-[0.14em] text-blue-700">
+                        Pour les CGP et les courtiers
+                    </p>
+                    <h1 id="hero-heading"
+                        class="hero-enter mx-auto mt-5 max-w-4xl text-balance text-[44px] font-semibold leading-[1.04] tracking-[-0.035em] text-slate-900 sm:text-6xl lg:text-[84px]"
+                        style="--reveal-delay: 80ms">
+                        Conseillez.<br>{{ company_name }} documente.
                     </h1>
-
-                    <p class="mx-auto max-w-2xl text-[16px] sm:text-[18px] text-[#555] leading-relaxed mb-10">
-                        {{ company_name }} aide les CGP, indépendants, cabinets et agences immobilières à centraliser leurs contrôles, leurs documents et leur piste d’audit. Gagnez du temps, sécurisez vos dossiers et gardez une vision claire en un seul espace.
+                    <p class="hero-enter mx-auto mt-6 max-w-2xl text-balance text-lg leading-relaxed text-slate-600 sm:text-xl"
+                       style="--reveal-delay: 180ms">
+                        Du premier contact au rapport signé, {{ company_name }} automatise le parcours réglementaire de vos clients : DER, pièces, KYC, LCB-FT, entretien.
                     </p>
-
-                    {# CTAs principaux #}
-                    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-4">
-                        <a href="{{ path('app_register') }}"
-                           class="w-full sm:w-auto rounded-[6px] bg-[#0060df] px-8 py-3.5 text-[16px] font-bold text-white hover:bg-[#0050bc] shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0060df] focus:ring-offset-2"
-                           aria-label="Créer un compte et tester 5 vérifications KYC gratuitement">
-                            Tester 5 vérifications gratuites →
-                        </a>
-                        <a href="#demo"
-                           class="w-full sm:w-auto rounded-[6px] border border-[#e6e6e6] px-8 py-3.5 text-[16px] font-bold text-[#1a1a1a] hover:bg-[#f5f5f5] transition-all focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] focus:ring-offset-2">
-                            Demander une démo
-                        </a>
+                    <div class="hero-enter mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row" style="--reveal-delay: 280ms">
+                        <twig:Button as="a" href="{{ path('app_register') }}" variant="dark" class="h-12 w-full rounded-full px-8 text-base sm:w-auto">
+                            Essayer gratuitement
+                        </twig:Button>
+                        <twig:Button as="a" href="#parcours" variant="ghost" class="h-12 w-full rounded-full px-6 text-base text-slate-700 sm:w-auto">
+                            Découvrir le parcours
+                            {{ ux_icon('lucide:arrow-down', { class: 'size-4', 'aria-hidden': 'true' }) }}
+                        </twig:Button>
                     </div>
-
-                    {# Réassurance sous CTAs #}
-                    <p class="text-[13px] text-[#999] font-medium">
-                        Sans carte bancaire · Sans engagement · Résultats en 60 secondes
-                    </p>
-
-                    {# Dashboard mockup #}
-                    <figure class="mt-16 relative max-w-5xl mx-auto" aria-label="Aperçu du dashboard réel de {{ company_name }}">
-                        <div class="rounded-xl border border-[#e6e6e6] bg-[#f7f7f5] p-1.5 shadow-2xl shadow-slate-200 overflow-hidden">
-                            <div class="bg-white rounded-lg border border-[#e6e6e6] overflow-hidden">
-
-                                {# Barre navigateur factice #}
-                                <div class="flex items-center gap-1.5 px-4 py-3 border-b border-[#f0f0f0] bg-[#fafafa]">
-                                    <div class="flex gap-1.5">
-                                        <span class="size-2.5 rounded-full bg-[#ff5f56]" aria-hidden="true"></span>
-                                        <span class="size-2.5 rounded-full bg-[#ffbd2e]" aria-hidden="true"></span>
-                                        <span class="size-2.5 rounded-full bg-[#27c93f]" aria-hidden="true"></span>
-                                    </div>
-                                    <div class="ml-4 flex-1 max-w-xs rounded-full bg-[#f0f0f0] px-4 py-1 text-[11px] text-[#999] font-mono">
-                                        app.kysure.fr/tableau-de-bord
-                                    </div>
-                                </div>
-
-                                {# Corps du dashboard — Aligné sur la capture réelle #}
-                                <div class="flex min-h-[450px]">
-
-                                    {# Sidebar — Dark mode comme sur l'image #}
-                                    <aside class="hidden sm:flex w-[200px] flex-col bg-[#0B1121] p-4 text-slate-400" aria-label="Menu latéral réel">
-                                        <div class="mb-8 px-2 text-[10px] font-bold uppercase tracking-widest opacity-50">Conformité</div>
-                                        <nav class="space-y-1 flex-1">
-                                            <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1e293b] text-white text-[13px] font-medium">
-                                                <twig:ux:icon name="lucide:layout-dashboard" class="size-4" /> Tableau de bord
-                                            </div>
-                                            <div class="flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-slate-800 transition-colors">
-                                                <twig:ux:icon name="lucide:folder" class="size-4" /> Dossiers
-                                                <span class="ml-auto size-4 flex items-center justify-center bg-blue-600 text-[10px] text-white rounded-full">2</span>
-                                            </div>
-                                            <div class="flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-slate-800 transition-colors">
-                                                <twig:ux:icon name="lucide:file-text" class="size-4" /> Rapports
-                                            </div>
-                                            <div class="flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-slate-800 transition-colors">
-                                                <twig:ux:icon name="lucide:shield-check" class="size-4" /> Criblage LCB-FT
-                                            </div>
-                                        </nav>
-                                    </aside>
-
-                                    {# Contenu principal #}
-                                    <div class="flex-1 bg-[#F9FAFB] p-6 text-left">
-
-                                        {# Top Bar interne #}
-                                        <div class="flex justify-between items-center mb-8">
-                                            <div class="text-[12px] text-slate-500 font-medium">
-                                                <twig:Breadcrumb>
-                                                    <twig:Breadcrumb:List>
-                                                        <twig:Breadcrumb:Item>
-                                                            <twig:Breadcrumb:Link href="{{ path('app_dashboard') }}">
-                                                                <twig:ux:icon name="material-symbols:home-rounded" />
-                                                            </twig:Breadcrumb:Link>
-                                                        </twig:Breadcrumb:Item>
-
-                                                        <twig:Breadcrumb:Separator />
-                                                        <twig:Breadcrumb:Item>
-                                                            <twig:Breadcrumb:Page class="text-xs">
-                                                                Vue d'ensemble
-                                                            </twig:Breadcrumb:Page>
-                                                        </twig:Breadcrumb:Item>
-                                                    </twig:Breadcrumb:List>
-                                                </twig:Breadcrumb>
-                                            </div>
-                                            <div class="flex items-center gap-3">
-                                                <div class="bg-white border border-slate-200 rounded-md px-3 py-1 flex items-center gap-2 shadow-sm">
-                                                    <span class="size-1.5 rounded-full bg-blue-600 animate-pulse"></span>
-                                                    <span class="text-[11px] font-bold text-slate-700">100 crédits</span>
-                                                </div>
-                                                <div class="size-7 rounded-md bg-purple-100 flex items-center justify-center text-[10px] font-bold text-purple-700 border border-purple-200">AN</div>
-                                            </div>
-                                        </div>
-
-                                        <div class="flex items-center justify-between mb-6">
-                                            <div>
-                                                <h2 class="text-[20px] font-bold text-slate-900">Tableau de bord</h2>
-                                            </div>
-                                            <div class="flex gap-2">
-                                                <div class="px-4 py-1.5 bg-white border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 shadow-sm flex items-center gap-2">
-                                                    <twig:ux:icon name="lucide:plus" class="size-3" /> Nouveau KYC
-                                                </div>
-                                                <div class="px-4 py-1.5 bg-[#6366F1] rounded-lg text-[12px] font-bold text-white shadow-lg shadow-indigo-200 flex items-center gap-2">
-                                                    <twig:ux:icon name="lucide:zap" class="size-3" /> Conseil Advisory
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {# Cartes réelles basées sur image_d8e8a6.jpg #}
-                                        <div class="grid grid-cols-4 gap-4 mb-8">
-                                            {# Crédits #}
-                                            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                                <div class="flex justify-between items-start mb-2">
-                                                    <span class="text-[10px] font-bold text-slate-400 uppercase">Crédits</span>
-                                                    <twig:ux:icon name="lucide:wallet" class="size-3.5 text-blue-500" />
-                                                </div>
-                                                <div class="text-[22px] font-bold text-slate-900">100</div>
-                                                <div class="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer">Recharger</div>
-                                            </div>
-                                            {# Dossiers #}
-                                            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                                <div class="flex justify-between items-start mb-2">
-                                                    <span class="text-[10px] font-bold text-slate-400 uppercase">Dossiers</span>
-                                                    <twig:ux:icon name="lucide:refresh-cw" class="size-3.5 text-orange-400" />
-                                                </div>
-                                                <div class="text-[22px] font-bold text-slate-900">3</div>
-                                                <div class="text-[10px] text-slate-500">KYC/KYB actifs</div>
-                                            </div>
-                                            {# Rapports #}
-                                            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                                <div class="flex justify-between items-start mb-2">
-                                                    <span class="text-[10px] font-bold text-slate-400 uppercase">Rapports</span>
-                                                    <twig:ux:icon name="lucide:file-check" class="size-3.5 text-emerald-500" />
-                                                </div>
-                                                <div class="text-[22px] font-bold text-slate-900">12</div>
-                                                <div class="text-[10px] text-slate-500">ce mois-ci</div>
-                                            </div>
-                                            {# Alertes #}
-                                            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                                <div class="flex justify-between items-start mb-2">
-                                                    <span class="text-[10px] font-bold text-slate-400 uppercase">Risques</span>
-                                                    <twig:ux:icon name="lucide:alert-circle" class="size-3.5 text-red-500" />
-                                                </div>
-                                                <div class="text-[22px] font-bold text-slate-900">0</div>
-                                                <div class="text-[10px] text-slate-500">Sanctions/PEPs</div>
-                                            </div>
-                                        </div>
-
-                                        {# Zone centrale vide comme sur l'image #}
-                                        <div class="h-48 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center bg-white">
-                                            <div class="size-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-4">
-                                                <twig:ux:icon name="lucide:fingerprint" class="size-6" />
-                                            </div>
-                                            <p class="text-[14px] font-bold text-slate-900">Prêt à sécuriser vos relations ?</p>
-                                            <p class="text-[11px] text-slate-400 mt-1 italic">Lancez un premier module pour générer vos synthèses.</p>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {# Badge flottant — on le garde car il apporte du "Notion touch" #}
-                        <div class="absolute -left-3 sm:-left-8 top-1/3 bg-white p-3 rounded-xl border border-[#e6e6e6] shadow-xl flex items-center gap-3 animate-bounce" role="status" aria-label="Dossier conforme">
-                            <div class="size-9 rounded-lg bg-emerald-100 flex items-center justify-center text-xl" aria-hidden="true">🛡️</div>
-                            <div class="text-left leading-tight">
-                                <div class="text-[12px] font-bold text-slate-900">Dossier conforme</div>
-                                <div class="text-[10px] text-slate-500 font-mono mt-0.5">KYC-882-VERIFIED · 0.8s</div>
-                            </div>
-                        </div>
-                    </figure>
+                    <p class="hero-enter mt-4 text-[13px] text-slate-600" style="--reveal-delay: 340ms">Aucune carte bancaire requise.</p>
                 </div>
 
-                {# Barre logos — preuve sociale #}
-                <div class="mt-32 max-w-5xl mx-auto border-t border-[#f0f0f0] pt-10">
-                    <p class="text-center text-[11px] font-bold text-[#bbb] uppercase tracking-widest mb-12">
-                        La solution dédiée aux professionnels du patrimoine
-                    </p>
-
-                    <ul class="flex flex-wrap justify-center items-center gap-6 md:gap-10 opacity-80">
-                        {% set professions = [
-                            {'name': 'Conseillers en Patrimoine', 'seed': 'cgp'},
-                            {'name': 'Agences Immobilières', 'seed': 'immo'},
-                            {'name': 'Cabinets d\'Audit', 'seed': 'audit'},
-                            {'name': 'Expertise Comptable', 'seed': 'compta'},
-                            {'name': 'Notaires', 'seed': 'notaire'}
-                        ] %}
-
-                        {% for item in professions %}
-                            <li class="group relative">
-                                {# L'Avatar qui sort au hover #}
-                                <div class="absolute -top-8 left-1/2 -translate-x-1/2 w-12 h-12 opacity-0 pointer-events-none transform translate-y-4 group-hover:opacity-100 group-hover:-translate-y-6 group-hover:scale-110 transition-all duration-300 ease-out z-0">
-                                    <img src="https://api.dicebear.com/7.x/notionists/svg?seed={{ item.seed }}&scale=110"
-                                         alt="Illustration"
-                                         class="w-full h-full filter grayscale">
-                                </div>
-
-                                {# Le Badge (au premier plan) #}
-                                <div class="relative z-10 px-5 py-2.5 rounded-lg bg-white border border-[#e6e6e6] text-[13px] font-bold text-[#1a1a1a] shadow-sm group-hover:border-[#0060df] group-hover:text-[#0060df] transition-all cursor-default">
-                                    {{ item.name }}
-                                </div>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </section>
-
-            {# ==========================================
-           2. STATS — Chiffres clés
-           ========================================== #}
-            <section aria-labelledby="stats-heading" class="border-y border-[#f0f0f0] bg-[#fafafa] py-12 px-4 sm:px-6">
-                <h2 id="stats-heading" class="sr-only">Chiffres clés de {{ company_name }}</h2>
-                <dl class="mx-auto max-w-5xl grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-0 md:divide-x md:divide-[#ececec] text-center">
-                    <div class="md:px-6">
-                        <dt class="text-[11px] font-bold text-[#999] uppercase tracking-widest mb-1">Vérifications traitées</dt>
-                        <dd class="text-[30px] sm:text-[36px] font-bold tracking-tight">128&nbsp;742</dd>
-                    </div>
-                    <div class="md:px-6">
-                        <dt class="text-[11px] font-bold text-[#999] uppercase tracking-widest mb-1">Temps moyen d'analyse</dt>
-                        <dd class="text-[30px] sm:text-[36px] font-bold tracking-tight">0,8s</dd>
-                    </div>
-                    <div class="md:px-6">
-                        <dt class="text-[11px] font-bold text-[#999] uppercase tracking-widest mb-1">Disponibilité garantie</dt>
-                        <dd class="text-[30px] sm:text-[36px] font-bold tracking-tight">99,99%</dd>
-                    </div>
-                    <div class="md:px-6">
-                        <dt class="text-[11px] font-bold text-[#999] uppercase tracking-widest mb-1">Incidents de sécurité</dt>
-                        <dd class="text-[30px] sm:text-[36px] font-bold tracking-tight">0</dd>
-                    </div>
-                </dl>
-            </section>
-
-            {# ==========================================
-           3. FONCTIONNALITÉS — Feature split
-           ========================================== #}
-            <section id="produit" aria-labelledby="produit-heading" class="py-24 px-4 sm:px-6 bg-[#f7f7f5]">
-                <div class="mx-auto max-w-7xl">
-
-                    <header class="mb-16 max-w-2xl">
-                        <p class="text-[12px] font-bold text-[#0060df] uppercase tracking-widest mb-3">La plateforme</p>
-                        <h2 id="produit-heading" class="text-[36px] sm:text-[42px] font-bold leading-tight tracking-tight">
-                            Un suivi d'audit automatisé,<br>en continu.
-                        </h2>
-                    </header>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-24">
-                        <div>
-                            <div class="space-y-3">
-                                <article class="group p-4 rounded-xl hover:bg-white transition-all border border-transparent hover:border-[#e6e6e6] hover:shadow-sm">
-                                    <div class="flex items-start gap-4">
-                                        <div class="size-9 shrink-0 bg-orange-100 rounded-lg flex items-center justify-center text-xl" aria-hidden="true">🔔</div>
-                                        <div>
-                                            <h3 class="text-[17px] font-bold mb-1">Alertes LCB-FT intelligentes</h3>
-                                            <p class="text-[#666] leading-relaxed text-[15px]">Soyez notifié dès qu'un bénéficiaire effectif apparaît sur une liste de sanctions internationales (OFAC, UE, ONU).</p>
-                                        </div>
-                                    </div>
-                                </article>
-
-                                <article class="group p-4 rounded-xl hover:bg-white transition-all border border-transparent hover:border-[#e6e6e6] hover:shadow-sm">
-                                    <div class="flex items-start gap-4">
-                                        <div class="size-9 shrink-0 bg-purple-100 rounded-lg flex items-center justify-center text-xl" aria-hidden="true">📄</div>
-                                        <div>
-                                            <h3 class="text-[17px] font-bold mb-1">Génération de rapports certifiés</h3>
-                                            <p class="text-[#666] leading-relaxed text-[15px]">Exportez des rapports PDF certifiés pour vos audits internes ou les régulateurs (ACPR, Tracfin) en un clic.</p>
-                                        </div>
-                                    </div>
-                                </article>
-
-                                <article class="group p-4 rounded-xl hover:bg-white transition-all border border-transparent hover:border-[#e6e6e6] hover:shadow-sm">
-                                    <div class="flex items-start gap-4">
-                                        <div class="size-9 shrink-0 bg-blue-100 rounded-lg flex items-center justify-center text-xl" aria-hidden="true">🔍</div>
-                                        <div>
-                                            <h3 class="text-[17px] font-bold mb-1">Moteur OCR & extraction IA</h3>
-                                            <p class="text-[#666] leading-relaxed text-[15px]">Extraction instantanée des données sur les Kbis, CNI et statuts. Détection automatique des fraudes documentaires.</p>
-                                        </div>
-                                    </div>
-                                </article>
+                {# Maquette décorative : aperçu d'un dossier traversant les 5 étapes #}
+                <div class="hero-enter mt-14 w-full max-w-5xl" style="--reveal-delay: 420ms">
+                  <div class="hero-mock"
+                       data-controller="scroll-progress"
+                       data-scroll-progress-start-value="1.1"
+                       data-scroll-progress-end-value="0.6">
+                    <div class="rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-slate-900/10" aria-hidden="true">
+                        <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                            <div class="flex items-center gap-1.5">
+                                <span class="size-2.5 rounded-full bg-slate-200"></span>
+                                <span class="size-2.5 rounded-full bg-slate-200"></span>
+                                <span class="size-2.5 rounded-full bg-slate-200"></span>
                             </div>
-
-                            <div class="mt-8 pl-4">
-                                <a href="{{ path('website_features') }}" class="inline-flex items-center gap-2 text-[#0060df] font-bold text-[15px] hover:underline">
-                                    Voir toutes les fonctionnalités →
-                                </a>
-                            </div>
+                            <p class="text-[13px] font-semibold text-slate-900">Dossier · Camille Martin</p>
+                            <span class="rounded-full border border-slate-200 px-2.5 py-1 text-[11px] text-slate-600">Exemple illustratif</span>
                         </div>
-
-                        {# Preview piste d'audit #}
-                        <figure class="bg-white rounded-2xl border border-[#e6e6e6] shadow-xl overflow-hidden" aria-label="Interface de piste d'audit {{ company_name }}">
-                            <div class="flex items-center gap-1.5 px-4 py-3 border-b border-[#f0f0f0] bg-[#fafafa]">
-                                <span class="size-2.5 rounded-full bg-[#ff5f56]" aria-hidden="true"></span>
-                                <span class="size-2.5 rounded-full bg-[#ffbd2e]" aria-hidden="true"></span>
-                                <span class="size-2.5 rounded-full bg-[#27c93f]" aria-hidden="true"></span>
-                                <span class="ml-4 text-[10px] font-bold text-[#bbb] font-mono uppercase tracking-widest">Audit_Log — Dossier #KYC-882</span>
-                            </div>
-                            <div class="p-6">
-                                <ul class="space-y-2" aria-label="Événements de la piste d'audit">
-                                    {% set events = [
-                                        {'icon': '✅', 'label': 'Identité vérifiée', 'time': '09:41:02'},
-                                        {'icon': '📂', 'label': 'Kbis extrait & validé', 'time': '09:41:05'},
-                                        {'icon': '🔍', 'label': 'Bénéficiaires effectifs identifiés', 'time': '09:41:08'},
-                                        {'icon': '🛡️', 'label': 'Screening sanctions : RAS', 'time': '09:41:10'},
-                                        {'icon': '⏳', 'label': 'Validation compliance en attente', 'time': '09:41:12'}
-                                    ] %}
-                                    {% for event in events %}
-                                        <li class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-[#f7f7f5] transition-colors border-b border-[#f7f7f5] last:border-0">
-                                            <span class="text-base shrink-0" aria-hidden="true">{{ event.icon }}</span>
-                                            <span class="text-[13px] font-medium flex-1">{{ event.label }}</span>
-                                            <time class="text-[11px] font-mono text-[#999] shrink-0">{{ event.time }}</time>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </figure>
-                    </div>
-
-                    {# Témoignage + métriques #}
-                    <div class="rounded-2xl border border-[#e6e6e6] bg-white p-8 sm:p-12 grid grid-cols-1 md:grid-cols-2 gap-10 items-center shadow-sm">
-                        <div>
-                            <blockquote class="text-[20px] sm:text-[22px] font-medium leading-snug text-[#1a1a1a] mb-6 italic">
-                                "Depuis {{ company_name }}, nos équipes ne chassent plus les Kbis manquants. Notre temps d'onboarding a été divisé par&nbsp;4."
-                            </blockquote>
-                            <cite class="flex items-center gap-3 not-italic">
-                                <div class="size-10 rounded-full bg-[#e6e6e6] flex items-center justify-center font-bold text-sm text-[#555]" aria-hidden="true">JD</div>
-                                <div>
-                                    <div class="text-[14px] font-bold">Julien D.</div>
-                                    <div class="text-[13px] text-[#666]">Directeur Conformité, NeoBank (Beta)</div>
+                        <div class="grid grid-cols-1 gap-3 p-5 sm:grid-cols-5">
+                            {% for s in steps %}
+                                {% set pending = loop.last %}
+                                <div class="rounded-2xl border border-l-4 border-slate-200 bg-white p-4 text-left {{ pending ? 'border-l-amber-500' : 'border-l-emerald-500' }}">
+                                    {{ ux_icon(s.icon, { class: 'size-5 text-slate-600' }) }}
+                                    <p class="mt-3 text-[13px] font-semibold leading-snug text-slate-900">{{ s.kicker }}</p>
+                                    <p class="mt-1 text-[12px] font-medium {{ pending ? 'text-amber-700' : 'text-emerald-700' }}">
+                                        {{ pending ? 'À valider' : 'Terminé' }}
+                                    </p>
                                 </div>
-                            </cite>
-                        </div>
-                        <dl class="grid grid-cols-2 gap-4">
-                            <div class="rounded-xl bg-[#f7f7f5] p-5 border border-[#f0f0f0]">
-                                <dd class="text-[28px] font-bold text-[#0060df] mb-1">−80%</dd>
-                                <dt class="text-[13px] text-[#666] font-medium">Temps d'analyse réduit</dt>
-                            </div>
-                            <div class="rounded-xl bg-[#f7f7f5] p-5 border border-[#f0f0f0]">
-                                <dd class="text-[28px] font-bold text-[#0060df] mb-1">3 min</dd>
-                                <dt class="text-[13px] text-[#666] font-medium">Au lieu de 25 par dossier</dt>
-                            </div>
-                            <div class="rounded-xl bg-[#f7f7f5] p-5 border border-[#f0f0f0]">
-                                <dd class="text-[28px] font-bold text-[#0060df] mb-1">0</dd>
-                                <dt class="text-[13px] text-[#666] font-medium">Dossier incomplet relancé</dt>
-                            </div>
-                            <div class="rounded-xl bg-[#f7f7f5] p-5 border border-[#f0f0f0]">
-                                <dd class="text-[28px] font-bold text-[#0060df] mb-1">100%</dd>
-                                <dt class="text-[13px] text-[#666] font-medium">Audit trail ACPR-ready</dt>
-                            </div>
-                        </dl>
-                    </div>
-                </div>
-            </section>
-
-            {# ==========================================
-           4. CAS D'USAGE — Solutions par métier
-           ========================================== #}
-            <section id="usage" aria-labelledby="usage-heading" class="py-24 px-4 sm:px-6 bg-white">
-                <div class="mx-auto max-w-7xl">
-                    <header class="text-center mb-16">
-                        <p class="text-[12px] font-bold text-[#0060df] uppercase tracking-widest mb-3">Solutions</p>
-                        <h2 id="usage-heading" class="text-[36px] sm:text-[42px] font-bold tracking-tight">
-                            Adapté à votre métier.
-                        </h2>
-                        <p class="mt-4 text-[18px] text-[#555] max-w-xl mx-auto">La conformité sur-mesure pour chaque secteur réglementé.</p>
-                    </header>
-
-                    <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" role="list">
-                        {% set usecases = [
-                            {
-                                'icon': '🧮',
-                                'title': 'Experts-Comptables',
-                                'desc': "Simplifiez l'entrée en relation. Collectez les Kbis, validez les statuts et identifiez les Bénéficiaires Effectifs (UBO) en quelques clics.",
-                                'tags': ['LCB-FT', 'Tracfin']
-                            },
-                            {
-                                'icon': '🏦',
-                                'title': 'Finance & FinTech',
-                                'desc': "Onboardez vos utilisateurs institutionnels et particuliers à grande vitesse, sans compromis sur la sécurité.",
-                                'tags': ['ACPR', 'AML5']
-                            },
-                            {
-                                'icon': '🏢',
-                                'title': 'Immobilier & Notaires',
-                                'desc': "Identifiez les UBO derrière les SCI et sécurisez l'identité de vos acquéreurs pour répondre à vos obligations Tracfin.",
-                                'tags': ['Code Monétaire', 'LCB-FT']
-                            }
-                        ] %}
-
-                        {% for case in usecases %}
-                            <li>
-                                <article class="group h-full rounded-2xl border border-[#e6e6e6] p-8 hover:shadow-lg hover:border-[#0060df]/30 transition-all bg-white flex flex-col">
-                                    <div class="size-12 rounded-xl bg-[#f7f7f5] flex items-center justify-center text-2xl mb-5 group-hover:-translate-y-1 transition-transform" aria-hidden="true">
-                                        {{ case.icon }}
-                                    </div>
-                                    <h3 class="text-[20px] font-bold mb-3">{{ case.title }}</h3>
-                                    <p class="text-[#666] text-[15px] leading-relaxed flex-1 mb-6">{{ case.desc }}</p>
-                                    <footer class="border-t border-[#f0f0f0] pt-4">
-                                        <p class="text-[11px] font-bold text-[#999] uppercase tracking-widest mb-2">Répond aux normes</p>
-                                        <div class="flex flex-wrap gap-2">
-                                            {% for tag in case.tags %}
-                                                <span class="px-2.5 py-1 rounded-md bg-[#f7f7f5] text-[12px] font-bold text-[#555] border border-[#ececec]">{{ tag }}</span>
-                                            {% endfor %}
-                                        </div>
-                                    </footer>
-                                </article>
-                            </li>
-                        {% endfor %}
-                    </ul>
-
-                    {# CTA milieu de page #}
-                    <div class="mt-14 text-center">
-                        <a href="{{ path('app_register') }}"
-                           class="inline-flex items-center gap-2 rounded-[6px] bg-[#0060df] px-8 py-3.5 text-[16px] font-bold text-white hover:bg-[#0050bc] shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#0060df] focus:ring-offset-2">
-                            Démarrer votre conformité gratuitement →
-                        </a>
-                        <p class="mt-3 text-[13px] text-[#999]">5 vérifications offertes · Sans carte bancaire</p>
-                    </div>
-                </div>
-            </section>
-
-            {# ==========================================
-           5. TARIFS
-           ========================================== #}
-            <section id="tarifs" aria-labelledby="tarifs-heading" class="py-24 px-4 sm:px-6 bg-[#f7f7f5] border-t border-[#f0f0f0]">
-                <div class="mx-auto max-w-7xl">
-                    <header class="text-center mb-16">
-                        <p class="text-[12px] font-bold text-[#0060df] uppercase tracking-widest mb-3">Tarifs</p>
-                        <h2 id="tarifs-heading" class="text-[36px] sm:text-[42px] font-bold tracking-tight">
-                            Un système de crédits simple et lisible.
-                        </h2>
-                        <p class="mt-4 text-[18px] text-[#555] max-w-2xl mx-auto">
-                            Vous achetez des crédits, puis vous les consommez selon vos actions métier : vérifications KYC/KYB, screenings, génération de rapports PDF ou partage de documents.
-                        </p>
-                    </header>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-
-                        <article class="rounded-2xl border border-[#e6e6e6] bg-white p-8 flex flex-col hover:shadow-md transition-shadow">
-                            <div class="flex items-center gap-3 mb-4">
-                                {{ ux_icon('lucide:wallet', { class: 'size-5 text-black' }) }}
-                                <h3 class="text-[20px] font-bold">Crédits d’entrée</h3>
-                            </div>
-                            <p class="text-[#666] text-[14px] mb-6">
-                                Idéal pour démarrer, tester la plateforme ou traiter un faible volume de dossiers.
-                            </p>
-                            <div class="mb-6">
-                                <span class="text-[38px] font-bold">100 crédits</span>
-                                <div class="mt-1 text-[#999] text-[14px]">Pack de départ</div>
-                            </div>
-                            <ul class="space-y-3 text-[14px] text-[#555] mt-auto">
-                                <li class="flex items-start gap-2">
-                                    <span class="text-[#0060df] font-bold shrink-0">✓</span>
-                                    Vous consommez uniquement ce que vous utilisez
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <span class="text-[#0060df] font-bold shrink-0">✓</span>
-                                    Activation rapide pour les premiers dossiers
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <span class="text-[#0060df] font-bold shrink-0">✓</span>
-                                    Parfait pour indépendants et petits cabinets
-                                </li>
-                            </ul>
-                        </article>
-
-                        <article class="rounded-2xl border-2 border-[#0060df] bg-white p-8 flex flex-col shadow-lg relative">
-                            <div class="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                                <span class="bg-[#0060df] text-white text-[11px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-md">
-                                    Le plus adapté
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-3 mb-4">
-                                {{ ux_icon('lucide:coins', { class: 'size-5 text-[#0060df]' }) }}
-                                <h3 class="text-[20px] font-bold text-[#0060df]">Crédits à la demande</h3>
-                            </div>
-                            <p class="text-[#666] text-[14px] mb-6">
-                                Rechargez quand vous en avez besoin et suivez votre consommation en temps réel depuis votre espace.
-                            </p>
-                            <div class="mb-6">
-                                <span class="text-[38px] font-bold">Flexibles</span>
-                                <div class="mt-1 text-[#999] text-[14px]">Payez selon votre usage</div>
-                            </div>
-                            <ul class="space-y-3 text-[14px] text-[#555] mt-auto">
-                                <li class="flex items-start gap-2">
-                                    <span class="text-[#0060df] font-bold shrink-0">✓</span>
-                                    Débit automatique à chaque action consommée
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <span class="text-[#0060df] font-bold shrink-0">✓</span>
-                                    Crédit utilisé pour screening, rapports et partages
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <span class="text-[#0060df] font-bold shrink-0">✓</span>
-                                    Visibilité claire du solde et de l’historique
-                                </li>
-                            </ul>
-                        </article>
-
-                        <article class="rounded-2xl border border-[#e6e6e6] bg-white p-8 flex flex-col hover:shadow-md transition-shadow">
-                            <div class="flex items-center gap-3 mb-4">
-                                {{ ux_icon('lucide:layout-dashboard', { class: 'size-5 text-black' }) }}
-                                <h3 class="text-[20px] font-bold">Volume et équipe</h3>
-                            </div>
-                            <p class="text-[#666] text-[14px] mb-6">
-                                Pour les structures qui ont besoin d’un pilotage plus avancé, d’un volume plus élevé et d’un accompagnement.
-                            </p>
-                            <div class="mb-6">
-                                <span class="text-[32px] font-bold">Sur mesure</span>
-                                <div class="mt-1 text-[#999] text-[14px]">Crédits, équipe et usage évolutifs</div>
-                            </div>
-                            <ul class="space-y-3 text-[14px] text-[#555] mt-auto">
-                                <li class="flex items-start gap-2">
-                                    <span class="text-[#0060df] font-bold shrink-0">✓</span>
-                                    Crédits adaptés à votre volume réel
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <span class="text-[#0060df] font-bold shrink-0">✓</span>
-                                    Idéal pour cabinets, réseaux et agences
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <span class="text-[#0060df] font-bold shrink-0">✓</span>
-                                    Accompagnement et paramétrage dédiés
-                                </li>
-                            </ul>
-                        </article>
-                    </div>
-
-                    <div class="mt-10 rounded-2xl border border-[#e5e1da] bg-white p-6">
-                        <div class="flex items-start gap-3">
-                            {{ ux_icon('lucide:info', { class: 'size-5 text-slate-500 mt-0.5' }) }}
-                            <div>
-                                <h3 class="text-sm font-semibold text-[#111111]">Comment fonctionnent les crédits ?</h3>
-                                <p class="mt-2 text-sm leading-7 text-[#555]">
-                                    Une action métier peut consommer un ou plusieurs crédits selon sa nature. Par exemple : une recherche, un rapport PDF ou un partage de document. Le solde est débité automatiquement et l’historique reste visible pour piloter vos usages.
-                                </p>
-                            </div>
+                            {% endfor %}
                         </div>
                     </div>
-
-                    <div class="mt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-                        <a href="{{ path('app_register') }}"
-                           class="inline-flex items-center justify-center rounded-md bg-black px-5 py-3 text-sm font-semibold text-white hover:bg-[#222] focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
-                            Tester gratuitement
-                        </a>
-                        <p class="text-sm text-[#666]">Aucune carte bancaire requise.</p>
-                    </div>
+                  </div>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            {# ==========================================
-           6. CTA FINAL — Conversion dernière chance
+        {# ==========================================
+           2. MANIFESTE — le texte s'éclaire mot à mot au scroll
            ========================================== #}
-            <section aria-labelledby="cta-final-heading" class="py-24 px-4 sm:px-6 bg-white border-t border-[#f0f0f0]">
-                <div class="mx-auto max-w-3xl text-center">
-                    <h2 id="cta-final-heading" class="text-[36px] sm:text-[48px] font-bold tracking-tight mb-6 leading-tight">
-                        Prêt à automatiser<br>votre conformité ?
+        <section aria-labelledby="manifeste-heading" class="bg-slate-50">
+            <h2 id="manifeste-heading" class="sr-only">Pourquoi {{ company_name }}</h2>
+            <div class="mx-auto flex min-h-[100svh] max-w-5xl items-center px-5 py-24 sm:px-6">
+                <p class="word-reveal text-[28px] font-semibold leading-[1.18] tracking-[-0.025em] text-slate-900 sm:text-5xl lg:text-6xl"
+                   style="--n: {{ manifesto_words|length }}"
+                   data-controller="scroll-progress"
+                   data-scroll-progress-start-value="0.9"
+                   data-scroll-progress-end-value="0.35">
+                    {% for word in manifesto_words %}<span style="--i: {{ loop.index0 }}">{{ word }}</span> {% endfor %}
+                </p>
+            </div>
+        </section>
+
+        {# ==========================================
+           3. PARCOURS — étapes qui défilent, maquette collante (≥ lg)
+           ========================================== #}
+        <section id="parcours" aria-labelledby="parcours-heading" class="scroll-mt-16 bg-white">
+            <div class="mx-auto max-w-6xl px-5 pb-8 pt-24 sm:px-6 lg:pt-32">
+                <header class="mx-auto max-w-3xl text-center">
+                    <p class="reveal text-[13px] font-semibold uppercase tracking-[0.14em] text-blue-700">Le parcours</p>
+                    <h2 id="parcours-heading" class="reveal mt-4 text-balance text-4xl font-semibold tracking-[-0.03em] sm:text-6xl" style="--reveal-delay: 80ms">
+                        Cinq étapes. Une seule plateforme.
                     </h2>
-                    <p class="text-[18px] text-[#555] mb-10 leading-relaxed">
-                        Rejoignez les équipes compliance qui font confiance à {{ company_name }}. Lancez-vous en moins de 5 minutes.
+                    <p class="reveal mt-5 text-lg leading-relaxed text-slate-600 sm:text-xl" style="--reveal-delay: 160ms">
+                        Voici ce que devient chaque dossier, et ce que vous récupérez à chaque étape.
                     </p>
-                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <a href="{{ path('app_register') }}"
-                           class="w-full sm:w-auto rounded-[6px] bg-[#0060df] px-10 py-4 text-[17px] font-bold text-white hover:bg-[#0050bc] shadow-lg hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-[#0060df] focus:ring-offset-2">
-                            Tester gratuitement — 5 vérifications offertes
-                        </a>
-                        <a href="mailto:sales@kysure.fr"
-                           class="w-full sm:w-auto rounded-[6px] border border-[#e6e6e6] px-10 py-4 text-[17px] font-bold hover:bg-[#f5f5f5] transition-all focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] focus:ring-offset-2">
-                            Parler à un expert
-                        </a>
-                    </div>
-                    <p class="mt-5 text-[13px] text-[#bbb]">Sans carte bancaire · RGPD · Hébergement souverain France</p>
-                </div>
-            </section>
+                </header>
+            </div>
 
-        </main>
+            <div class="mx-auto max-w-6xl px-5 sm:px-6" data-controller="scroll-story">
+                <div class="grid lg:grid-cols-2 lg:gap-20">
+
+                    {# Colonne texte : une étape = un écran #}
+                    <ol class="list-none">
+                        {% for s in steps %}
+                            <li class="story-step flex items-center border-t border-slate-100 py-16 first:border-t-0 lg:min-h-[85svh] lg:border-t-0 lg:py-10"
+                                data-scroll-story-target="step"
+                                {{ loop.first ? 'data-active' : '' }}>
+                                <article class="w-full" aria-labelledby="etape-{{ s.id }}">
+                                    <p class="text-[13px] font-semibold uppercase tracking-[0.14em] text-blue-700">
+                                        Étape {{ loop.index }} sur {{ loop.length }} · {{ s.kicker }}
+                                    </p>
+                                    <h3 id="etape-{{ s.id }}" class="mt-4 text-balance text-3xl font-semibold leading-[1.1] tracking-[-0.025em] sm:text-4xl">
+                                        {{ s.title }}
+                                    </h3>
+                                    <p class="mt-5 text-lg leading-relaxed text-slate-600">{{ s.text }}</p>
+
+                                    {# Maquette en ligne sur mobile (la version collante est réservée aux grands écrans) #}
+                                    <div class="mt-8 flex justify-center rounded-3xl bg-slate-50 p-4 sm:p-8 lg:hidden">
+                                        {% include s.mock %}
+                                    </div>
+
+                                    <dl class="mt-8 grid gap-3 sm:grid-cols-2">
+                                        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                                            <dt class="text-[12px] font-semibold uppercase tracking-wider text-slate-600">Sans {{ company_name }}</dt>
+                                            <dd class="mt-2 text-[14px] leading-relaxed text-slate-900">{{ s.before }}</dd>
+                                        </div>
+                                        <div class="rounded-2xl border border-l-4 border-slate-200 border-l-emerald-500 bg-white p-4">
+                                            <dt class="text-[12px] font-semibold uppercase tracking-wider text-slate-600">Avec {{ company_name }}</dt>
+                                            <dd class="mt-2 text-[14px] leading-relaxed text-slate-900">{{ s.after }}</dd>
+                                        </div>
+                                    </dl>
+
+                                    <p class="mt-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] text-slate-900">
+                                        {{ ux_icon('lucide:clock', { class: 'size-4 text-slate-600', 'aria-hidden': 'true' }) }}
+                                        <span>Temps gagné&nbsp;: <strong class="font-semibold tabular-nums">≈ {{ s.minutes }}&nbsp;min</strong> par dossier*</span>
+                                    </p>
+                                </article>
+                            </li>
+                        {% endfor %}
+                    </ol>
+
+                    {# Colonne collante : la maquette de l'étape active (décorative) #}
+                    <div class="relative hidden lg:block" aria-hidden="true">
+                        <div class="sticky top-28 h-[min(560px,calc(100svh-9rem))]">
+                            <div class="absolute inset-0 rounded-[2.5rem] border border-slate-200 bg-slate-50"></div>
+                            {% for s in steps %}
+                                <div class="story-panel flex items-center justify-center p-8"
+                                     data-scroll-story-target="panel"
+                                     {{ loop.first ? 'data-active' : '' }}>
+                                    {% include s.mock %}
+                                </div>
+                            {% endfor %}
+                            <div class="absolute right-5 top-1/2 flex -translate-y-1/2 flex-col gap-2">
+                                {% for s in steps %}
+                                    <span class="block h-1.5 w-1.5 rounded-full bg-slate-300 transition-all duration-300 data-active:h-6 data-active:bg-blue-600"
+                                          data-scroll-story-target="dot"
+                                          {{ loop.first ? 'data-active' : '' }}></span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {# ==========================================
+           4. TEMPS GAGNÉ — récapitulatif honnête, barres proportionnelles
+           ========================================== #}
+        <section id="temps-gagne" aria-labelledby="temps-heading" class="scroll-mt-16 bg-slate-50">
+            <div class="mx-auto flex min-h-[100svh] max-w-5xl flex-col justify-center px-5 py-24 sm:px-6">
+                <header class="text-center">
+                    <p class="reveal text-[13px] font-semibold uppercase tracking-[0.14em] text-blue-700">Le temps gagné</p>
+                    <h2 id="temps-heading" class="reveal mt-4 text-balance text-4xl font-semibold tracking-[-0.03em] sm:text-6xl" style="--reveal-delay: 80ms">
+                        Le temps qui revient au conseil.
+                    </h2>
+                    <p class="reveal mt-8 text-[64px] font-semibold leading-none tracking-[-0.045em] tabular-nums text-slate-900 sm:text-[120px]" style="--reveal-delay: 160ms">
+                        ≈&nbsp;{{ total_minutes // 60 }}&nbsp;h&nbsp;{{ '%02d'|format(total_minutes % 60) }}*
+                    </p>
+                    <p class="reveal mx-auto mt-4 max-w-xl text-lg text-slate-600" style="--reveal-delay: 220ms">
+                        de tâches manuelles en moins pour un dossier complet, de la signature du DER au rapport validé.
+                    </p>
+                </header>
+
+                <ul class="mx-auto mt-14 w-full max-w-3xl space-y-5">
+                    {% for s in steps %}
+                        <li class="reveal" style="--reveal-delay: {{ loop.index0 * 90 }}ms">
+                            <div class="flex items-baseline justify-between gap-4 text-[15px]">
+                                <span class="flex items-center gap-2 font-medium text-slate-900">
+                                    {{ ux_icon(s.icon, { class: 'size-4 text-slate-600', 'aria-hidden': 'true' }) }}
+                                    {{ s.kicker }}
+                                </span>
+                                <span class="tabular-nums text-slate-600">≈&nbsp;{{ s.minutes }}&nbsp;min</span>
+                            </div>
+                            <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-200" aria-hidden="true">
+                                <div class="bar-grow h-full rounded-full bg-slate-900" style="--w: {{ (s.minutes / max_minutes * 100)|round }}%"></div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                {# TODO fondateur : valider ces ordres de grandeur avant diffusion large (cf. commentaire en tête de fichier). #}
+                <p class="reveal mx-auto mt-10 max-w-3xl text-center text-[13px] leading-relaxed text-slate-600">
+                    * Estimations indicatives, par dossier, comparées à un traitement manuel. Elles varient selon votre cabinet, le type de client et la complexité du dossier.
+                </p>
+            </div>
+        </section>
+
+        {# ==========================================
+           5. CONFIANCE — traçabilité, décision humaine, accès maîtrisé
+           ========================================== #}
+        <section id="confiance" aria-labelledby="confiance-heading" class="scroll-mt-16 bg-white">
+            <div class="mx-auto max-w-6xl px-5 py-24 sm:px-6 lg:py-32">
+                <header class="mx-auto max-w-3xl text-center">
+                    <p class="reveal text-[13px] font-semibold uppercase tracking-[0.14em] text-blue-700">Conformité</p>
+                    <h2 id="confiance-heading" class="reveal mt-4 text-balance text-4xl font-semibold tracking-[-0.03em] sm:text-6xl" style="--reveal-delay: 80ms">
+                        Une conformité que vous pouvez défendre.
+                    </h2>
+                    <p class="reveal mt-5 text-lg leading-relaxed text-slate-600 sm:text-xl" style="--reveal-delay: 160ms">
+                        Conçu avec un conseiller en gestion de patrimoine, pour les situations réelles d’un cabinet.
+                    </p>
+                </header>
+
+                <div class="mt-16 grid gap-5 md:grid-cols-3">
+                    <article class="reveal rounded-3xl border border-l-4 border-slate-200 border-l-blue-600 bg-white p-7">
+                        {{ ux_icon('lucide:history', { class: 'size-6 text-slate-600', 'aria-hidden': 'true' }) }}
+                        <h3 class="mt-5 text-xl font-semibold tracking-tight">Une piste d’audit horodatée</h3>
+                        <p class="mt-3 text-[15px] leading-relaxed text-slate-600">
+                            Signature, validation d’un dossier, validation ou révocation d’un rapport : chaque action qui produit un effet juridique est journalisée.
+                        </p>
+                    </article>
+                    <article class="reveal rounded-3xl border border-l-4 border-slate-200 border-l-blue-600 bg-white p-7" style="--reveal-delay: 100ms">
+                        {{ ux_icon('lucide:badge-check', { class: 'size-6 text-slate-600', 'aria-hidden': 'true' }) }}
+                        <h3 class="mt-5 text-xl font-semibold tracking-tight">Vous restez décisionnaire</h3>
+                        <p class="mt-3 text-[15px] leading-relaxed text-slate-600">
+                            L’OCR et l’IA proposent, vous relisez et vous validez. Un rapport validé est figé : il ne peut plus être modifié en silence.
+                        </p>
+                    </article>
+                    <article class="reveal rounded-3xl border border-l-4 border-slate-200 border-l-blue-600 bg-white p-7" style="--reveal-delay: 200ms">
+                        {{ ux_icon('lucide:key-round', { class: 'size-6 text-slate-600', 'aria-hidden': 'true' }) }}
+                        <h3 class="mt-5 text-xl font-semibold tracking-tight">Des accès maîtrisés</h3>
+                        <p class="mt-3 text-[15px] leading-relaxed text-slate-600">
+                            Connexion par lien magique à usage unique, sans mot de passe à stocker ni à oublier, pour vos clients comme pour votre équipe.
+                        </p>
+                    </article>
+                </div>
+
+                <p class="reveal mx-auto mt-10 max-w-3xl text-center text-[13px] leading-relaxed text-slate-600">
+                    {{ company_name }} vous aide à structurer et à documenter vos obligations (KYC, LCB-FT) au regard des attentes de l’AMF et de l’ACPR. Ces autorités ne certifient pas les logiciels : vous demeurez responsable de vos décisions de conformité.
+                </p>
+            </div>
+        </section>
+
+        {# ==========================================
+           6. ESPACE CLIENT — accès visible pour les clients des cabinets
+           ========================================== #}
+        <section aria-labelledby="client-heading" class="bg-slate-50">
+            <div class="mx-auto max-w-5xl px-5 py-20 sm:px-6">
+                <div class="reveal flex flex-col items-start justify-between gap-6 rounded-3xl border border-l-4 border-slate-200 border-l-blue-600 bg-white p-8 sm:flex-row sm:items-center">
+                    <div class="flex items-start gap-4">
+                        {{ ux_icon('lucide:lock', { class: 'mt-1 size-6 shrink-0 text-slate-600', 'aria-hidden': 'true' }) }}
+                        <div>
+                            <h2 id="client-heading" class="text-2xl font-semibold tracking-tight">Vous êtes client d’un cabinet&nbsp;?</h2>
+                            <p class="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-600">
+                                Retrouvez votre espace sécurisé pour déposer vos pièces, signer vos documents et suivre votre dossier. Aucun mot de passe : un lien de connexion vous est envoyé par e-mail.
+                            </p>
+                        </div>
+                    </div>
+                    <twig:Button as="a" href="{{ path('website_client_access') }}" variant="outline" class="h-11 shrink-0 rounded-full px-6 text-[15px]">
+                        Accéder à mon espace client
+                        {{ ux_icon('lucide:arrow-right', { class: 'size-4', 'aria-hidden': 'true' }) }}
+                    </twig:Button>
+                </div>
+            </div>
+        </section>
+
+        {# ==========================================
+           7. TARIFS — abonnement au siège, dossiers illimités, minutes d'entretien métrées.
+           Montants issus de la base (PricingPlan) via GetPublicPricingUseCase, repli sur les prix de lancement.
+           ========================================== #}
+        <section id="tarifs" aria-labelledby="tarifs-heading" class="scroll-mt-16 bg-white">
+            <div class="mx-auto max-w-6xl px-5 py-24 sm:px-6 lg:py-32">
+                <header class="mx-auto max-w-3xl text-center">
+                    <p class="reveal text-[13px] font-semibold uppercase tracking-[0.14em] text-blue-700">Tarifs</p>
+                    <h2 id="tarifs-heading" class="reveal mt-4 text-balance text-4xl font-semibold tracking-[-0.03em] sm:text-6xl" style="--reveal-delay: 80ms">
+                        Un abonnement au siège. Des dossiers sans compteur.
+                    </h2>
+                    <p class="reveal mt-5 text-lg leading-relaxed text-slate-600" style="--reveal-delay: 160ms">
+                        Vos dossiers de conformité ne sont pas comptés (usage raisonnable). Seules les minutes d’entretien enregistrées sont mesurées : une dotation est incluse, et des packs permettent d’en ajouter.
+                    </p>
+                </header>
+
+                <div class="mt-16 grid items-stretch gap-5 md:grid-cols-3">
+
+                    {# Essai #}
+                    <article class="reveal flex flex-col rounded-3xl border border-slate-200 bg-white p-8">
+                        <div class="flex items-center gap-3">
+                            {{ ux_icon('lucide:sparkles', { class: 'size-5 text-slate-600', 'aria-hidden': 'true' }) }}
+                            <h3 class="text-xl font-semibold tracking-tight">Essai gratuit</h3>
+                        </div>
+                        <p class="mt-4 text-[15px] leading-relaxed text-slate-600">Pour parcourir le produit sur de vrais dossiers avant de vous engager.</p>
+                        <p class="mt-6 text-4xl font-semibold tracking-tight tabular-nums">{{ pricing.trialDossiers }} dossiers</p>
+                        <p class="mt-1 text-[14px] text-slate-600">+ {{ pricing.trialMeetingMinutes }}&nbsp;min d’entretien offertes</p>
+                        <ul class="mt-6 space-y-3 text-[14px] text-slate-600">
+                            <li class="flex items-start gap-2">{{ ux_icon('lucide:circle-check', { class: 'mt-0.5 size-4 shrink-0 text-emerald-600', 'aria-hidden': 'true' }) }}Toutes les étapes du parcours</li>
+                            <li class="flex items-start gap-2">{{ ux_icon('lucide:circle-check', { class: 'mt-0.5 size-4 shrink-0 text-emerald-600', 'aria-hidden': 'true' }) }}Aucune carte bancaire requise</li>
+                        </ul>
+                    </article>
+
+                    {# Abonnements au siège (1 carte par offre) #}
+                    {% for plan in pricing.seatPlans %}
+                        {% set is_cabinet = plan.minSeats > 1 %}
+                        <article class="reveal flex flex-col rounded-3xl border bg-white p-8 {{ is_cabinet ? 'border-slate-200' : 'border-2 border-blue-600 shadow-lg shadow-blue-900/5' }}" style="--reveal-delay: {{ loop.index * 100 }}ms">
+                            <div class="flex items-center gap-3">
+                                {{ ux_icon(is_cabinet ? 'lucide:users' : 'lucide:user', { class: 'size-5 text-slate-600', 'aria-hidden': 'true' }) }}
+                                <h3 class="text-xl font-semibold tracking-tight">{{ plan.label }}</h3>
+                            </div>
+                            <p class="mt-4 text-[15px] leading-relaxed text-slate-600">
+                                {{ is_cabinet ? 'Pour les cabinets : plusieurs conseillers, un même espace de travail et un portefeuille partagé.' : 'Pour le conseiller qui exerce seul : tout le parcours, un seul siège.' }}
+                            </p>
+                            <p class="mt-6 flex items-baseline gap-1">
+                                <span class="text-4xl font-semibold tracking-tight tabular-nums">{{ plan.formattedAmount }}&nbsp;€</span>
+                                <span class="text-[14px] text-slate-600">/ siège / mois</span>
+                            </p>
+                            <ul class="mt-6 space-y-3 text-[14px] text-slate-600">
+                                <li class="flex items-start gap-2">{{ ux_icon('lucide:circle-check', { class: 'mt-0.5 size-4 shrink-0 text-emerald-600', 'aria-hidden': 'true' }) }}Dossiers de conformité illimités (usage raisonnable)</li>
+                                <li class="flex items-start gap-2">{{ ux_icon('lucide:circle-check', { class: 'mt-0.5 size-4 shrink-0 text-emerald-600', 'aria-hidden': 'true' }) }}{{ plan.minutes }}&nbsp;min d’entretien incluses par siège et par mois</li>
+                                <li class="flex items-start gap-2">{{ ux_icon('lucide:circle-check', { class: 'mt-0.5 size-4 shrink-0 text-emerald-600', 'aria-hidden': 'true' }) }}{{ is_cabinet ? 'À partir de ' ~ plan.minSeats ~ ' sièges, collaborateurs invitables' : 'Un siège' }}</li>
+                            </ul>
+                        </article>
+                    {% endfor %}
+                </div>
+
+                {# Packs de minutes #}
+                <div class="reveal mt-10 rounded-3xl border border-l-4 border-slate-200 border-l-blue-600 bg-white p-8">
+                    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="max-w-xl">
+                            <h3 class="text-xl font-semibold tracking-tight">Besoin de plus de minutes d’entretien&nbsp;?</h3>
+                            <p class="mt-2 text-[14px] leading-relaxed text-slate-600">
+                                Packs prépayés, paiement unique, sans expiration. Si le solde est épuisé, l’enregistrement d’un nouvel entretien est suspendu : aucun dépassement n’est facturé automatiquement.
+                            </p>
+                        </div>
+                        <ul class="grid grid-cols-3 gap-3 sm:min-w-[420px]">
+                            {% for pack in pricing.minutePacks %}
+                                <li class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
+                                    <p class="text-[13px] text-slate-600 tabular-nums">{{ pack.minutes }}&nbsp;min</p>
+                                    <p class="mt-1 text-xl font-semibold tabular-nums text-slate-900">{{ pack.formattedAmount }}&nbsp;€</p>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <p class="reveal mx-auto mt-8 max-w-3xl text-center text-[13px] leading-relaxed text-slate-600">
+                    Paiement sécurisé par Stripe. Facturation et changement d’offre depuis votre espace.
+                </p>
+            </div>
+        </section>
+
+        {# ==========================================
+           8. CTA FINAL
+           ========================================== #}
+        <section aria-labelledby="cta-final-heading" class="bg-slate-50">
+            <div class="mx-auto flex min-h-[80svh] max-w-3xl flex-col items-center justify-center px-5 py-24 text-center sm:px-6">
+                <h2 id="cta-final-heading" class="reveal text-balance text-4xl font-semibold leading-[1.05] tracking-[-0.035em] sm:text-7xl">
+                    Moins de saisie.<br>Plus de conseil.
+                </h2>
+                <p class="reveal mt-6 text-lg leading-relaxed text-slate-600 sm:text-xl" style="--reveal-delay: 100ms">
+                    Créez votre compte, renseignez votre profil réglementaire et lancez votre premier dossier.
+                </p>
+                <div class="reveal mt-9 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row" style="--reveal-delay: 200ms">
+                    <twig:Button as="a" href="{{ path('app_register') }}" variant="dark" class="h-12 w-full rounded-full px-8 text-base sm:w-auto">
+                        Essayer gratuitement
+                    </twig:Button>
+                    <twig:Button as="a" href="mailto:sales@kysure.fr" variant="outline" class="h-12 w-full rounded-full px-8 text-base sm:w-auto">
+                        Parler à un expert
+                    </twig:Button>
+                </div>
+                <p class="reveal mt-5 text-[13px] text-slate-600" style="--reveal-delay: 260ms">
+                    Aucune carte bancaire requise · Déjà client d’un cabinet ?
+                    <a href="{{ path('website_client_access') }}" class="font-medium text-slate-900 underline underline-offset-4 hover:text-blue-700 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40">Accédez à votre espace client</a>
+                </p>
+            </div>
+        </section>
 
         {% include '@website/_footer.html.twig' %}
 
