@@ -1,3 +1,6 @@
+{# `this` est redéfini dans les slots <twig:X> : on capture les drapeaux en amont. #}
+{% set onboarding = this.onboarding %}
+{% set cols = onboarding ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2' %}
 <div {{ attributes }}>
     <div data-controller="form-dirty"
          data-action="input->form-dirty#check change->form-dirty#check">
@@ -12,7 +15,7 @@
         <div class="p-6 space-y-8">
 
             {# Section Données AMF #}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid {{ cols }} gap-6">
                 <div class="space-y-2">
                     {{ form_row(form.oriasNumber) }}
                 </div>
@@ -24,7 +27,7 @@
             <div class="h-px bg-slate-100 w-full"></div>
 
             {# Section Assurance RC Pro #}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid {{ cols }} gap-6">
                 <div class="space-y-2">
                     {{ form_row(form.rcProInsurer) }}
                 </div>
@@ -36,7 +39,7 @@
             <div class="h-px bg-slate-100 w-full"></div>
 
             {# Section Signataire du DER #}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid {{ cols }} gap-6">
                 <div class="space-y-2">
                     {{ form_row(form.signatoryName) }}
                 </div>
@@ -52,6 +55,7 @@
                 {{ form_row(form.isIndependent) }}
             </div>
 
+            {% if not onboarding %}
             <div class="h-px bg-slate-100 w-full"></div>
 
             <div class="space-y-4">
@@ -115,18 +119,19 @@
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
         </div>
 
         {# Footer de la carte #}
-        <div class="flex items-center justify-end p-6 bg-slate-50/50 rounded-b-xl border-t border-slate-100">
+        <div class="flex items-center justify-end p-6 bg-slate-50/50 {{ onboarding ? 'rounded-b-3xl' : 'rounded-b-xl' }} border-t border-slate-100">
             <twig:Button as="button"
                          type="submit"
                          variant="dark"
-                         class="w-full sm:w-auto px-8 transition-all duration-200"
+                         class="w-full px-8 transition-all duration-200 sm:w-auto {{ onboarding ? 'h-11 rounded-full' : '' }}"
                          data-form-dirty-target="submitButton">
 
                 {# Texte affiché par défaut #}
-                <span data-loading="action(save)|hide">Mettre à jour le profil</span>
+                <span data-loading="action(save)|hide">{{ onboarding ? 'Enregistrer et continuer' : 'Mettre à jour le profil' }}</span>
 
                 {# Texte affiché PENDANT la requête AJAX #}
                 <span data-loading="action(save)|show" class="hidden items-center gap-2">
@@ -138,4 +143,33 @@
 
         {{ form_end(form) }}
     </div>
+
+    {% if onboarding %}
+        <div class="flex justify-center border-t border-slate-100 px-6 py-4">
+            <twig:AlertDialog id="skip-regulatory-profile">
+                <twig:AlertDialog:Trigger>
+                    <twig:Button type="button" variant="ghost" {{ ...trigger_attrs }}>Je le ferai plus tard</twig:Button>
+                </twig:AlertDialog:Trigger>
+                <twig:AlertDialog:Content>
+                    <twig:AlertDialog:Header>
+                        <twig:AlertDialog:Title>Passer cette étape ?</twig:AlertDialog:Title>
+                        <twig:AlertDialog:Description>
+                            Sans profil réglementaire complet (numéro ORIAS, association professionnelle, assureur et numéro de police RC Pro),
+                            vous ne pourrez <strong>pas générer de Document d'entrée en relation (DER)</strong> : ces informations y figurent et sont
+                            nécessaires à l'édition de vos documents. Vous pourrez les renseigner à tout moment dans
+                            Paramètres › Profil réglementaire ; la génération du DER sera alors débloquée.
+                            Votre choix est enregistré dans le journal d'audit du cabinet.
+                        </twig:AlertDialog:Description>
+                    </twig:AlertDialog:Header>
+                    <twig:AlertDialog:Footer>
+                        <twig:AlertDialog:Cancel type="button">Renseigner maintenant</twig:AlertDialog:Cancel>
+                        <twig:AlertDialog:Action type="button" variant="dark" data-action="live#action" data-live-action-param="skip">
+                            <span data-loading="action(skip)|hide">Je comprends, passer cette étape</span>
+                            <span data-loading="action(skip)|show" class="hidden">Enregistrement…</span>
+                        </twig:AlertDialog:Action>
+                    </twig:AlertDialog:Footer>
+                </twig:AlertDialog:Content>
+            </twig:AlertDialog>
+        </div>
+    {% endif %}
 </div>

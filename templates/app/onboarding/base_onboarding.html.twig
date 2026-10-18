@@ -9,124 +9,69 @@
     <meta name="description" content="Configurez votre espace de travail {{ company_name|default(company_name) }} en quelques étapes.">
 
     <title>{% block title %}{{ company_name|default(company_name) }} | Onboarding{% endblock %}</title>
+    {% include '_favicons.html.twig' %}
 
     {% block javascripts %}
         {% block importmap %}{{ importmap('app') }}{% endblock %}
     {% endblock %}
     {% block stylesheets %}{% endblock %}
 </head>
-<body class="h-full font-sans text-slate-900 bg-slate-50">
+<body class="min-h-full bg-white font-sans text-slate-900 selection:bg-blue-100">
 
+{# Étapes du parcours de configuration — l'étape courante vient du gabarit enfant (`current_step`). #}
+{% set steps = ['Espace de travail', 'Type de compte', 'Profil réglementaire', 'Finalisation'] %}
 {% set step = current_step|default(1) %}
-{% set total_steps = 3 %}
 
 {# ACCESSIBILITÉ : Lien d'évitement #}
-<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-slate-900 focus:text-white focus:rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900">
+<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-slate-900 focus:text-white focus:rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900">
     Aller au contenu principal
 </a>
 
-<div class="flex min-h-screen flex-col md:flex-row">
+<div class="relative isolate flex min-h-screen flex-col">
 
-    {# ========================================== #}
-    {# HEADER MOBILE (Avec barre de progression)  #}
-    {# ========================================== #}
-    <header class="md:hidden bg-white border-b border-slate-200 shrink-0 flex flex-col">
-        <div class="py-4 px-6 flex items-center justify-center">
-            <span class="text-xl font-black tracking-widest uppercase text-slate-900">
-                {{ company_name|default(company_name) }}
-            </span>
-        </div>
+    {# Halo très discret en tête de page : profondeur sans bruit visuel #}
+    <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-gradient-to-b from-slate-50 to-white" aria-hidden="true"></div>
 
-        {# L'indicateur de progression Mobile #}
-        <div class="w-full bg-slate-100 h-1.5" aria-hidden="true">
-            <div class="bg-slate-900 h-1.5 transition-all duration-500 ease-out" style="width: {{ (step / total_steps) * 100 }}%;"></div>
+    <header class="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-5 sm:px-8">
+        <div class="flex items-center gap-2">
+            <div class="flex size-7 items-center justify-center rounded bg-black text-sm font-bold text-white" aria-hidden="true">K</div>
+            <span class="text-[17px] font-bold tracking-tight text-slate-900">{{ company_name|default(company_name) }}</span>
         </div>
-        <div class="py-2 text-center text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-            Étape {{ step }} sur {{ total_steps }}
-        </div>
+        <a href="mailto:support@{{ company_name|default(company_name)|lower }}.com?subject=Aide Onboarding : {{ app.user.email|default('') }}"
+           class="rounded-full px-3 py-1.5 text-[14px] text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40">
+            Besoin d'aide ?
+        </a>
     </header>
 
-    {# ========================================== #}
-    {# LA SIDEBAR (Desktop)                       #}
-    {# ========================================== #}
-    <aside class="hidden md:flex flex-col w-80 shrink-0 bg-white border-r border-slate-200 px-10 py-12" aria-label="Progression de la configuration">
+    <main id="main-content" tabindex="-1" class="flex flex-1 flex-col items-center px-5 pb-20 pt-6 outline-none sm:px-8 sm:pt-14">
+        <div class="w-full max-w-xl">
 
-        <div class="mb-16">
-            <span class="text-lg font-black tracking-widest uppercase text-slate-900">{{ company_name|default(company_name) }}</span>
-            <span class="block text-[9px] text-blue-600 font-bold uppercase tracking-[0.2em] mt-1">Onboarding</span>
-        </div>
+            {# Progression : un segment par étape (le texte porte le sens, les segments sont visuels) #}
+            <nav aria-label="Progression de la configuration" class="mb-10">
+                <ol class="flex gap-1.5">
+                    {% for label in steps %}
+                        <li class="h-1 flex-1 rounded-full transition-colors duration-500 {{ loop.index <= step ? 'bg-slate-900' : 'bg-slate-200' }}"
+                            {% if loop.index == step %}aria-current="step"{% endif %}>
+                            <span class="sr-only">{{ loop.index }}. {{ label }}{% if loop.index < step %} : terminé{% elseif loop.index == step %} : étape actuelle{% endif %}</span>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </nav>
 
-        <h2 id="timeline-title" class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-8">
-            Configuration
-        </h2>
+            <p class="text-[13px] font-semibold uppercase tracking-[0.14em] text-blue-700">
+                Étape {{ step }} sur {{ steps|length }} · {{ steps[step - 1] }}
+            </p>
 
-        <nav aria-labelledby="timeline-title" class="flex-1">
-            <ol class="relative border-l border-slate-200 ml-4">
-
-                {# Étape 1 #}
-                <li class="mb-10 ml-8" {% if step == 1 %}aria-current="step"{% endif %}>
-                    <span class="absolute -left-4 flex h-8 w-8 items-center justify-center rounded-full ring-4 ring-white {{ step >= 1 ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-50 border border-slate-200 text-slate-400' }}" aria-hidden="true">
-                        {{ ux_icon('lucide:building-2', { class: 'size-4' }) }}
-                    </span>
-                    <h3 class="{{ step >= 1 ? 'font-bold text-slate-900' : 'font-medium text-slate-500' }}">
-                        <span class="sr-only">{% if step > 1 %}Terminé : {% elseif step == 1 %}Étape actuelle : {% endif %}</span>
-                        1. Espace de travail
-                    </h3>
-                    <p class="text-sm {{ step >= 1 ? 'text-slate-500' : 'text-slate-400' }} mt-1">Nom de l'organisation</p>
-                </li>
-
-                {# Étape 2 #}
-                <li class="mb-10 ml-8" {% if step == 2 %}aria-current="step"{% endif %}>
-                    <span class="absolute -left-4 flex h-8 w-8 items-center justify-center rounded-full ring-4 ring-white {{ step >= 2 ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-50 border border-slate-200 text-slate-400' }}" aria-hidden="true">
-                        {{ ux_icon('lucide:user', { class: 'size-4' }) }}
-                    </span>
-                    <h3 class="{{ step >= 2 ? 'font-bold text-slate-900' : 'font-medium text-slate-500' }}">
-                        <span class="sr-only">{% if step > 2 %}Terminé : {% elseif step == 2 %}Étape actuelle : {% endif %}</span>
-                        2. Type de compte
-                    </h3>
-                    <p class="text-sm {{ step >= 2 ? 'text-slate-500' : 'text-slate-400' }} mt-1">Indépendant ou Équipe</p>
-                </li>
-
-                {# Étape 3 #}
-                <li class="ml-8" {% if step == 3 %}aria-current="step"{% endif %}>
-                    <span class="absolute -left-4 flex h-8 w-8 items-center justify-center rounded-full ring-4 ring-white {{ step >= 3 ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-50 border border-slate-200 text-slate-400' }}" aria-hidden="true">
-                        {{ ux_icon('lucide:check', { class: 'size-4' }) }}
-                    </span>
-                    <h3 class="{{ step >= 3 ? 'font-bold text-slate-900' : 'font-medium text-slate-500' }}">
-                        <span class="sr-only">{% if step == 3 %}Étape actuelle : {% endif %}</span>
-                        3. Finalisation
-                    </h3>
-                </li>
-            </ol>
-        </nav>
-
-        <div class="mt-auto flex items-center gap-2 text-xs text-slate-400">
-            {{ ux_icon('lucide:lock', { class: 'size-3.5' }) }} Données chiffrées de bout en bout
-        </div>
-    </aside>
-
-    {# ========================================== #}
-    {# LA ZONE DROITE (Contenu + Footer)          #}
-    {# ========================================== #}
-    <div class="flex-1 flex flex-col relative overflow-hidden">
-
-        <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
-
-        {# MAIN : Ajout du tabindex="-1" pour l'accessibilité #}
-        <main id="main-content" tabindex="-1" class="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10 outline-none">
-            <div class="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div class="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 motion-reduce:animate-none">
                 {% block form_content %}{% endblock %}
             </div>
-        </main>
 
-        <footer class="p-6 text-center text-sm text-slate-500 relative z-10 shrink-0">
-            Besoin d'aide ?
-            <twig:Button as="a" href="mailto:support@{{ company_name|default(company_name)|lower }}.com?subject=Aide Onboarding : {{ app.user.email|default('') }}" variant="link" class="text-blue-600 hover:underline px-1">
-                Contactez le support
-            </twig:Button>
-        </footer>
-
-    </div>
+            <p class="mt-10 flex items-center justify-center gap-2 text-[13px] text-slate-600">
+                {{ ux_icon('lucide:lock', { class: 'size-3.5', 'aria-hidden': 'true' }) }}
+                Connexion sécurisée
+            </p>
+        </div>
+    </main>
 </div>
 {% include '@app/partials/_flashes.html.twig' %}
 </body>

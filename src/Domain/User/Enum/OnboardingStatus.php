@@ -10,5 +10,6 @@ enum OnboardingStatus: string
     case WORKSPACE_SETUP = 'workspace';
     case PROFIL_SETUP = 'profil';
     case PLAN_SETUP = 'plan';
+    case REGULATORY_PROFILE_SETUP = 'regulatory_profile'; // Profil réglementaire renseigné OU explicitement reporté
     case COMPLETED = 'completed';       // A terminé, accès total
 }

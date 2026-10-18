@@ -1,0 +1,17 @@
+{% extends '@app/onboarding/base_onboarding.html.twig' %}
+
+{% set current_step = 3 %}
+
+{% block title %}Profil réglementaire | {{ company_name }}{% endblock %}
+
+{% block form_content %}
+    <h1 class="text-balance text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-slate-900 sm:text-5xl">Votre profil réglementaire</h1>
+    <p class="mt-4 text-lg leading-relaxed text-slate-600">
+        Votre numéro ORIAS, votre association professionnelle et votre assurance RC Pro figurent sur votre Document d'entrée en relation (DER). Sans eux, {{ company_name }} ne peut pas le générer.
+    </p>
+
+    {# Pas de padding ici : le composant gère ses propres sections et son pied de carte #}
+    <div class="mt-10 rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+        <twig:RegulatoryProfileFormComponent id="{{ regulatory_profile_id }}" :onboarding="true"></twig:RegulatoryProfileFormComponent>
+    </div>
+{% endblock %}

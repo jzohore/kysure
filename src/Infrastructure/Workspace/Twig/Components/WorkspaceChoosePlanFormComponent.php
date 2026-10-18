@@ -59,7 +59,7 @@ class WorkspaceChoosePlanFormComponent
                 workspace: $workspace,
             );
 
-            return new RedirectResponse($this->generator->generate('app_onboarding_finalization'));
+            return new RedirectResponse($this->generator->generate('app_onboarding_regulatory_profile'));
         } catch (\Exception $e) {
             $this->logger->error('Échec lors de l\'attribution du plan au Workspace : ', [
                 'error' => $e->getMessage(),

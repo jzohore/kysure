@@ -6,8 +6,11 @@ namespace App\Infrastructure\Firm\Twig;
 
 use App\Application\Firm\DTO\Request\PartnerDTO;
 use App\Application\Firm\DTO\Request\UpdateRegulatoryProfileRequest;
+use App\Application\Firm\UseCase\CompleteRegulatoryProfileOnboardingUseCase;
+use App\Application\Firm\UseCase\DeferRegulatoryProfileOnboardingUseCase;
 use App\Application\Firm\UseCase\UpdateRegulatoryProfileUseCase;
 use App\Domain\Firm\Repository\RegulatoryProfileRepositoryInterface;
+use App\Domain\Workspace\Service\CurrentUserProvider;
 use App\Infrastructure\Firm\Form\RegulatoryProfileType;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -36,6 +39,14 @@ class RegulatoryProfileFormComponent
     #[LiveProp]
     public ?string $id = null;
 
+    /**
+     * Mode onboarding : même formulaire, mais l'enregistrement (ou le report) fait avancer
+     * le parcours de configuration au lieu de renvoyer vers les paramètres.
+     * Non inscriptible côté client : le checksum LiveComponent empêche de le basculer.
+     */
+    #[LiveProp]
+    public bool $onboarding = false;
+
     public function __construct(
         private readonly FormFactoryInterface $formFactory,
         private readonly LoggerInterface $logger,
@@ -43,6 +54,9 @@ class RegulatoryProfileFormComponent
         private readonly RequestStack $requestStack,
         private readonly RegulatoryProfileRepositoryInterface $regulatoryProfileRepository,
         private readonly UpdateRegulatoryProfileUseCase $updateUseCase,
+        private readonly CompleteRegulatoryProfileOnboardingUseCase $completeOnboardingUseCase,
+        private readonly DeferRegulatoryProfileOnboardingUseCase $deferOnboardingUseCase,
+        private readonly CurrentUserProvider $currentUserProvider,
     ) {
     }
 
@@ -103,6 +117,12 @@ class RegulatoryProfileFormComponent
         $dto = $this->getForm()->getData();
 
         try {
+            if ($this->onboarding) {
+                ($this->completeOnboardingUseCase)($dto, $this->currentUserProvider->getUser());
+
+                return new RedirectResponse($this->router->generate('app_onboarding_finalization'));
+            }
+
             ($this->updateUseCase)($dto);
 
             /** @var FlashBagAwareSessionInterface $session */
@@ -132,7 +152,41 @@ class RegulatoryProfileFormComponent
                 message: 'Une erreur technique est survenue lors de l\'enregistrement. Veuillez réessayer.'
             );
 
-            return new RedirectResponse($this->router->generate('app_settings_regulatory_profile'));
+            return new RedirectResponse($this->router->generate(
+                $this->onboarding ? 'app_onboarding_regulatory_profile' : 'app_settings_regulatory_profile'
+            ));
         }
+    }
+
+    /**
+     * « Je le ferai plus tard » (onboarding uniquement) : confirmé dans la modal, tracé en audit.
+     */
+    #[LiveAction]
+    public function skip(): ?RedirectResponse
+    {
+        if (!$this->onboarding) {
+            return null;
+        }
+
+        try {
+            ($this->deferOnboardingUseCase)($this->currentUserProvider->getUser());
+        } catch (\DomainException) {
+            // Étape non applicable à ce stade : EnforceOnboardingSubscriber réorientera au bon endroit.
+        } catch (\Throwable $e) {
+            $this->logger->critical('Échec du report du profil réglementaire en onboarding', [
+                'error' => $e->getMessage(),
+            ]);
+
+            /** @var FlashBagAwareSessionInterface $session */
+            $session = $this->requestStack->getSession();
+            $session->getFlashBag()->add(
+                type: 'error',
+                message: 'Une erreur technique est survenue. Veuillez réessayer.'
+            );
+
+            return new RedirectResponse($this->router->generate('app_onboarding_regulatory_profile'));
+        }
+
+        return new RedirectResponse($this->router->generate('app_onboarding_finalization'));
     }
 }

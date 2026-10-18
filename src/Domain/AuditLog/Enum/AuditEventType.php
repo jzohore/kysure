@@ -38,6 +38,7 @@ enum AuditEventType: string
     case WORKSPACE_PERMISSIONS_UPDATED = 'workspace.permissions_updated';
     case WORKSPACE_QUOTA_GRANTED = 'workspace.quota_granted';
     case ONBOARDING_COMPLETED = 'workspace.onboarding_completed';
+    case ONBOARDING_REGULATORY_PROFILE_DEFERRED = 'workspace.onboarding_regulatory_profile_deferred';
 
     // --- REGISTRATIONS & VÉRIFICATIONS LÉGALES ---
     case SIRET_CHECK_SUCCESS = 'compliance.siret_check_success';
@@ -184,6 +185,7 @@ enum AuditEventType: string
             self::WORKSPACE_PERMISSIONS_UPDATED => 'Modification des droits délégués aux collaborateurs',
             self::WORKSPACE_QUOTA_GRANTED => 'Recharge de quota (dossiers / minutes)',
             self::ONBOARDING_COMPLETED => 'Configuration initiale terminée',
+            self::ONBOARDING_REGULATORY_PROFILE_DEFERRED => 'Profil réglementaire reporté (génération du DER indisponible)',
 
             // Vérifications Légales
             self::SIRET_CHECK_SUCCESS => 'Validation SIRET (INSEE)',
@@ -295,7 +297,8 @@ enum AuditEventType: string
             self::WORKSPACE_MEMBER_REACTIVATED,
             self::WORKSPACE_PERMISSIONS_UPDATED,
             self::WORKSPACE_QUOTA_GRANTED,
-            self::ONBOARDING_COMPLETED => 'Cabinet',
+            self::ONBOARDING_COMPLETED,
+            self::ONBOARDING_REGULATORY_PROFILE_DEFERRED => 'Cabinet',
 
             self::SIRET_CHECK_SUCCESS,
             self::SIRET_CHECK_FAILED,

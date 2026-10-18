@@ -76,6 +76,9 @@ final readonly class EnforceOnboardingSubscriber implements EventSubscriberInter
                 'app_onboarding_plan',
             ],
             OnboardingStatus::PLAN_SETUP => [
+                'app_onboarding_regulatory_profile',
+            ],
+            OnboardingStatus::REGULATORY_PROFILE_SETUP => [
                 'app_onboarding_finalization',
             ],
             default => [], // Tableau vide = onboarding terminé, accès libre

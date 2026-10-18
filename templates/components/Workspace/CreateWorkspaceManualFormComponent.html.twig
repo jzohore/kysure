@@ -1,49 +1,44 @@
 <div{{ attributes }}>
-    <div>
-        {{ form_start(form, {
+    {{ form_start(form, {
+        attr: {
+            novalidate: true,
+            'data-action': 'live#action:prevent',
+            'data-live-action-param': 'save',
+        }
+    }) }}
+
+    {# Les champs du formulaire #}
+    <div class="space-y-5">
+        {{ form_row(form.name, {
+            label: 'Nom de la structure',
             attr: {
-                novalidate: true,
-                'data-action': 'live#action:prevent',
-                'data-live-action-param': 'save',
+                placeholder: 'Ex: Cabinet Dupont',
+                class: 'font-medium'
             }
         }) }}
 
-
-
-        {# Les champs du formulaire #}
-        <div class="space-y-4">
-            {{ form_row(form.name, {
-                label: 'Nom de la structure',
-                attr: {
-                    placeholder: 'Ex: Cabinet Dupont',
-                    class: 'font-medium'
-                }
-            }) }}
-
-            {{ form_row(form.address, {
-                label: 'Adresse légale',
-                attr: {
-                    placeholder: 'Ex: 123 avenue des Champs-Élysées, 75008 Paris',
-                }
-            }) }}
-        </div>
-
-        {# 💡 LE BAS DU FORMULAIRE : Épuré, bouton aligné à droite #}
-        <div class="mt-8 flex items-center justify-between">
-            <twig:Button as="button" type="submit" variant="dark" class="w-full">
-            <span data-loading="action(save)|hide" class="flex items-center justify-center gap-2">
-                Continuer
-            </span>
-
-                <span data-loading="action(save)|show" class="hidden items-center justify-center gap-2">
-                <twig:ux:icon name="lucide:loader-2" class="w-4 h-4 animate-spin" />
-                Création...
-            </span>
-            </twig:Button>
-        </div>
-
-        {{ form_end(form) }}
+        {{ form_row(form.address, {
+            label: 'Adresse légale',
+            attr: {
+                placeholder: 'Ex: 123 avenue des Champs-Élysées, 75008 Paris',
+            }
+        }) }}
     </div>
 
-        {{ form_end(form) }}
+    {# Une seule action primaire : pleine largeur, forme pilule #}
+    <div class="mt-8">
+        <twig:Button as="button" type="submit" variant="dark" class="h-12 w-full rounded-full text-base">
+            {# Live pilote `display` de ces <span> (data-loading) : la mise en page flex vit dans un enfant. #}
+            <span data-loading="action(save)|hide">Continuer</span>
+
+            <span data-loading="action(save)|show" class="hidden">
+                <span class="inline-flex items-center justify-center gap-2">
+                    <twig:ux:icon name="lucide:loader-2" class="size-4 animate-spin" aria-hidden="true" />
+                    Création...
+                </span>
+            </span>
+        </twig:Button>
+    </div>
+
+    {{ form_end(form) }}
 </div>

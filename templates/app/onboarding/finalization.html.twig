@@ -1,60 +1,78 @@
 {% extends '@app/onboarding/base_onboarding.html.twig' %}
 
-{% set current_step = 3 %}
+{% set current_step = 4 %}
 
 {% block title %}Configuration terminée | {{ company_name }}{% endblock %}
 
 {% block form_content %}
 
-    {# On attache le contrôleur sur le parent #}
-    <div data-controller="loading-transition" class="relative w-full max-w-lg mx-auto min-h-[400px] flex items-center justify-center">
-        <div data-loading-transition-target="loader" class="w-full text-center flex flex-col items-center justify-center transition-all duration-500 opacity-100 scale-100">
+    {# Écran de fin : un récapitulatif RÉEL de ce qui est configuré (aucun faux chargement). Les lignes apparaissent
+       l'une après l'autre en CSS pur (classe .hero-enter, désactivée sous prefers-reduced-motion). #}
+    <div class="text-center">
 
-            <div class="relative flex items-center justify-center size-24 mb-8">
-                <div class="absolute inset-0 rounded-full border-[3px] border-slate-100"></div>
-                <div class="absolute inset-0 rounded-full border-[3px] border-slate-900 border-t-transparent animate-spin"></div>
-                <div class="absolute inset-0 flex items-center justify-center">
-                    {{ ux_icon('lucide:shield-check', { class: 'size-8 text-slate-900 animate-pulse' }) }}
-                </div>
-            </div>
-
-            <h2 class="text-xl font-bold text-slate-900 mb-3 tracking-tight">
-                Finalisation de votre espace...
-            </h2>
-
-            {# On cible le texte pour pouvoir le changer #}
-            <p data-loading-transition-target="loaderText" class="text-sm text-slate-500 max-w-xs mx-auto transition-opacity duration-300">
-                Création de l'environnement sécurisé
-            </p>
+        <div class="hero-enter mx-auto mb-8 flex size-20 items-center justify-center rounded-full border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+            {{ ux_icon('lucide:check', { class: 'size-9 text-emerald-600', 'aria-hidden': 'true' }) }}
         </div>
 
-        {# ========================================== #}
-        {# 2. L'ÉTAT DE SUCCÈS                        #}
-        {# ========================================== #}
-        {# On cible cet élément comme étant "success" #}
-        <div data-loading-transition-target="success" class="hidden w-full bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8 sm:p-12 text-center transition-all duration-700 ease-out opacity-0 scale-95 translate-y-4">
-
-            <div class="mx-auto inline-flex items-center justify-center size-20 rounded-full bg-emerald-100 mb-6 ring-8 ring-emerald-50">
-                {{ ux_icon('lucide:check-circle-2', { class: 'size-10 text-emerald-600' }) }}
-            </div>
-
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 mb-4">
-                Tout est prêt, {{ app.user.firstName|default('bienvenue') }} !
-            </h1>
-
-            <p class="text-slate-500 text-base mb-10 max-w-sm mx-auto leading-relaxed">
-                Votre espace de travail et votre profil sont configurés. Vous pouvez maintenant gérer votre conformité en toute sérénité.
-            </p>
-            <form action="{{ path('app_onboarding_completed') }}" method="post">
-                <twig:Button type="submit" variant="dark" size="lg">
-                    Accéder à mon espace
-                    {{ ux_icon('lucide:arrow-right', { class: 'size-4 ml-2' }) }}
-                </twig:Button>
-          <input type="hidden" name="_token" value="{{ csrf_token('onboarding_completed') }}">
-            </form>
-
-        </div>
-
+        <h1 class="hero-enter text-balance text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-slate-900 sm:text-5xl" style="--reveal-delay: 80ms">
+            Tout est prêt, {{ app.user.firstName|default('bienvenue') }}.
+        </h1>
+        <p class="hero-enter mx-auto mt-5 max-w-md text-lg leading-relaxed text-slate-600" style="--reveal-delay: 160ms">
+            Votre espace est configuré. Voici ce qui vous attend.
+        </p>
     </div>
+
+    <ul class="mt-10 space-y-3" aria-label="Récapitulatif de votre configuration">
+
+        <li class="hero-enter flex items-start gap-4 rounded-2xl border border-l-4 border-slate-200 border-l-emerald-500 bg-white p-4" style="--reveal-delay: 260ms">
+            {{ ux_icon('lucide:building-2', { class: 'mt-0.5 size-5 shrink-0 text-slate-600', 'aria-hidden': 'true' }) }}
+            <div>
+                <p class="text-[15px] font-semibold text-slate-900">Espace de travail</p>
+                <p class="text-[14px] text-slate-600">{{ workspace_name }} · compte {{ account_type_label }}</p>
+            </div>
+        </li>
+
+        {% if regulatory_profile_complete %}
+            <li class="hero-enter flex items-start gap-4 rounded-2xl border border-l-4 border-slate-200 border-l-emerald-500 bg-white p-4" style="--reveal-delay: 340ms">
+                {{ ux_icon('lucide:file-badge', { class: 'mt-0.5 size-5 shrink-0 text-slate-600', 'aria-hidden': 'true' }) }}
+                <div>
+                    <p class="text-[15px] font-semibold text-slate-900">Profil réglementaire</p>
+                    <p class="text-[14px] text-slate-600">Renseigné : vous pouvez générer vos Documents d'entrée en relation.</p>
+                </div>
+            </li>
+        {% else %}
+            {# Profil reporté ou incomplet : rappel honnête de la conséquence, sans bloquer l'accès #}
+            <li class="hero-enter flex items-start gap-4 rounded-2xl border border-l-4 border-slate-200 border-l-amber-500 bg-white p-4" style="--reveal-delay: 340ms">
+                {{ ux_icon('lucide:file-badge', { class: 'mt-0.5 size-5 shrink-0 text-slate-600', 'aria-hidden': 'true' }) }}
+                <div>
+                    <p class="text-[15px] font-semibold text-slate-900">Profil réglementaire à compléter</p>
+                    <p class="text-[14px] leading-relaxed text-slate-600">
+                        Tant qu'il est incomplet, la génération du DER reste indisponible. Retrouvez-le dans Paramètres › Profil réglementaire et dans la checklist du tableau de bord.
+                    </p>
+                </div>
+            </li>
+        {% endif %}
+
+        {% if trial_dossiers is not null %}
+            <li class="hero-enter flex items-start gap-4 rounded-2xl border border-l-4 border-slate-200 border-l-emerald-500 bg-white p-4" style="--reveal-delay: 420ms">
+                {{ ux_icon('lucide:sparkles', { class: 'mt-0.5 size-5 shrink-0 text-slate-600', 'aria-hidden': 'true' }) }}
+                <div>
+                    <p class="text-[15px] font-semibold text-slate-900">Essai gratuit</p>
+                    <p class="text-[14px] text-slate-600">
+                        {{ trial_dossiers }} dossier{{ trial_dossiers > 1 ? 's' : '' }} et {{ trial_minutes }}&nbsp;min d'entretien offerts, sans carte bancaire.
+                    </p>
+                </div>
+            </li>
+        {% endif %}
+    </ul>
+
+    <form action="{{ path('app_onboarding_completed') }}" method="post" class="hero-enter mt-10" style="--reveal-delay: 520ms">
+        <input type="hidden" name="_token" value="{{ csrf_token('onboarding_completed') }}">
+        <twig:Button type="submit" variant="dark" class="h-12 w-full rounded-full text-base">
+            Accéder à mon espace
+            {{ ux_icon('lucide:arrow-right', { class: 'size-4', 'aria-hidden': 'true' }) }}
+        </twig:Button>
+        <p class="mt-4 text-center text-[13px] text-slate-600">Vous pourrez modifier ces informations à tout moment dans les paramètres.</p>
+    </form>
 
 {% endblock %}

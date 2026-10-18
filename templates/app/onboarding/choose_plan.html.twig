@@ -5,17 +5,10 @@
 {% block title %}{{ page_title }} | {{ company_name }}{% endblock %}
 
 {% block form_content %}
-    <div class="mb-8 text-left animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <h1 class="text-3xl font-bold tracking-tight text-slate-900 mb-3">
-            {{ page_title }}
-        </h1>
-        <p class="text-slate-500 text-lg leading-relaxed">
-            {{ page_description }}
-        </p>
-    </div>
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 mb-8">
+    <h1 class="text-balance text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-slate-900 sm:text-5xl">{{ page_title }}</h1>
+    <p class="mt-4 text-lg leading-relaxed text-slate-600">{{ page_description }}</p>
+
+    <div class="mt-10">
         <twig:WorkspaceChoosePlanFormComponent userSlugId="{{ app.user.slugId }}"></twig:WorkspaceChoosePlanFormComponent>
     </div>
-
-
 {% endblock %}

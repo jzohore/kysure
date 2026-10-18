@@ -375,6 +375,29 @@ class User implements UserInterface, TwoFactorInterface, EquatableInterface, \St
         $this->onboardingStatus = $status;
     }
 
+    /**
+     * Étape « profil réglementaire » de l'onboarding : renseigné OU explicitement reporté.
+     *
+     * @return bool true si la transition a eu lieu ; false si l'étape était déjà passée
+     *              (idempotence : double clic, rejeu) — l'appelant n'émet alors ni audit ni événement
+     *
+     * @throws \DomainException si le type de compte n'a pas encore été choisi (on ne saute pas d'étape)
+     */
+    public function completeRegulatoryProfileStep(): bool
+    {
+        if (OnboardingStatus::PLAN_SETUP === $this->onboardingStatus) {
+            $this->onboardingStatus = OnboardingStatus::REGULATORY_PROFILE_SETUP;
+
+            return true;
+        }
+
+        if (in_array($this->onboardingStatus, [OnboardingStatus::REGULATORY_PROFILE_SETUP, OnboardingStatus::COMPLETED], true)) {
+            return false;
+        }
+
+        throw new \DomainException('Le profil réglementaire ne peut être traité qu\'après le choix du type de compte.');
+    }
+
     public function markAsOnboardingCompleted(): void
     {
         $this->onboardingStatus = OnboardingStatus::COMPLETED;
