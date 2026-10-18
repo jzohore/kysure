@@ -38,6 +38,12 @@
     encode zstd br gzip
 
     mercure {
+       # Mercure récent : les directives publisher_jwt / subscriber_jwt ci-dessous relèvent du mode
+       # « compatibilité » (protocole v8) ; sans cette ligne FrankenPHP refuse de démarrer.
+       protocol_version_compatibility 8
+       # Hub nommé : SERVER_NAME déclare deux adresses (« localhost, php:80 »), donc deux serveurs HTTP ;
+       # sans nom, Mercure refuse plus d'un hub anonyme. Même nom = un seul hub partagé.
+       name kysure
        # Publisher JWT key
        publisher_jwt {env.MERCURE_PUBLISHER_JWT_KEY} {env.MERCURE_PUBLISHER_JWT_ALG}
        # Subscriber JWT key

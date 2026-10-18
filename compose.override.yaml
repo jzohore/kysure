@@ -14,7 +14,7 @@ services:
       #- /app/vendor
     environment:
       FRANKENPHP_WORKER_CONFIG: watch
-      MERCURE_EXTRA_DIRECTIVES: demo
+      # La directive Mercure `demo` n'existe plus dans les versions récentes (le hub refusait de démarrer).
       # See https://xdebug.org/docs/all_settings#mode
       XDEBUG_MODE: "${XDEBUG_MODE:-off}"
       APP_ENV: "${APP_ENV:-dev}"
@@ -22,6 +22,53 @@ services:
       # Ensure that host.docker.internal is correctly defined on Linux
       - host.docker.internal:host-gateway
     tty: true
+  # Worker Messenger LOCAL : conteneur dédié qui ne fait QUE consommer les files RabbitMQ
+  # (e-mails, OCR, audio, webhooks, tâches planifiées…), comme le worker de staging/prod.
+  # Même image que `php` ; KYSURE_ROLE=worker fait basculer docker-entrypoint sur
+  # `messenger:consume --all --exclude-receivers=failed` (la file `failed` reste une décision humaine).
+  # Déclaré ici (override dev) et non dans compose.yaml : staging/prod ont leur propre définition.
+  #
+  #   docker compose up -d worker                       # démarrer
+  #   docker compose logs -f worker                     # suivre les messages consommés
+  #   docker compose exec php bin/console messenger:stop-workers   # recharger après modif d'un handler
+  #                                                      (restart: unless-stopped le relance avec le nouveau code)
+  worker:
+    build:
+      context: .
+      target: frankenphp_dev
+    image: ${IMAGES_PREFIX:-}app-php
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - ./:/app
+    environment:
+      KYSURE_ROLE: worker
+      APP_ENV: "${APP_ENV:-dev}"
+      DEFAULT_URI: https://${SERVER_NAME:-localhost}:${HTTPS_PORT:-443}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-15}&charset=${POSTGRES_CHARSET:-utf8}
+      # Publication Mercure (temps réel) : le hub vit dans le conteneur php.
+      MERCURE_URL: ${CADDY_MERCURE_URL:-http://php/.well-known/mercure}
+      MERCURE_PUBLIC_URL: ${CADDY_MERCURE_PUBLIC_URL:-https://${SERVER_NAME:-localhost}:${HTTPS_PORT:-443}/.well-known/mercure}
+      MERCURE_JWT_SECRET: ${CADDY_MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
+      MERCURE_PUBLISHER_JWT_KEY: ${CADDY_MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
+      MERCURE_SUBSCRIBER_JWT_KEY: ${CADDY_MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
+    env_file:
+      - .env
+      - .env.local
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    depends_on:
+      database:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      php:
+        condition: service_started
+
 ###> symfony/mercure-bundle ###
 ###< symfony/mercure-bundle ###
 

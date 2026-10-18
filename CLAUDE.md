@@ -118,6 +118,8 @@ composer format   # rector + php-cs-fixer (à lancer avant de committer)
 composer check    # rector-check + cs-check + lint twig/yaml + phpstan (niveau 8, src/) + deptrac + composer audit
 docker compose exec php vendor/bin/phpunit          # suite de tests
 docker compose exec php bin/console tailwind:build  # après ajout de classes Tailwind arbitraires
+docker compose up -d worker                         # worker Messenger local (conteneur dédié : e-mails, OCR, audio, crons)
+docker compose exec php bin/console messenger:stop-workers  # recharge le worker après modif d'un handler (il redémarre seul)
 docker compose exec php bin/console doctrine:schema:validate
 ```
 
