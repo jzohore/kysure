@@ -1,0 +1,82 @@
+{% extends '@website/base.html.twig' %}
+
+{% block title %}Espace client{% endblock %}
+
+{% block meta_description %}Clients d'un cabinet de gestion de patrimoine : accédez à votre espace {{ company_name }} sécurisé pour déposer vos pièces, signer vos documents et suivre votre dossier.{% endblock %}
+
+{% block body %}
+    <div class="min-h-screen bg-white text-slate-900 selection:bg-blue-100">
+
+        {% include '@website/_header.html.twig' %}
+
+        <section aria-labelledby="client-access-heading" class="relative isolate overflow-hidden">
+            <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-gradient-to-b from-slate-50 to-white" aria-hidden="true"></div>
+
+            <div class="mx-auto grid max-w-5xl gap-14 px-5 py-16 sm:px-6 sm:py-24 lg:grid-cols-2 lg:items-start lg:gap-20">
+
+                {# Colonne gauche : accès #}
+                <div>
+                    <p class="inline-flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-blue-700">
+                        {{ ux_icon('lucide:lock', { class: 'size-4', 'aria-hidden': 'true' }) }}
+                        Espace client
+                    </p>
+                    <h1 id="client-access-heading" class="mt-4 text-balance text-4xl font-semibold leading-[1.08] tracking-[-0.03em] sm:text-5xl">
+                        Retrouvez votre espace sécurisé.
+                    </h1>
+                    <p class="mt-5 text-lg leading-relaxed text-slate-600">
+                        Votre conseiller utilise {{ company_name }} pour recueillir vos pièces et vos signatures. Saisissez l’adresse e-mail que vous lui avez communiquée : nous vous envoyons un lien de connexion. Aucun mot de passe n’est nécessaire.
+                    </p>
+
+                    <div class="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                        <twig:LoginUserFormComponent :forClient="true" />
+                    </div>
+                </div>
+
+                {# Colonne droite : mode d'emploi + aide #}
+                <div class="space-y-6 lg:pt-14">
+                    <ol class="space-y-5" aria-label="Comment se connecter">
+                        <li class="flex gap-4">
+                            <span class="flex size-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[13px] font-semibold text-slate-900" aria-hidden="true">1</span>
+                            <div>
+                                <h2 class="text-[16px] font-semibold tracking-tight">Saisissez votre e-mail</h2>
+                                <p class="mt-1 text-[14px] leading-relaxed text-slate-600">Utilisez l’adresse à laquelle votre cabinet vous écrit habituellement.</p>
+                            </div>
+                        </li>
+                        <li class="flex gap-4">
+                            <span class="flex size-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[13px] font-semibold text-slate-900" aria-hidden="true">2</span>
+                            <div>
+                                <h2 class="text-[16px] font-semibold tracking-tight">Ouvrez le lien reçu</h2>
+                                <p class="mt-1 text-[14px] leading-relaxed text-slate-600">Le lien de connexion est à usage unique et expire rapidement, pour protéger vos données.</p>
+                            </div>
+                        </li>
+                        <li class="flex gap-4">
+                            <span class="flex size-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[13px] font-semibold text-slate-900" aria-hidden="true">3</span>
+                            <div>
+                                <h2 class="text-[16px] font-semibold tracking-tight">Accédez à votre dossier</h2>
+                                <p class="mt-1 text-[14px] leading-relaxed text-slate-600">Déposez vos pièces, signez vos documents et suivez l’avancement.</p>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <div class="rounded-2xl border border-l-4 border-slate-200 border-l-amber-500 bg-white p-5">
+                        <h2 class="flex items-center gap-2 text-[14px] font-semibold text-slate-900">
+                            {{ ux_icon('lucide:mail', { class: 'size-4 text-slate-600', 'aria-hidden': 'true' }) }}
+                            Vous ne recevez pas le lien&nbsp;?
+                        </h2>
+                        <p class="mt-2 text-[14px] leading-relaxed text-slate-600">
+                            Vérifiez vos courriers indésirables et l’adresse saisie. Si rien n’arrive, contactez votre conseiller : il confirmera l’adresse enregistrée dans votre dossier.
+                        </p>
+                    </div>
+
+                    <p class="text-[14px] text-slate-600">
+                        Vous êtes un professionnel (CGP, courtier)&nbsp;?
+                        <a href="{{ path('app_login') }}" class="font-medium text-slate-900 underline underline-offset-4 hover:text-blue-700 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40">Connexion cabinet</a>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        {% include '@website/_footer.html.twig' %}
+
+    </div>
+{% endblock %}

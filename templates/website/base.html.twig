@@ -19,12 +19,12 @@
         <meta property="og:type" content="website">
         <meta property="og:title" content="{{ block('title') }} - {{ company_name }}">
         <meta property="og:description" content="{{ block('meta_description') }}">
-        <meta property="og:image" content="{{ absolute_url(asset('kysure_favicon/favicon.ico')) }}">
+        <meta property="og:image" content="{{ absolute_url(asset('kysure_favicon/android-chrome-512x512.png')) }}">
         <meta name="twitter:card" content="summary_large_image">
     {% endblock %}
     <link rel="canonical" href="{{ app.request.getSchemeAndHttpHost() ~ app.request.getRequestUri() }}">
     {# Favicon propre #}
-    <link rel="icon" href="{{ absolute_url(asset('kysure_favicon/favicon.ico')) }}">
+    {% include '_favicons.html.twig' %}
 
     {# Thème couleur pour la barre de statut des navigateurs mobiles #}
     <meta name="theme-color" content="#0f172a">

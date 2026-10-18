@@ -31,6 +31,10 @@ final class LoginUserFormComponent
     #[LiveProp]
     public ?string $message = null;
 
+    /** Variante « espace client » : libellés adaptés et retour vers la page d'accès client. */
+    #[LiveProp]
+    public bool $forClient = false;
+
     public function __construct(
         private readonly FormFactoryInterface $formFactory,
         private readonly SendLoginUserUseCase $sendLoginUserUseCase,

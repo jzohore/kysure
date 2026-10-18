@@ -22,6 +22,7 @@ final readonly class SitemapGenerator
             'redirect_to_home',
             'website_home',
             'app_login',
+            'website_client_access',
             'app_register',
             'website_features',
             'website_terms_and_conditions',

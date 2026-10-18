@@ -1,3 +1,5 @@
+{# `this` est redéfini dans les slots <twig:X> : on capture le drapeau en amont. #}
+{% set forClient = this.forClient %}
 <div{{ attributes }}>
 
     {# 1. SI LE FORMULAIRE EST SOUMIS (Affichage du succès) #}
@@ -15,7 +17,7 @@
             </p>
 
             {# On redirige vers la page de login pour réinitialiser #}
-            <twig:Button as="a" href="{{ path('app_login') }}" variant="ghost" class="text-foreground mt-6">
+            <twig:Button as="a" href="{{ path(forClient ? 'website_client_access' : 'app_login') }}" variant="ghost" class="text-foreground mt-6">
                 Utiliser une autre adresse
             </twig:Button>
         </div>
@@ -34,9 +36,10 @@
             {# On retire la grid-cols-2 pour que l'email prenne toute la largeur #}
             <div class="space-y-5">
                 {{ form_row(form.email, {
-                    label: 'Email professionnel',
+                    label: forClient ? 'Votre adresse e-mail' : 'Email professionnel',
+                    help: forClient ? 'Utilisez l’adresse e-mail que votre cabinet a enregistrée dans votre dossier.' : form.email.vars.help,
                     attr: {
-                        placeholder: 'jean.dupont@cabinet.fr',
+                        placeholder: forClient ? 'prenom.nom@exemple.fr' : 'jean.dupont@cabinet.fr',
                         autocomplete: 'email',
                         autofocus: true
                     }
@@ -48,7 +51,7 @@
                 <twig:Button as="button" type="submit" variant="dark" class="w-full sm:w-auto px-8">
 
                     {# Texte affiché par défaut #}
-                    <span data-loading="action(save)|hide">Recevoir mon lien</span>
+                    <span data-loading="action(save)|hide">{{ forClient ? 'Recevoir mon lien de connexion' : 'Recevoir mon lien' }}</span>
 
                     {# Texte affiché PENDANT la requête AJAX avec la nouvelle syntaxe d'icône #}
                     <span data-loading="action(save)|show" class="hidden items-center gap-2">
