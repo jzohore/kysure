@@ -45,16 +45,21 @@ services:
       # Analytique Umami : le <script> n'est rendu que si les deux sont non vides.
       UMAMI_SCRIPT_URL: 'https://analytics.staging.kysure.fr/script.js'
       UMAMI_WEBSITE_ID: '${UMAMI_WEBSITE_ID}'
-      # Antivirus des pièces déposées par les clients (le scan se fait dans la requête web).
+      # Antivirus des pièces déposées par les clients (le scan se fait dans la requête web) : ClamAV partagé.
       VIRUS_SCAN_MODE: clamav
-      CLAMAV_HOST: clamav-staging
+      CLAMAV_HOST: clamav
       CLAMAV_PORT: '3310'
-      # Service d'extraction OCR local (OCR_MODE=local|hybrid). Le jeton est un secret (sops / éditeur d'env Coolify).
+      # Service d'extraction OCR local (rendu PDF pour Textract, OCR_MODE=local|hybrid). Jeton fourni par Coolify,
+      # OBLIGATOIRE : le déploiement échoue franchement s'il manque.
       OCR_SERVICE_URL: 'http://ocr-staging:8000'
-      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:-}'
+      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:?}'
     networks:
       - default
       - ocr_internal
+    # ClamAV PARTAGÉ (staging + prod) : un seul démon, géré hors Coolify sur le serveur (/opt/clamav),
+    # joignable uniquement depuis le serveur sur l'adresse du pont docker0 (host-gateway) : clamav:3310.
+    extra_hosts:
+      - 'clamav:host-gateway'
     logging: *default-logging
     deploy:
       resources:
@@ -65,11 +70,6 @@ services:
         condition: service_healthy
       rabbitmq-staging:
         condition: service_healthy
-      # service_started (pas service_healthy) : la 1re synchro des signatures prend plusieurs
-      # minutes et ne doit pas bloquer le déploiement. Tant que clamd n'est pas prêt, les
-      # dépôts de pièces sont refusés (fail-closed), le reste du site fonctionne.
-      clamav-staging:
-        condition: service_started
       # service_started : une panne de l'OCR local ne doit pas bloquer le déploiement du site.
       ocr-staging:
         condition: service_started
@@ -92,12 +92,19 @@ services:
       # Le worker exécute les tâches planifiées (scheduler_cron) : c'est ici que
       # le verrou anti-concurrence protège contre une double exécution.
       LOCK_DSN: 'flock'
+      VIRUS_SCAN_MODE: clamav
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: '3310'
       # C'est le worker qui appelle le service OCR (handler ProcessOcrMessageHandler, file async_heavy).
       OCR_SERVICE_URL: 'http://ocr-staging:8000'
-      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:-}'
+      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:?}'
     networks:
       - default
       - ocr_internal
+    # ClamAV PARTAGÉ (staging + prod) : un seul démon, géré hors Coolify sur le serveur (/opt/clamav),
+    # joignable uniquement depuis le serveur sur l'adresse du pont docker0 (host-gateway) : clamav:3310.
+    extra_hosts:
+      - 'clamav:host-gateway'
     logging: *default-logging
     deploy:
       resources:
@@ -154,30 +161,6 @@ services:
       retries: 5
       start_period: 15s
 
-  # Antivirus (ClamAV / clamd) : analyse chaque pièce déposée par un client avant stockage S3.
-  # Joignable en interne sur clamav-staging:3310 (jamais publié). La base de signatures est
-  # persistée (sinon re-téléchargement à chaque déploiement) et se met à jour seule (freshclam).
-  # RAM : clamd charge toutes les signatures en mémoire (~1 Go+) ; sous 1,5 Go il est tué par l'OOM.
-  clamav-staging:
-    image: 'clamav/clamav:1.4'
-    container_name: kysure_clamav_staging
-    restart: unless-stopped
-    environment:
-      CLAMD_CONF_StreamMaxLength: 25M
-    volumes:
-      - 'clamav_staging_data:/var/lib/clamav'
-    logging: *default-logging
-    deploy:
-      resources:
-        limits:
-          memory: 1536M
-    healthcheck:
-      test: [ "CMD", "/usr/local/bin/clamdcheck.sh" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 180s
-
   # Service d'extraction OCR LOCAL (FastAPI + Tesseract + MRZ à clés ICAO), voir ocr-service/README.md.
   # Joignable en interne sur ocr-staging:8000 (jamais publié) avec un jeton Bearer (OCR_SERVICE_TOKEN, secret).
   # Réseau `ocr_internal` en `internal: true` : le service n'a AUCUNE sortie Internet (il n'en a pas besoin) ;
@@ -190,8 +173,8 @@ services:
     container_name: kysure_ocr_staging
     restart: unless-stopped
     environment:
-      # Sans jeton (>= 16 caractères) le service refuse de démarrer : fail-closed.
-      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:-}'
+      # Fourni par Coolify, OBLIGATOIRE (>= 16 caractères ; le service refuse aussi de démarrer sans) : fail-closed.
+      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:?}'
     read_only: true
     tmpfs:
       - /tmp:size=64m
@@ -201,6 +184,12 @@ services:
       - no-new-privileges:true
     networks:
       - ocr_internal
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     logging: *default-logging
     deploy:
       resources:
@@ -304,4 +293,3 @@ volumes:
   rabbitmq_staging_data: null
   mailpit_staging_data: null
   umami_db_staging_data: null
-  clamav_staging_data: null
