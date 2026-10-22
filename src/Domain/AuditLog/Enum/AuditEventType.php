@@ -78,6 +78,8 @@ enum AuditEventType: string
     case KYC_DOCUMENT_OCR_UNAVAILABLE = 'document.ocr_unavailable';
     case KYC_DOCUMENT_VALIDATED = 'document.validated';
     case KYC_DOCUMENT_REJECTED = 'document.rejected';
+    case KYC_DOCUMENT_REVIEW_CANCELLED = 'document.review_cancelled';
+    case KYC_DOCUMENT_CORRECTIONS_REQUESTED = 'document.corrections_requested';
     case KYC_DOCUMENT_EXPIRED = 'document.expired';
     case DOCUMENT_SHARED = 'document.shared';
 
@@ -226,6 +228,8 @@ enum AuditEventType: string
             self::KYC_DOCUMENT_OCR_UNAVAILABLE => 'Analyse OCR indisponible (vérification manuelle)',
             self::KYC_DOCUMENT_VALIDATED => 'Validation d\'un document',
             self::KYC_DOCUMENT_REJECTED => 'Refus d\'un document',
+            self::KYC_DOCUMENT_REVIEW_CANCELLED => 'Annulation d\'une décision sur un document',
+            self::KYC_DOCUMENT_CORRECTIONS_REQUESTED => 'Corrections demandées au client',
             self::KYC_DOCUMENT_EXPIRED => 'Expiration d\'un document',
             self::DOCUMENT_SHARED => 'Partage d\'un document sécurisé',
 
@@ -332,6 +336,8 @@ enum AuditEventType: string
             self::KYC_DOCUMENT_OCR_UNAVAILABLE,
             self::KYC_DOCUMENT_VALIDATED,
             self::KYC_DOCUMENT_REJECTED,
+            self::KYC_DOCUMENT_REVIEW_CANCELLED,
+            self::KYC_DOCUMENT_CORRECTIONS_REQUESTED,
             self::KYC_DOCUMENT_EXPIRED,
             self::KYC_FOLDER_ARCHIVED,
             self::KYC_FOLDER_DELETED,
@@ -393,6 +399,7 @@ enum AuditEventType: string
     {
         return match ($this) {
             self::KYC_FOLDER_APPROVED,
+            self::KYC_DOCUMENT_VALIDATED,
             self::DER_SIGNED,
             self::DER_ACKNOWLEDGED,
             self::MEETING_REPORT_VALIDATED,
@@ -421,6 +428,8 @@ enum AuditEventType: string
             self::ADMIN_IMPERSONATION_EXIT,
             self::SUBSCRIPTION_TRIAL_EXTENDED,
             self::KYC_DOCUMENT_OCR_UNAVAILABLE,
+            self::KYC_DOCUMENT_REVIEW_CANCELLED,
+            self::KYC_DOCUMENT_CORRECTIONS_REQUESTED,
             self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'bg-amber-50 text-amber-700 border-amber-200',
 
             self::KYC_DOCUMENT_OCR_PROCESSED,

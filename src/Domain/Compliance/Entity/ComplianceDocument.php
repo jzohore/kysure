@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Compliance\Entity;
 
+use App\Domain\Compliance\Enum\DocumentRejectionReason;
 use App\Domain\Compliance\Enum\DocumentType;
 use App\Domain\Compliance\Enum\OcrAnalysisState;
 use App\Domain\Kyc\Entity\Stakeholder;
@@ -37,6 +38,9 @@ class ComplianceDocument
      */
     private const int OCR_IN_PROGRESS_MAX_MINUTES = 30;
 
+    /** Longueur max d'une précision écrite par le conseiller (motif de refus, annulation). */
+    private const int REVIEW_COMMENT_MAX_LENGTH = 500;
+
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -56,8 +60,26 @@ class ComplianceDocument
     #[ORM\Column(length: 255, nullable: true)]
     public private(set) ?string $storagePath = null;
 
+    /** Motif de refus tel que LU PAR LE CLIENT (libellé du motif + précision éventuelle). */
     #[ORM\Column(type: 'text', nullable: true)]
     public private(set) ?string $rejectionReason = null;
+
+    #[ORM\Column(length: 30, nullable: true, enumType: DocumentRejectionReason::class)]
+    public private(set) ?DocumentRejectionReason $rejectionReasonCode = null;
+
+    /** Décision du conseiller sur le fichier courant (validation ou refus) : quand et par qui. */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    public private(set) ?\DateTimeImmutable $reviewedAt = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    public private(set) ?string $reviewedByName = null;
+
+    /**
+     * Le client a été prévenu du refus (e-mail groupé « demande de corrections »). Tant que c'est null, le refus
+     * reste interne au cabinet : le conseiller peut encore l'annuler, et le portail client ne l'affiche pas.
+     */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    public private(set) ?\DateTimeImmutable $correctionRequestedAt = null;
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     public private(set) ?\DateTimeImmutable $expiresAt = null;
@@ -88,6 +110,21 @@ class ComplianceDocument
      */
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     public private(set) ?\DateTimeImmutable $ocrUnavailableAt = null;
+
+    /**
+     * Dernière relance manuelle de l'analyse (bouton opérateur). Sert uniquement à afficher « analyse en cours »
+     * après une relance sur une pièce déposée depuis longtemps ; l'ancienneté du dépôt ({@see self::$uploadedAt})
+     * reste la date légale et n'est jamais modifiée.
+     */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    public private(set) ?\DateTimeImmutable $ocrRequestedAt = null;
+
+    /**
+     * Date de la dernière analyse automatique ABOUTIE du fichier courant (affichée au CGP). Remise à zéro avec
+     * l'analyse elle-même (nouveau fichier, relance) : elle ne date jamais des données qui ne sont plus affichées.
+     */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    public private(set) ?\DateTimeImmutable $ocrAnalyzedAt = null;
 
     /**
      * Si le type est "OTHER", on utilise ce label pour afficher au client
@@ -194,7 +231,8 @@ class ComplianceDocument
     {
         $this->storagePath = $storagePath;
         $this->status = DocumentStatus::UPLOADED;
-        $this->rejectionReason = null;
+        // Nouveau fichier : la décision du conseiller portait sur l'ancien, elle ne vaut plus.
+        $this->resetReview();
         // Un nouveau fichier invalide l'analyse du précédent : sans cela, le garde d'idempotence
         // de l'OCR ne relirait pas le remplaçant et le CGP verrait les données de l'ancienne pièce.
         $this->resetOcrAnalysis();
@@ -263,6 +301,7 @@ class ComplianceDocument
         $this->ocrFindings = [] === $findings ? null : $findings;
         $this->ocrValidatorVersion = $validatorVersion;
         $this->ocrUnavailableAt = null;
+        $this->ocrAnalyzedAt = now();
         // Le document reste « reçu / à vérifier » : l'analyse ne le fait pas
         // avancer, elle éclaire la revue humaine. Jamais actionnable par le client.
         $this->status = DocumentStatus::UPLOADED;
@@ -282,6 +321,32 @@ class ComplianceDocument
                     ? 'aucun point de vigilance'
                     : sprintf('%d point(s) de vigilance', count($findings)),
             )
+        );
+    }
+
+    /**
+     * Relance MANUELLE de l'analyse sur le fichier courant (opérateur) : l'ancienne analyse est écartée et
+     * l'état repasse « en cours » jusqu'au résultat. Refusée tant qu'une analyse est déjà en cours (un double
+     * clic ne doit pas facturer deux fois l'OCR), sur une pièce non analysable, ou déjà tranchée par un humain.
+     *
+     * @throws \DomainException si la relance n'est pas possible
+     */
+    public function requestOcrRerun(): void
+    {
+        if (null === $this->storagePath || DocumentStatus::UPLOADED !== $this->status || !$this->type->supportsOcr()) {
+            throw new \DomainException('Cette pièce ne peut pas être analysée automatiquement (aucun fichier reçu, type non analysable, ou pièce déjà traitée).');
+        }
+
+        if (OcrAnalysisState::IN_PROGRESS === $this->ocrAnalysisState()) {
+            throw new \DomainException('Une analyse est déjà en cours pour cette pièce.');
+        }
+
+        $this->resetOcrAnalysis();
+        $this->ocrRequestedAt = now();
+
+        $this->folder->saveHistory(
+            'Analyse automatique relancée',
+            sprintf('L\'analyse automatique du document "%s" a été relancée manuellement.', $this->type->getLabel())
         );
     }
 
@@ -353,14 +418,17 @@ class ComplianceDocument
         }
 
         $limit = now()->modify(sprintf('-%d minutes', self::OCR_IN_PROGRESS_MAX_MINUTES));
+        // La demande la plus récente : dépôt du fichier, ou relance manuelle de l'analyse.
+        $requestedAt = max($this->uploadedAt, $this->ocrRequestedAt);
 
-        return $this->uploadedAt instanceof \DateTimeImmutable && $this->uploadedAt >= $limit
+        return $requestedAt instanceof \DateTimeImmutable && $requestedAt >= $limit
             ? OcrAnalysisState::IN_PROGRESS
             : OcrAnalysisState::UNAVAILABLE;
     }
 
     private function resetOcrAnalysis(): void
     {
+        $this->ocrAnalyzedAt = null;
         $this->ocrData = null;
         $this->ocrFindings = null;
         $this->ocrValidatorVersion = null;
@@ -379,13 +447,157 @@ class ComplianceDocument
         $this->status = DocumentStatus::FAILED;
     }
 
-    /**
-     * Action métier : L'avocat refuse le document.
-     */
-    public function reject(string $reason): void
+    // =========================================================================
+    // DÉCISION DU CONSEILLER (seul un humain valide ou refuse une pièce)
+    // =========================================================================
+
+    /** La pièce attend la décision du conseiller : un fichier reçu, pas encore tranché. */
+    public function awaitsAdvisorReview(): bool
     {
+        return DocumentType::DER !== $this->type && DocumentStatus::UPLOADED === $this->status && null !== $this->storagePath;
+    }
+
+    /**
+     * @throws \DomainException si la pièce n'attend pas de décision
+     */
+    public function validateByAdvisor(string $advisorName): void
+    {
+        $this->guardAwaitsReview();
+
+        $this->status = DocumentStatus::VALID;
+        $this->rejectionReason = null;
+        $this->rejectionReasonCode = null;
+        $this->correctionRequestedAt = null;
+        $this->reviewedAt = now();
+        $this->reviewedByName = $advisorName;
+
+        $this->folder->saveHistory(
+            'Pièce validée',
+            sprintf('Le document "%s" a été validé par %s.', $this->type->getLabel(), $advisorName)
+        );
+    }
+
+    /**
+     * Refus avec motif. Le refus reste interne tant que le conseiller n'a pas demandé les corrections au client
+     * ({@see self::markCorrectionRequested()}) : il peut encore l'annuler sans que le client l'ait vu.
+     *
+     * @throws \DomainException si la pièce n'attend pas de décision, ou si une précision obligatoire manque
+     */
+    public function rejectByAdvisor(DocumentRejectionReason $reason, ?string $comment, string $advisorName): void
+    {
+        $this->guardAwaitsReview();
+        $comment = $this->cleanComment($comment);
+
+        if ($reason->requiresComment() && null === $comment) {
+            throw new \DomainException('Précisez le motif du refus : il sera communiqué au client.');
+        }
+
         $this->status = DocumentStatus::REJECTED;
-        $this->rejectionReason = $reason;
+        $this->rejectionReasonCode = $reason;
+        $this->rejectionReason = match (true) {
+            null === $comment => $reason->getLabel(),
+            $reason->requiresComment() => $comment,
+            default => sprintf("%s\n%s", $reason->getLabel(), $comment),
+        };
+        $this->correctionRequestedAt = null;
+        $this->reviewedAt = now();
+        $this->reviewedByName = $advisorName;
+        // Une pièce refusée est, par définition, redemandée au client.
+        $this->isAskToClient = true;
+
+        $this->folder->saveHistory(
+            'Pièce refusée',
+            sprintf('Le document "%s" a été refusé par %s. Motif : %s', $this->type->getLabel(), $advisorName, $this->rejectionReason)
+        );
+    }
+
+    /** Une décision réversible : une validation, ou un refus pas encore signalé au client. */
+    public function canCancelReview(): bool
+    {
+        return DocumentStatus::VALID === $this->status
+            || (DocumentStatus::REJECTED === $this->status && !$this->correctionRequestedAt instanceof \DateTimeImmutable);
+    }
+
+    /**
+     * Annule la décision (erreur de clic, pièce à revoir) : la pièce redevient « à vérifier ». Motif obligatoire.
+     *
+     * @return DocumentStatus la décision annulée (VALID ou REJECTED)
+     *
+     * @throws \DomainException si la décision n'est plus annulable ou si le motif manque
+     */
+    public function cancelReview(string $reason, string $advisorName): DocumentStatus
+    {
+        if (!$this->canCancelReview()) {
+            throw new \DomainException('Cette décision ne peut plus être annulée (pièce non tranchée, ou refus déjà signalé au client).');
+        }
+
+        $reason = $this->cleanComment($reason);
+        if (null === $reason) {
+            throw new \DomainException('Indiquez pourquoi vous annulez cette décision.');
+        }
+
+        $cancelled = $this->status;
+        $this->status = DocumentStatus::UPLOADED;
+        $this->resetReview();
+
+        $this->folder->saveHistory(
+            DocumentStatus::VALID === $cancelled ? 'Validation annulée' : 'Refus annulé',
+            sprintf('La décision sur le document "%s" a été annulée par %s. Motif : %s', $this->type->getLabel(), $advisorName, $reason)
+        );
+
+        return $cancelled;
+    }
+
+    /** Refusée et pas encore signalée au client : à inclure dans la prochaine demande de corrections. */
+    public function isRejectionPendingNotice(): bool
+    {
+        return DocumentStatus::REJECTED === $this->status && !$this->correctionRequestedAt instanceof \DateTimeImmutable;
+    }
+
+    /**
+     * Le client vient d'être prévenu de ce refus. Idempotent : false si déjà signalé (jamais deux e-mails).
+     */
+    public function markCorrectionRequested(): bool
+    {
+        if (!$this->isRejectionPendingNotice()) {
+            return false;
+        }
+
+        $this->correctionRequestedAt = now();
+
+        return true;
+    }
+
+    /** Le client voit le refus (portail) seulement une fois qu'il lui a été signalé. */
+    public function isRejectionVisibleToClient(): bool
+    {
+        return DocumentStatus::REJECTED === $this->status && $this->correctionRequestedAt instanceof \DateTimeImmutable;
+    }
+
+    private function guardAwaitsReview(): void
+    {
+        if (!$this->awaitsAdvisorReview()) {
+            throw new \DomainException('Cette pièce n\'attend pas de décision (aucun fichier reçu, ou déjà validée / refusée).');
+        }
+    }
+
+    private function resetReview(): void
+    {
+        $this->rejectionReason = null;
+        $this->rejectionReasonCode = null;
+        $this->reviewedAt = null;
+        $this->reviewedByName = null;
+        $this->correctionRequestedAt = null;
+    }
+
+    private function cleanComment(?string $comment): ?string
+    {
+        $comment = trim((string) $comment);
+        if ('' === $comment) {
+            return null;
+        }
+
+        return mb_substr($comment, 0, self::REVIEW_COMMENT_MAX_LENGTH);
     }
 
     /**

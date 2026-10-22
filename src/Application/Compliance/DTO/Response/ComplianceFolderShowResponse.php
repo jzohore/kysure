@@ -50,6 +50,8 @@ readonly class ComplianceFolderShowResponse
         public ?string $type,
         public ?string $contactAddress = null,
         public ?array $postMeetingReport = null,
+        // Pièces refusées que le client ne connaît pas encore : à lui signaler par « Demander les corrections ».
+        public int $pendingCorrectionCount = 0,
     ) {
     }
 }

@@ -46,7 +46,8 @@ $safeValueKeys = [
     'ROUTER_REQUEST_CONTEXT_SCHEME',
 
     // Service Modes / Endpoints public infrastructure
-    'OCR_MODE',
+    // Service d'extraction OCR local : hôte interne du compose (le jeton, lui, est remplacé par un placeholder de dev).
+    'OCR_SERVICE_URL',
     'OPEN_SANCTIONS_MODE',
     // Antivirus : hôte/port internes. VIRUS_SCAN_MODE n'est volontairement PAS en liste
     // blanche : un « disabled » local ne doit jamais fuiter dans le .env versionné.
@@ -85,6 +86,12 @@ $customPlaceholders = [
     'EXPECTED_USER' => 'cgp_admin',
     'EXPECTED_PASS' => 'change_me_local_pass',
     'S3_BUCKET_NAME' => 'kysure-kyc-documents-dev',
+    // Jeton du service OCR local en dev : valeur NON secrète, partagée avec le conteneur `ocr` (compose.yaml).
+    // Staging/prod : secret défini hors dépôt (sops / Coolify), jamais cette valeur.
+    'OCR_SERVICE_TOKEN' => 'dev-only-ocr-token-change-me',
+    // Le mode OCR du dev (ex. « hybrid ») ne doit jamais devenir le défaut versionné : sans jeton du service local,
+    // un environnement qui ne surcharge pas OCR_MODE perdrait l'analyse. Défaut versionné : Textract.
+    'OCR_MODE' => 'real',
 ];
 
 /**

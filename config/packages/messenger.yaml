@@ -49,6 +49,7 @@ framework:
             'App\Infrastructure\Compliance\Message\SendDerSignatureMessage': async_priority
             'App\Infrastructure\Workspace\Message\DispatchSuspendedEmailMessage': async_priority
             'App\Infrastructure\Compliance\Message\SendClientDerConfirmationMessage': async_priority
+            'App\Infrastructure\Compliance\Message\SendDocumentCorrectionsRequestMessage': async_priority
             'App\Infrastructure\Compliance\Message\DispatchNotifyDerSigned': async_priority
             'App\Infrastructure\Compliance\Message\DispatchNotifyDerRejected': async_priority
             'App\Infrastructure\Compliance\Message\SendClientRelationshipEndedMessage': async_priority

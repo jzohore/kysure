@@ -15,6 +15,7 @@ readonly class AmazonTextractProvider implements OcrProviderInterface
     public function __construct(
         private TextractClient $textractClient,
         private LoggerInterface $logger,
+        private OcrServiceClient $ocrService,
     ) {
     }
 
@@ -401,30 +402,10 @@ readonly class AmazonTextractProvider implements OcrProviderInterface
 
         try {
             if ('application/pdf' === mime_content_type($localTmpFile)) {
-                // 🛡️ ImageMagick alloue HORS memory_limit PHP : on le borne explicitement (process-wide),
-                // pour qu'un gros PDF ne fasse pas tuer le worker par le noyau en plein message.
-                \Imagick::setResourceLimit(\Imagick::RESOURCETYPE_MEMORY, 128 * 1024 * 1024);
-                \Imagick::setResourceLimit(\Imagick::RESOURCETYPE_MAP, 256 * 1024 * 1024);
-
-                $imagick = new \Imagick();
-                $imagick->setResolution(250, 250);
-                // Seules les 2 premières pages partent à Textract : on ne rastérise QUE celles-là
-                // (un relevé de 30 pages coûtait ~48 Mo par page rastérisée pour rien).
-                $imagick->readImage($localTmpFile . '[0-1]');
-
-                $pages = [];
-                $numPages = min($imagick->getNumberImages(), 2);
-
-                for ($i = 0; $i < $numPages; ++$i) {
-                    $imagick->setIteratorIndex($i);
-                    $imagick->setImageFormat('jpeg');
-                    $pages[] = $imagick->getImageBlob();
-                }
-
-                $imagick->clear();
-                $imagick->destroy();
-
-                return $pages;
+                // Textract (AnalyzeID) n'accepte que des images. Le PDF est rastérisé par le service OCR isolé
+                // (pdfium, sans réseau ni secrets) : jamais de Ghostscript sur un fichier client dans ce worker,
+                // dont la policy ImageMagick refuse d'ailleurs les PDF. Seules les 2 premières pages reviennent.
+                return $this->ocrService->renderPdfPages($localTmpFile);
             }
 
             $content = file_get_contents($localTmpFile);

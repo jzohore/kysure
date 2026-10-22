@@ -83,6 +83,12 @@ class ComplianceFolderShowAssembler
                 size: $doc->size,
                 isAwaitingClient: $doc->isAskToClient && !$doc->isReceived() && DocumentStatus::PROCESSING !== $doc->status,
                 ocrState: $doc->ocrAnalysisState()->value,
+                ocrAnalyzedAt: $doc->ocrAnalyzedAt,
+                awaitsReview: $doc->awaitsAdvisorReview() && $folder->isOpenForDocumentReview(),
+                canCancelReview: $doc->canCancelReview() && $folder->isOpenForDocumentReview(),
+                reviewedAt: $doc->reviewedAt,
+                reviewedByName: $doc->reviewedByName,
+                correctionRequestedAt: $doc->correctionRequestedAt,
             );
 
             if ($isKyb && null === $docDto->stakeholderSlug) {
@@ -157,6 +163,7 @@ class ComplianceFolderShowAssembler
             type: $type,
             contactAddress: $contactAddress,
             postMeetingReport: $folder->postMeetingReport,
+            pendingCorrectionCount: $folder->isOpenForDocumentReview() ? count($folder->rejectionsPendingNotice()) : 0,
         );
     }
 }

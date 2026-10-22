@@ -40,6 +40,8 @@ class ComplianceShowController extends AbstractController
         return $this->render('@app/compliance/compliance_show.html.twig', [
             'dto' => $viewDto,
             'page_title' => 'Dossier KYC / KYB',
+            // Valider / refuser les pièces : même habilitation qu'approuver le dossier (« valider des actes »).
+            'can_review_documents' => $this->isGranted(ComplianceFolderVoter::APPROVE, $complianceFolder),
         ]);
     }
 }

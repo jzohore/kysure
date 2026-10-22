@@ -49,6 +49,12 @@ services:
       VIRUS_SCAN_MODE: clamav
       CLAMAV_HOST: clamav-staging
       CLAMAV_PORT: '3310'
+      # Service d'extraction OCR local (OCR_MODE=local|hybrid). Le jeton est un secret (sops / éditeur d'env Coolify).
+      OCR_SERVICE_URL: 'http://ocr-staging:8000'
+      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:-}'
+    networks:
+      - default
+      - ocr_internal
     logging: *default-logging
     deploy:
       resources:
@@ -63,6 +69,9 @@ services:
       # minutes et ne doit pas bloquer le déploiement. Tant que clamd n'est pas prêt, les
       # dépôts de pièces sont refusés (fail-closed), le reste du site fonctionne.
       clamav-staging:
+        condition: service_started
+      # service_started : une panne de l'OCR local ne doit pas bloquer le déploiement du site.
+      ocr-staging:
         condition: service_started
 
   worker-staging:
@@ -83,6 +92,12 @@ services:
       # Le worker exécute les tâches planifiées (scheduler_cron) : c'est ici que
       # le verrou anti-concurrence protège contre une double exécution.
       LOCK_DSN: 'flock'
+      # C'est le worker qui appelle le service OCR (handler ProcessOcrMessageHandler, file async_heavy).
+      OCR_SERVICE_URL: 'http://ocr-staging:8000'
+      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:-}'
+    networks:
+      - default
+      - ocr_internal
     logging: *default-logging
     deploy:
       resources:
@@ -93,6 +108,8 @@ services:
         condition: service_healthy
       rabbitmq-staging:
         condition: service_healthy
+      ocr-staging:
+        condition: service_started
 
   database-staging:
     image: 'postgres:16-alpine'
@@ -160,6 +177,35 @@ services:
       timeout: 10s
       retries: 5
       start_period: 180s
+
+  # Service d'extraction OCR LOCAL (FastAPI + Tesseract + MRZ à clés ICAO), voir ocr-service/README.md.
+  # Joignable en interne sur ocr-staging:8000 (jamais publié) avec un jeton Bearer (OCR_SERVICE_TOKEN, secret).
+  # Réseau `ocr_internal` en `internal: true` : le service n'a AUCUNE sortie Internet (il n'en a pas besoin) ;
+  # seuls web et worker l'y rejoignent. Utilisateur non-root, FS en lecture seule hors /tmp, capacités retirées.
+  # RAM : ~40 Mo au repos, ~230 Mo de pic mesuré sur un scan A4 dense de 2 pages ; limite 512 Mo.
+  ocr-staging:
+    build:
+      context: ./ocr-service
+      target: runtime
+    container_name: kysure_ocr_staging
+    restart: unless-stopped
+    environment:
+      # Sans jeton (>= 16 caractères) le service refuse de démarrer : fail-closed.
+      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:-}'
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - ocr_internal
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   mailpit-staging:
     image: 'axllent/mailpit:latest'
@@ -247,6 +293,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+
+networks:
+  # Réseau SANS sortie Internet, partagé par web, worker et le service OCR local uniquement.
+  ocr_internal:
+    internal: true
 
 volumes:
   postgres_staging_data: null

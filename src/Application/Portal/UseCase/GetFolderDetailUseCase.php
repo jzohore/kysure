@@ -12,6 +12,7 @@ use App\Domain\Compliance\Entity\DerAcknowledgement;
 use App\Domain\Compliance\Exception\ComplianceFolderNotFoundException;
 use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
+use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Domain\User\Entity\Client;
 use App\Domain\User\Enum\ClientPortalStatus;
 
@@ -39,9 +40,10 @@ readonly class GetFolderDetailUseCase
         $documentDtos = array_map(static fn (ComplianceDocument $doc): DocumentItemDto => new DocumentItemDto(
             id: $doc->slugId,
             name: $doc->type->getLabel(), // Suppose un Enum DocumentType
-            status: $doc->status,
+            // Un refus encore interne au cabinet (pas signalé) n'est pas montré au client.
+            status: DocumentStatus::REJECTED === $doc->status && !$doc->isRejectionVisibleToClient() ? DocumentStatus::UPLOADED : $doc->status,
             uploadedAtFormatted: $doc->uploadedAt?->format('d/m/Y à H:i'),
-            rejectionReason: $doc->rejectionReason,
+            rejectionReason: $doc->isRejectionVisibleToClient() ? $doc->rejectionReason : null,
             storagePath: $doc->storagePath,
         ), $documents);
 

@@ -10,7 +10,9 @@
         'share_capital': 'Capital social', 'date_of_registration': 'Date d\'immatriculation',
         'registered_address': 'Siège social', 'duration_of_company': 'Durée de la société',
         'activity_code_ape': 'Code APE', 'management': 'Dirigeants', 'establishments': 'Établissements secondaires',
-        'mrz': 'Bande de lecture optique (MRZ)', 'address': 'Adresse'
+        'mrz': 'Bande de lecture optique (MRZ)', 'address': 'Adresse',
+        'holder_name': 'Titulaire', 'document_date': 'Date du document', 'date_of_expiry': 'Date d\'expiration',
+        'iban': 'IBAN', 'bic': 'BIC'
     } %}
 
     <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
@@ -22,7 +24,7 @@
                 <dd class="text-slate-900 text-xs">
                     {% if value is empty %}
                         <span class="text-slate-300 italic">Non détecté</span>
-                    {% elseif key in ['birth_date', 'date_of_registration'] %}
+                    {% elseif key in ['birth_date', 'date_of_registration', 'document_date', 'date_of_expiry'] %}
                         <span class="font-medium">{{ value|date('d/m/Y') }}</span>
                     {% elseif key == 'share_capital' %}
                         <span class="font-medium">{{ value|number_format(0, ',', ' ') }} €</span>
@@ -50,6 +52,12 @@
                                 <div class="whitespace-nowrap">{{ line_val }}</div>
                             {% endfor %}
                         </div>
+                    {% elseif key == 'iban' %}
+                        {# Donnée bancaire : jamais affichée en entier (minimisation) #}
+                        <span class="font-medium tabular-nums">{{ value|slice(0, 4) }} •••• •••• {{ value|slice(-4) }}</span>
+                    {% elseif key == 'address' and value is not iterable %}
+                        {# Textract et le service OCR local renvoient l'adresse en une ligne ; Mindee, un objet structuré #}
+                        <div class="text-slate-700">{{ value }}</div>
                     {% elseif key == 'address' %}
                         <div class="text-slate-700">
                             {{ value.full_address|default(value.city ~ (value.department ? ' (' ~ value.department ~ ')' : '')) }}
@@ -63,21 +71,178 @@
     </dl>
 {% endmacro %}
 
-{% macro render_ocr_state(state, findings) %}
+{# Nom du fichier d'une pièce. Un document généré par KYSURE (DER) n'a pas de nom d'origine : seul son chemin est connu. #}
+{% macro file_label(doc) %}
+    <p class="text-xs text-slate-500 mt-0.5 truncate max-w-[200px] sm:max-w-xs">
+        {%- if doc.filename -%}
+            {{ doc.filename }}
+        {%- elseif doc.storagePath -%}
+            {{ doc.statusValue in ['generated', 'acknowledged'] ? 'PDF généré par KYSURE' : 'Fichier reçu' }}
+        {%- else -%}
+            Aucun fichier
+        {%- endif -%}
+    </p>
+{% endmacro %}
+
+{# Pied de ligne d'une pièce : état de l'analyse automatique à gauche, action « Analyser / Relancer » à droite.
+   Action réservée à l'équipe KYSURE et au dev (chaque analyse peut être facturée par le fournisseur OCR). #}
+{% macro ocr_footer(doc, folderSlug) %}
+    {% set canAnalyse = (app.environment == 'dev' or is_granted('ROLE_ADMIN'))
+        and doc.storagePath and doc.statusValue == 'uploaded' and doc.ocrState in ['completed', 'unavailable'] %}
+    {% if doc.ocrState in ['in_progress', 'manual_check', 'unavailable', 'completed'] %}
+        <div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div class="min-w-0">{{ _self.render_ocr_state(doc.ocrState, doc.ocrFindings, doc.ocrAnalyzedAt) }}</div>
+            {% if canAnalyse %}
+                <form action="{{ path('app_compliance_document_ocr_rerun', { slugId: folderSlug, documentId: doc.id }) }}" method="post" class="sm:ml-auto shrink-0">
+                    <input type="hidden" name="_token" value="{{ csrf_token('rerun_ocr_' ~ doc.id) }}">
+                    <twig:Button type="submit" variant="outline" size="sm" aria-label="{{ doc.ocrState == 'completed' ? 'Relancer' : 'Lancer' }} l'analyse automatique du document {{ doc.typeLabel }}">
+                        {% if doc.ocrState == 'completed' %}
+                            <twig:ux:icon name="tabler:refresh" class="size-4 text-slate-500" aria-hidden="true" /> Relancer l'analyse
+                        {% else %}
+                            <twig:ux:icon name="tabler:scan" class="size-4 text-slate-500" aria-hidden="true" /> Analyser le document
+                        {% endif %}
+                    </twig:Button>
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{# Décision du conseiller sur une pièce. Avant décision : « Refuser » / « Valider ». Après : qui, quand, et
+   « Annuler » tant que c'est réversible (validation, ou refus pas encore signalé au client). #}
+{% macro review_bar(doc, folderSlug, canReview) %}
+    {% set csrf = csrf_token('review_doc_' ~ doc.id) %}
+    {% if doc.statusValue == 'valid' and doc.reviewedAt %}
+        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p class="text-xs text-slate-600 flex items-center gap-1.5">
+                <twig:ux:icon name="tabler:circle-check" class="size-4 text-emerald-600" aria-hidden="true" />
+                Validée par {{ doc.reviewedByName }} le {{ doc.reviewedAt|date('d/m/Y à H:i') }}
+            </p>
+            {% if canReview and doc.canCancelReview %}
+                {{ _self.cancel_review_dialog(doc, folderSlug, csrf, 'Annuler la validation') }}
+            {% endif %}
+        </div>
+    {% elseif doc.statusValue == 'rejected' and doc.reviewedAt %}
+        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p class="text-xs text-slate-600 flex flex-wrap items-center gap-1.5">
+                <twig:ux:icon name="tabler:circle-x" class="size-4 text-rose-600" aria-hidden="true" />
+                Refusée par {{ doc.reviewedByName }} le {{ doc.reviewedAt|date('d/m/Y à H:i') }} ·
+                {% if doc.correctionRequestedAt %}
+                    signalée au client le {{ doc.correctionRequestedAt|date('d/m/Y') }}
+                {% else %}
+                    <span class="font-medium text-amber-800">pas encore signalée au client</span>
+                {% endif %}
+            </p>
+            {% if canReview and doc.canCancelReview %}
+                {{ _self.cancel_review_dialog(doc, folderSlug, csrf, 'Annuler le refus') }}
+            {% endif %}
+        </div>
+    {% elseif canReview and doc.awaitsReview %}
+        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p class="text-xs text-slate-600">À vérifier : validez la pièce, ou refusez-la avec un motif communiqué au client.</p>
+            <div class="flex items-center gap-2 shrink-0">
+                <twig:Dialog id="reject_doc_{{ doc.id }}" class="sm:max-w-lg">
+                    <twig:Dialog:Trigger>
+                        <twig:Button variant="destructive" size="sm" {{ ...dialog_trigger_attrs }}>
+                            <twig:ux:icon name="tabler:x" class="size-4" aria-hidden="true" /> Refuser
+                        </twig:Button>
+                    </twig:Dialog:Trigger>
+                    <twig:Dialog:Content>
+                        <twig:Dialog:Header>
+                            <twig:Dialog:Title class="text-slate-900">Refuser « {{ doc.typeLabel }} »</twig:Dialog:Title>
+                            <twig:Dialog:Description class="text-slate-600">
+                                Le motif sera lu par le client. Rien ne lui est envoyé maintenant : vous lui signalerez
+                                toutes les pièces refusées en une fois avec « Demander les corrections au client ».
+                            </twig:Dialog:Description>
+                        </twig:Dialog:Header>
+                        <form method="post" action="{{ path('app_compliance_document_reject', { slugId: folderSlug, documentId: doc.id }) }}" class="mt-4 space-y-4">
+                            <input type="hidden" name="_token" value="{{ csrf }}">
+                            <div>
+                                <label for="reject_reason_{{ doc.id }}" class="block text-sm font-medium text-slate-900">Motif</label>
+                                <select id="reject_reason_{{ doc.id }}" name="reason" required class="mt-1.5 block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+                                    <option value="" disabled selected>Choisir un motif…</option>
+                                    {% for reason in enum_cases('App\\Domain\\Compliance\\Enum\\DocumentRejectionReason') %}
+                                        <option value="{{ reason.value }}">{{ reason.label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="reject_comment_{{ doc.id }}" class="block text-sm font-medium text-slate-900">Précision pour le client</label>
+                                <p id="reject_comment_help_{{ doc.id }}" class="text-xs text-slate-600 mt-0.5">Facultative, sauf pour « Autre motif ». 500 caractères maximum.</p>
+                                <textarea id="reject_comment_{{ doc.id }}" name="comment" rows="3" maxlength="500" aria-describedby="reject_comment_help_{{ doc.id }}" class="mt-1.5 block w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" placeholder="Ex. : merci de photographier la pièce à plat, sans reflet."></textarea>
+                            </div>
+                            <twig:Dialog:Footer>
+                                <twig:Dialog:Close>
+                                    <twig:Button type="button" variant="outline" {{ ...dialog_close_attrs }}>Annuler</twig:Button>
+                                </twig:Dialog:Close>
+                                <twig:Button type="submit" variant="destructive">Refuser la pièce</twig:Button>
+                            </twig:Dialog:Footer>
+                        </form>
+                    </twig:Dialog:Content>
+                </twig:Dialog>
+                <form method="post" action="{{ path('app_compliance_document_validate', { slugId: folderSlug, documentId: doc.id }) }}">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <twig:Button type="submit" variant="success" size="sm" aria-label="Valider le document {{ doc.typeLabel }}">
+                        <twig:ux:icon name="tabler:check" class="size-4" aria-hidden="true" /> Valider
+                    </twig:Button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{% macro cancel_review_dialog(doc, folderSlug, csrf, label) %}
+    <twig:Dialog id="cancel_review_{{ doc.id }}" class="sm:max-w-lg">
+        <twig:Dialog:Trigger>
+            <twig:Button variant="ghost" size="sm" class="shrink-0" {{ ...dialog_trigger_attrs }}>
+                <twig:ux:icon name="tabler:arrow-back-up" class="size-4" aria-hidden="true" /> {{ label }}
+            </twig:Button>
+        </twig:Dialog:Trigger>
+        <twig:Dialog:Content>
+            <twig:Dialog:Header>
+                <twig:Dialog:Title class="text-slate-900">{{ label }} — « {{ doc.typeLabel }} »</twig:Dialog:Title>
+                <twig:Dialog:Description class="text-slate-600">
+                    La pièce redeviendra « à vérifier ». L'annulation et son motif sont conservés dans le journal d'audit.
+                </twig:Dialog:Description>
+            </twig:Dialog:Header>
+            <form method="post" action="{{ path('app_compliance_document_cancel_review', { slugId: folderSlug, documentId: doc.id }) }}" class="mt-4 space-y-4">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <div>
+                    <label for="cancel_reason_{{ doc.id }}" class="block text-sm font-medium text-slate-900">Motif de l'annulation</label>
+                    <textarea id="cancel_reason_{{ doc.id }}" name="reason" rows="3" maxlength="500" required class="mt-1.5 block w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" placeholder="Ex. : validée par erreur, date de validité à revérifier."></textarea>
+                </div>
+                <twig:Dialog:Footer>
+                    <twig:Dialog:Close>
+                        <twig:Button type="button" variant="outline" {{ ...dialog_close_attrs }}>Fermer</twig:Button>
+                    </twig:Dialog:Close>
+                    <twig:Button type="submit" variant="dark">{{ label }}</twig:Button>
+                </twig:Dialog:Footer>
+            </form>
+        </twig:Dialog:Content>
+    </twig:Dialog>
+{% endmacro %}
+
+{% macro render_ocr_state(state, findings, analyzedAt = null) %}
     {% if state == 'in_progress' %}
-        <p class="mt-3 text-xs text-slate-600 flex items-center gap-1.5" role="status">
+        <p class="text-xs text-slate-600 flex items-center gap-1.5" role="status">
             <twig:ux:icon name="tabler:clock-hour-4" class="size-3.5 text-slate-400" aria-hidden="true" />
             Analyse automatique en cours…
         </p>
     {% elseif state == 'manual_check' %}
-        <p class="mt-3 text-xs text-slate-600 flex items-center gap-1.5">
+        <p class="text-xs text-slate-600 flex items-center gap-1.5">
             <twig:ux:icon name="tabler:eye" class="size-3.5 text-slate-400" aria-hidden="true" />
             Vérification manuelle : ce type de pièce n'est pas analysé automatiquement.
         </p>
     {% elseif state == 'unavailable' and findings is empty %}
-        <p class="mt-3 text-xs text-amber-800 flex items-center gap-1.5" role="status">
+        <p class="text-xs text-amber-800 flex items-center gap-1.5" role="status">
             <twig:ux:icon name="tabler:alert-triangle" class="size-3.5 text-amber-600" aria-hidden="true" />
             L'analyse automatique n'a pas abouti. Vérification manuelle requise.
+        </p>
+    {% endif %}
+    {% if state == 'completed' and analyzedAt %}
+        <p class="text-xs text-slate-600 flex items-center gap-1.5">
+            <twig:ux:icon name="tabler:calendar-check" class="size-3.5 text-slate-400" aria-hidden="true" />
+            Dernière analyse automatique le <time datetime="{{ analyzedAt|date('c') }}">{{ analyzedAt|date('d/m/Y à H:i') }}</time>
         </p>
     {% endif %}
 {% endmacro %}
@@ -235,6 +400,27 @@
                     </div>
                 {% endif %}
 
+                {# Refus encore internes : un seul e-mail au client pour toutes les pièces à refournir. #}
+                {% if can_review_documents and dto.pendingCorrectionCount > 0 %}
+                    <div class="bg-white rounded-2xl ring-1 ring-slate-900/5 border-l-4 border-l-amber-500 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3" role="status">
+                        <div class="flex items-start gap-3">
+                            <twig:ux:icon name="tabler:alert-triangle" class="size-5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+                            <div>
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {{ dto.pendingCorrectionCount }} pièce{{ dto.pendingCorrectionCount > 1 ? 's refusées' : ' refusée' }}, pas encore signalée{{ dto.pendingCorrectionCount > 1 ? 's' : '' }} au client
+                                </p>
+                                <p class="text-xs text-slate-600 mt-0.5">Le client recevra un seul e-mail listant les pièces à fournir à nouveau et leurs motifs, avec le lien de dépôt.</p>
+                            </div>
+                        </div>
+                        <form method="post" action="{{ path('app_compliance_request_corrections', { slugId: dto.slugId }) }}" class="shrink-0">
+                            <input type="hidden" name="_token" value="{{ csrf_token('request_corrections_' ~ dto.slugId) }}">
+                            <twig:Button type="submit" variant="dark" size="sm">
+                                <twig:ux:icon name="tabler:mail-forward" class="size-4" aria-hidden="true" /> Demander les corrections au client
+                            </twig:Button>
+                        </form>
+                    </div>
+                {% endif %}
+
                 {# POLYMORPHISME GÉRÉ PAR LE DTO #}
                 {% if dto.isKyb %}
 
@@ -269,8 +455,7 @@
                                                                 <twig:ux:icon name="tabler:clock-hour-4" class="size-3" aria-hidden="true" /> En attente du client
                                                             </p>
                                                         {% else %}
-                                                            {% set rawName = doc.filename|replace({ ('.' ~ filename|last): '' }) %}
-                                                            <p class="text-xs text-slate-500 mt-0.5 truncate max-w-[200px] sm:max-w-xs">{{ rawName|default('Aucun fichier') }}</p>
+                                                            {{ _self.file_label(doc) }}
                                                         {% endif %}
                                                     </div>
                                                 </div>
@@ -296,13 +481,13 @@
                                                 <div class="mt-3 p-3 bg-rose-50 rounded-lg ring-1 ring-inset ring-rose-600/20 text-xs text-rose-700 flex gap-2 items-start" role="alert">
                                                     <twig:ux:icon name="tabler:alert-triangle" class="size-4 shrink-0 mt-0.5 text-rose-600" aria-hidden="true" />
                                                     <div>
-                                                        <span class="font-bold">Motif du refus automatique :</span>
+                                                        <span class="font-bold">Motif du refus :</span>
                                                         <p class="mt-0.5 whitespace-pre-line">{{ doc.rejectionReason }}</p>
                                                     </div>
                                                 </div>
                                             {% endif %}
 
-                                            {{ _self.render_ocr_state(doc.ocrState, doc.ocrFindings) }}
+                                            {{ _self.ocr_footer(doc, dto.slugId) }}
                                             {{ _self.render_findings(doc.ocrFindings) }}
 
                                             {% if doc.ocrData %}
@@ -316,6 +501,7 @@
                                                     </div>
                                                 </details>
                                             {% endif %}
+                                            {{ _self.review_bar(doc, dto.slugId, can_review_documents) }}
                                         </li>
                                     {% endfor %}
                                 </ul>
@@ -376,7 +562,7 @@
                                                         {% endif %}
                                                     </div>
                                                 </div>
-                                                {{ _self.render_ocr_state(doc.ocrState, doc.ocrFindings) }}
+                                                {{ _self.ocr_footer(doc, dto.slugId) }}
                                                 {{ _self.render_findings(doc.ocrFindings) }}
 
                                                 {% if doc.ocrData %}
@@ -390,6 +576,7 @@
                                                         </div>
                                                     </details>
                                                 {% endif %}
+                                                {{ _self.review_bar(doc, dto.slugId, can_review_documents) }}
                                             </div>
                                         {% else %}
                                             <p class="text-[11px] text-slate-500 italic pl-0 sm:pl-2">Aucun document requis pour le moment.</p>
@@ -429,8 +616,7 @@
                                                             <twig:ux:icon name="tabler:clock-hour-4" class="size-3" aria-hidden="true" /> En attente du client
                                                         </p>
                                                     {% else %}
-                                                        {% set rawName = doc.filename|replace({ ('.' ~ doc.filename|last): '' }) %}
-                                                        <p class="text-xs text-slate-500 mt-0.5 truncate max-w-[200px] sm:max-w-xs">{{ rawName|default('Aucun fichier') }}</p>
+                                                        {{ _self.file_label(doc) }}
                                                     {% endif %}
                                                 </div>
 
@@ -448,20 +634,6 @@
                                                         </twig:Button>
                                                     {% endif %}
 
-                                                    {# 🪄 Le nouveau bouton OCR "Mode Debug / Admin" #}
-                                                    {% if app.environment == 'dev' or is_granted('ROLE_ADMIN') %}
-                                                        <twig:Button as="a" href="" variant="link" aria-label="Forcer l'extraction OCR" class="focus-visible:ring-2 focus-visible:ring-violet-500 rounded-md !p-1 group relative" title="Forcer l'analyse IA (Debug)">
-                                                            <twig:ux:icon name="tabler:robot" class="size-5 text-slate-400 group-hover:text-violet-600 transition-colors" aria-hidden="true" />
-
-                                                            {# Petit indicateur visuel optionnel #}
-                                                            {% if not doc.ocrData %}
-                                                                <span class="absolute top-1 right-1 flex h-2 w-2">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
-                    </span>
-                                                            {% endif %}
-                                                        </twig:Button>
-                                                    {% endif %}
                                                 </div>
                                             </div>
                                         </div>
@@ -469,13 +641,13 @@
                                             <div class="mt-3 p-3 bg-rose-50 rounded-lg ring-1 ring-inset ring-rose-600/20 text-xs text-rose-700 flex gap-2 items-start" role="alert">
                                                 <twig:ux:icon name="tabler:alert-triangle" class="size-4 shrink-0 mt-0.5 text-rose-600" aria-hidden="true" />
                                                 <div>
-                                                    <span class="font-bold">Motif du refus automatique :</span>
+                                                    <span class="font-bold">Motif du refus :</span>
                                                     <p class="mt-0.5 whitespace-pre-line">{{ doc.rejectionReason }}</p>
                                                 </div>
                                             </div>
                                         {% endif %}
 
-                                        {{ _self.render_ocr_state(doc.ocrState, doc.ocrFindings) }}
+                                        {{ _self.ocr_footer(doc, dto.slugId) }}
                                         {{ _self.render_findings(doc.ocrFindings) }}
 
                                         {% if doc.ocrData %}
@@ -489,6 +661,7 @@
                                                 </div>
                                             </details>
                                         {% endif %}
+                                        {{ _self.review_bar(doc, dto.slugId, can_review_documents) }}
                                     </li>
                                 {% else %}
                                     <li class="p-8 sm:p-10 text-center">

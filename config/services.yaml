@@ -8,6 +8,10 @@ parameters:
     router.request_context.scheme: 'https'
     router.request_context.base_url: ''
     gemini_api_key: '%env(GEMINI_API_KEY)%'
+    # Service d'extraction OCR local : URL interne par défaut ; jeton vide par défaut (le service répond alors 401,
+    # jamais de secret par défaut dans le code).
+    env(OCR_SERVICE_URL): 'http://ocr:8000'
+    env(OCR_SERVICE_TOKEN): ''
 
 services:
     # ==========================================
@@ -35,6 +39,7 @@ services:
             - '../src/Domain/*/Event/'
             - '../src/Domain/*/ValueObject/'
             - '../src/Domain/*/Exception/'
+            - '../src/Infrastructure/*/Exception/'
 
             # --- Objets Applicatifs (Passés par paramètre, non instanciés par Symfony) ---
             - '../src/Application/DTO/'
@@ -64,6 +69,12 @@ services:
         factory: [ '@App\Infrastructure\Ocr\OcrFactory', 'create' ]
         arguments:
             $mode: '%env(OCR_MODE)%'
+    # Le mode `hybrid` combine deux moteurs : câblage explicite (l'alias ci-dessus passe par la Factory,
+    # qui dépend elle-même du HybridOcrProvider → référence circulaire si on laissait l'autowiring faire).
+    App\Infrastructure\Ocr\HybridOcrProvider:
+        arguments:
+            $local: '@App\Infrastructure\Ocr\LocalOcrProvider'
+            $textract: '@App\Infrastructure\Ocr\AmazonTextractProvider'
 
     # Antivirus des pièces déposées par les clients : ClamAV (clamd) sauf mode « disabled » explicite
     App\Domain\Port\VirusScannerInterface:

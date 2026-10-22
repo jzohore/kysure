@@ -307,6 +307,68 @@ abstract class ComplianceFolder
         ], true);
     }
 
+    /**
+     * Les pièces peuvent être validées / refusées par le conseiller : collecte ouverte ou dossier en revue.
+     * Un dossier tranché (approuvé, rejeté), archivé ou supprimé est figé.
+     */
+    public function isOpenForDocumentReview(): bool
+    {
+        return in_array($this->status, [
+            ComplianceFolderStatus::AWAITING_CLIENT,
+            ComplianceFolderStatus::PENDING_DOCS,
+            ComplianceFolderStatus::NEEDS_CORRECTION,
+            ComplianceFolderStatus::IN_REVIEW,
+        ], true);
+    }
+
+    /**
+     * Pièces refusées que le client ne connaît pas encore.
+     *
+     * @return list<ComplianceDocument>
+     */
+    public function rejectionsPendingNotice(): array
+    {
+        return array_values($this->documents->filter(
+            static fn (ComplianceDocument $doc): bool => $doc->isRejectionPendingNotice()
+        )->toArray());
+    }
+
+    /**
+     * Signale au client, en UNE fois, toutes les pièces refusées qu'il ne connaît pas encore, et rouvre la collecte
+     * (« à corriger »). Idempotent : une pièce déjà signalée ne l'est jamais deux fois.
+     *
+     * @return list<ComplianceDocument> pièces nouvellement signalées
+     *
+     * @throws \DomainException si rien n'est à signaler ou si le dossier est figé
+     */
+    public function requestCorrectionsFromClient(string $advisorName): array
+    {
+        if (!$this->isOpenForDocumentReview()) {
+            throw new \DomainException('Ce dossier est clôturé : aucune correction ne peut plus être demandée.');
+        }
+
+        $notified = array_values(array_filter(
+            $this->rejectionsPendingNotice(),
+            static fn (ComplianceDocument $doc): bool => $doc->markCorrectionRequested(),
+        ));
+
+        if ([] === $notified) {
+            throw new \DomainException('Aucune pièce refusée à signaler au client.');
+        }
+
+        $this->status = ComplianceFolderStatus::NEEDS_CORRECTION;
+        $this->saveHistory(
+            'Corrections demandées au client',
+            sprintf(
+                '%s a demandé au client de fournir à nouveau : %s.',
+                $advisorName,
+                implode(', ', array_map(static fn (ComplianceDocument $doc): string => $doc->type->getLabel(), $notified)),
+            )
+        );
+
+        return $notified;
+    }
+
     public function hasAllMandatoryDocumentsReceived(): bool
     {
         foreach ($this->documents as $doc) {

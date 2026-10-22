@@ -1,0 +1,36 @@
+{% extends 'emails/base.html.twig' %}
+
+{% block title %}Pièces à fournir à nouveau{% endblock %}
+
+{% block content %}
+    <h1>Quelques pièces sont à fournir à nouveau</h1>
+
+    <p>Bonjour {{ client_name }},</p>
+
+    <p>Votre conseiller a examiné les pièces que vous avez transmises. {{ items|length > 1 ? 'Les documents suivants ne peuvent pas être acceptés en l\'état' : 'Le document suivant ne peut pas être accepté en l\'état' }} :</p>
+
+    <ul style="margin: 0 0 16px 20px; padding: 0; color: #0f172a;">
+        {% for item in items %}
+            <li style="margin-bottom: 10px;">
+                <strong>{{ item.label }}</strong><br>
+                <span style="color: #475569;">{{ item.reason|nl2br }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <p>Il vous suffit de déposer un nouveau fichier pour chacune de ces pièces, depuis votre téléphone ou votre ordinateur, sur votre <strong>espace sécurisé Kysure</strong>.</p>
+
+    <div class="btn-container">
+        <a href="{{ kysure_portal_url }}" class="btn">Déposer les pièces</a>
+    </div>
+
+    <p style="font-size: 13px; color: #64748b; margin-top: 30px; padding: 15px; background-color: #f8fafc; border-radius: 6px; border-left: 4px solid #3b82f6;">
+        <strong>Connexion :</strong><br>
+        Utilisez l'adresse e-mail à laquelle vous avez reçu ce message : un lien de connexion sécurisé vous y sera envoyé, sans mot de passe à retenir.
+    </p>
+
+    <p style="margin-top: 30px;">
+        Cordialement,<br>
+        <strong>L'équipe {{ workspace_name }}</strong>
+    </p>
+{% endblock %}

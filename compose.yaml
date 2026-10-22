@@ -119,6 +119,31 @@ services:
       retries: 5
       start_period: 180s
 
+  # Service d'extraction OCR LOCAL (FastAPI + Tesseract + MRZ à clés ICAO) : lit domicile / RIB / K-bis /
+  # MRZ sans envoyer la pièce à un tiers. Voir ocr-service/README.md et docs/specs/ocr-des-pieces-deposees.md § 2 bis.
+  # Joignable en interne sur ocr:8000 (jamais publié), jeton Bearer obligatoire. Utilisé quand OCR_MODE=local|hybrid
+  # (à poser dans .env.local) :   docker compose up -d --build ocr
+  # Limite mémoire ≈ 512 Mo (mesuré : ~230 Mo de pic sur un scan A4 dense de 2 pages), FS en lecture seule.
+  ocr:
+    build:
+      context: ./ocr-service
+      target: runtime
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      OCR_SERVICE_TOKEN: ${OCR_SERVICE_TOKEN:-dev-only-ocr-token-change-me}
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
   # Analytique self-hosted (visites, sources, campagnes UTM, conversions).
   # Sans cookie, sans PII → pas de bannière de consentement.
   # Base Postgres dédiée et isolée (ne touche pas la base applicative). Umami

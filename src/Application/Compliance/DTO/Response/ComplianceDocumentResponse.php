@@ -27,6 +27,15 @@ readonly class ComplianceDocumentResponse
         public bool $isAwaitingClient = false,
         // État de l'analyse automatique ({@see \App\Domain\Compliance\Enum\OcrAnalysisState}) : informatif, ne décide de rien.
         public string $ocrState = 'not_applicable',
+        // Date de la dernière analyse automatique aboutie du fichier courant (null : jamais analysé, ou en cours).
+        public ?\DateTimeImmutable $ocrAnalyzedAt = null,
+        // Décision du conseiller sur le fichier courant.
+        public bool $awaitsReview = false,
+        public bool $canCancelReview = false,
+        public ?\DateTimeImmutable $reviewedAt = null,
+        public ?string $reviewedByName = null,
+        // Refus signalé au client (null : refus encore interne au cabinet).
+        public ?\DateTimeImmutable $correctionRequestedAt = null,
     ) {
     }
 }

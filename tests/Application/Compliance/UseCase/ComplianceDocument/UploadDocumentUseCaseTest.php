@@ -9,6 +9,7 @@ use App\Application\Compliance\UseCase\ComplianceDocument\UploadDocumentUseCase;
 use App\Domain\Compliance\Entity\BusinessFolder;
 use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Enum\ComplianceFolderStatus;
+use App\Domain\Compliance\Enum\DocumentRejectionReason;
 use App\Domain\Compliance\Enum\DocumentType;
 use App\Domain\Compliance\Event\ClientDocumentUploadedEvent;
 use App\Domain\Compliance\Event\DocumentMalwareDetectedEvent;
@@ -270,7 +271,10 @@ final class UploadDocumentUseCaseTest extends TestCase
     {
         $folder = $this->folder(ComplianceFolderStatus::NEEDS_CORRECTION);
         $document = $this->askedDocument($folder);
-        $document->reject('Document illisible');
+        // Pièce reçue puis refusée par le conseiller, refus signalé au client.
+        $document->markAsUploaded('kyc/ancien.pdf', 'ancien.pdf', 'application/pdf', 10);
+        $document->rejectByAdvisor(DocumentRejectionReason::ILLEGIBLE, null, 'Conseiller');
+        $document->markCorrectionRequested();
         $this->wire($folder, $document);
 
         $this->eventDispatcher->expects($this->exactly(2))->method('dispatch');

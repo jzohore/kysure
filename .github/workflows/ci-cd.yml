@@ -131,10 +131,56 @@ jobs:
                     # corrigé. Voir .trivyignore (revue le 2026-10-15).
                     trivyignores: .trivyignore
 
+    # 🛡️ ÉTAPE 1c : SERVICE D'EXTRACTION OCR LOCAL (ocr-service/, Python)
+    # Tests pytest exécutés DANS l'image (Tesseract réel inclus), audit des
+    # dépendances Python (équivalent de `composer audit`) et scan de l'image.
+    ocr-service:
+        name: 🔎 OCR Service (tests, pip-audit, scan)
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+
+        steps:
+            -   name: Checkout Code
+                uses: actions/checkout@v7
+                with:
+                    ref: ${{ inputs.ref || github.sha }}
+
+            -   name: Lint Dockerfile (hadolint)
+                uses: hadolint/hadolint-action@v3.1.0
+                with:
+                    dockerfile: ocr-service/Dockerfile
+                    failure-threshold: error
+
+            # Le stage `test` du Dockerfile lance pytest : le build échoue si un test échoue.
+            -   name: Run pytest (stage test, Tesseract inclus)
+                run: docker build --pull --target test ocr-service
+
+            -   name: Setup Python 3.12
+                uses: actions/setup-python@v6
+                with:
+                    python-version: '3.12'
+
+            -   name: Audit Python dependencies (pip-audit)
+                run: |
+                    pip install pip-audit==2.10.1
+                    pip-audit -r ocr-service/requirements.txt
+
+            -   name: Build runtime image
+                run: docker build --target runtime -t kysure-ocr-ci-scan:${{ github.sha }} ocr-service
+
+            -   name: Scan image for vulnerabilities (Trivy)
+                uses: aquasecurity/trivy-action@v0.36.0
+                with:
+                    image-ref: kysure-ocr-ci-scan:${{ github.sha }}
+                    format: table
+                    severity: CRITICAL
+                    exit-code: 1
+                    ignore-unfixed: true
+
     # 🔀 ÉTAPE 2 : FUSION AUTOMATIQUE VERS STAGING
     merge-to-staging:
         name: 🔀 Auto-Merge to Staging
-        needs: [quality-assurance, docker-security]
+        needs: [quality-assurance, docker-security, ocr-service]
         runs-on: ubuntu-latest
         # 🛡️ Ne tourne que sur un vrai push de feature branch, jamais quand ce
         # workflow est réutilisé par promote-to-master.yml (re-scan de staging).

@@ -188,4 +188,119 @@ final class ComplianceDocumentOcrAnalysisTest extends TestCase
         self::assertNull($document->rejectionReason);
         self::assertSame(DocumentStatus::UPLOADED, $document->status);
     }
+
+    public function testManualRerunDiscardsThePreviousAnalysisAndShowsItInProgress(): void
+    {
+        $uploadedAt = new \DateTimeImmutable('-3 days');
+        $document = $this->document([
+            'storagePath' => 'kyc/doc.pdf',
+            'uploadedAt' => $uploadedAt,
+            'ocrData' => ['holder_name' => 'MARTIN'],
+            'ocrFindings' => ['Le justificatif date du 12/01/2026 : il a plus de 3 mois.'],
+            'ocrValidatorVersion' => 'v1',
+        ]);
+        self::assertSame(OcrAnalysisState::COMPLETED, $document->ocrAnalysisState());
+
+        $document->requestOcrRerun();
+
+        self::assertNull($document->ocrData);
+        self::assertNull($document->ocrFindings);
+        self::assertNull($document->ocrValidatorVersion);
+        self::assertTrue($document->needsOcrAnalysis());
+        // Pièce déposée il y a 3 jours : sans l'horodatage de relance, elle s'afficherait « indisponible ».
+        self::assertSame(OcrAnalysisState::IN_PROGRESS, $document->ocrAnalysisState());
+        // La date légale du dépôt n'est jamais touchée.
+        self::assertSame($uploadedAt, $document->uploadedAt);
+        self::assertCount(1, $document->folder->history);
+    }
+
+    public function testManualRerunIsPossibleAfterAnUnavailableSignal(): void
+    {
+        $document = $this->document(['storagePath' => 'kyc/doc.pdf', 'uploadedAt' => new \DateTimeImmutable('-3 hours')]);
+        $document->markOcrUnavailable();
+        self::assertSame(OcrAnalysisState::UNAVAILABLE, $document->ocrAnalysisState());
+
+        $document->requestOcrRerun();
+
+        self::assertSame(OcrAnalysisState::IN_PROGRESS, $document->ocrAnalysisState());
+    }
+
+    public function testManualRerunIsRefusedWhileAnAnalysisIsAlreadyRunning(): void
+    {
+        // Double clic : une seule analyse (Textract est facturé à la page).
+        $document = $this->document(['storagePath' => 'kyc/doc.pdf', 'uploadedAt' => new \DateTimeImmutable('-2 minutes')]);
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('déjà en cours');
+
+        $document->requestOcrRerun();
+    }
+
+    public function testManualRerunTwiceInARowIsRefused(): void
+    {
+        $document = $this->document(['storagePath' => 'kyc/doc.pdf', 'uploadedAt' => new \DateTimeImmutable('-3 days'), 'ocrData' => ['x' => 'y']]);
+        $document->requestOcrRerun();
+
+        $this->expectException(\DomainException::class);
+
+        $document->requestOcrRerun();
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('nonRerunnableDocuments')]
+    public function testManualRerunIsRefusedForNonAnalysableOrAlreadyDecidedPieces(array $overrides): void
+    {
+        $document = $this->document($overrides + ['uploadedAt' => new \DateTimeImmutable('-3 days'), 'ocrData' => ['x' => 'y']]);
+
+        $this->expectException(\DomainException::class);
+
+        $document->requestOcrRerun();
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function nonRerunnableDocuments(): iterable
+    {
+        yield 'aucun fichier reçu' => [['storagePath' => null]];
+        yield 'pièce validée par un humain' => [['storagePath' => 'kyc/doc.pdf', 'status' => DocumentStatus::VALID]];
+        yield 'pièce rejetée par un humain' => [['storagePath' => 'kyc/doc.pdf', 'status' => DocumentStatus::REJECTED]];
+        yield 'type sans OCR' => [['storagePath' => 'kyc/doc.pdf', 'type' => DocumentType::RBE]];
+    }
+
+    public function testAFinishedAnalysisIsDatedForTheAdvisor(): void
+    {
+        $document = $this->document(['storagePath' => 'kyc/doc.pdf']);
+        self::assertNull($document->ocrAnalyzedAt);
+
+        $before = new \DateTimeImmutable();
+        $document->attachOcrAnalysis(['holder_name' => 'MARTIN'], [], 'v1');
+
+        self::assertInstanceOf(\DateTimeImmutable::class, $document->ocrAnalyzedAt);
+        self::assertGreaterThanOrEqual($before->getTimestamp(), $document->ocrAnalyzedAt->getTimestamp());
+    }
+
+    public function testTheAnalysisDateNeverOutlivesTheDataItDescribes(): void
+    {
+        $document = $this->document(['storagePath' => 'kyc/doc.pdf', 'uploadedAt' => new \DateTimeImmutable('-3 days')]);
+        $document->attachOcrAnalysis(['holder_name' => 'MARTIN'], [], 'v1');
+
+        $document->requestOcrRerun();
+        self::assertNull($document->ocrAnalyzedAt, 'relance : l\'ancienne date disparaît avec l\'ancienne analyse');
+
+        $document->attachOcrAnalysis(['holder_name' => 'MARTIN'], [], 'v1');
+        $document->markAsUploaded('kyc/nouveau.pdf', 'nouveau.pdf', 'application/pdf', 10);
+        self::assertNull($document->ocrAnalyzedAt, 'nouveau fichier : pas de date d\'une analyse qui ne le concerne pas');
+    }
+
+    public function testAnUnavailableSignalIsNotAnAnalysisDate(): void
+    {
+        $document = $this->document(['storagePath' => 'kyc/doc.pdf', 'uploadedAt' => new \DateTimeImmutable('-3 hours')]);
+
+        $document->markOcrUnavailable();
+
+        self::assertNull($document->ocrAnalyzedAt);
+    }
 }
