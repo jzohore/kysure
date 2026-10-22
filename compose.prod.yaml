@@ -1,11 +1,209 @@
----
-# Production environment override
+# -----------------------------------------------------------------------------
+# PRODUCTION Kysure : fichier autonome pour Coolify (derrière Traefik).
+# Modèle : compose.staging.yaml, sans Mailpit ni Umami (l'analytique réutilise
+# l'instance de staging) ; vrai mailer ; secrets Mercure et mailer OBLIGATOIRES
+# (syntaxe ${VAR:?} : Compose refuse de démarrer s'ils manquent, plutôt que de
+# retomber silencieusement sur les valeurs par défaut de .env).
+#
+# Variables à définir dans Coolify (application « kysure-prod ») :
+#   POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, RABBITMQ_USER, RABBITMQ_PASSWORD,
+#   TRUSTED_PROXIES, SOPS_AGE_KEY, MAILER_DSN, CADDY_MERCURE_JWT_SECRET,
+#   OCR_SERVICE_TOKEN (≥ 16 caractères, différent de staging),
+#   UMAMI_WEBSITE_ID (facultatif, vide = pas d'analytique), VIRUS_SCAN_MODE=clamav (ClamAV partagé : /opt/clamav sur le serveur).
+#
+# Pas de container_name : Coolify nomme les conteneurs lui-même.
+# -----------------------------------------------------------------------------
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   php:
     build:
       context: .
+      dockerfile: Dockerfile
       target: frankenphp_prod
+    restart: unless-stopped
     environment:
-      APP_SECRET: ${APP_SECRET}
-      MERCURE_PUBLISHER_JWT_KEY: ${CADDY_MERCURE_JWT_SECRET}
-      MERCURE_SUBSCRIBER_JWT_KEY: ${CADDY_MERCURE_JWT_SECRET}
+      # Traefik termine le TLS et route vers php:80 en HTTP interne.
+      SERVER_NAME: ':80'
+      TRUSTED_PROXIES: '${TRUSTED_PROXIES:?}'
+      APP_ENV: prod
+      KYSURE_ROLE: web
+      FRANKENPHP_NUM_THREADS: '2'
+      SOPS_AGE_KEY: '${SOPS_AGE_KEY:?}'
+      DATABASE_URL: 'postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@database:5432/${POSTGRES_DB:?}?serverVersion=16&charset=utf8'
+      MESSENGER_TRANSPORT_DSN: 'amqp://${RABBITMQ_USER:?}:${RABBITMQ_PASSWORD:?}@rabbitmq:5672/%2f'
+      MAILER_DSN: '${MAILER_DSN:?}'
+      GOTENBERG_URL: 'http://gotenberg:3000/forms/chromium/convert/html'
+      LOCK_DSN: 'flock'
+      # Mercure : le hub est un module de Caddy DANS ce conteneur ; clé identique côté PHP (publication
+      # et cookie d'abonnement) et côté Caddy.
+      CADDY_MERCURE_JWT_SECRET: '${CADDY_MERCURE_JWT_SECRET:?}'
+      MERCURE_PUBLISHER_JWT_KEY: '${CADDY_MERCURE_JWT_SECRET:?}'
+      MERCURE_SUBSCRIBER_JWT_KEY: '${CADDY_MERCURE_JWT_SECRET:?}'
+      # Analytique : instance Umami de staging (second site). Le <script> n'est rendu que si les deux sont non vides.
+      UMAMI_SCRIPT_URL: 'https://analytics.staging.kysure.fr/script.js'
+      UMAMI_WEBSITE_ID: '${UMAMI_WEBSITE_ID:-}'
+      # Antivirus des pièces déposées : ClamAV partagé avec staging (extra_hosts ci-dessous).
+      VIRUS_SCAN_MODE: clamav
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: '3310'
+      # Service d'extraction OCR local (rendu PDF pour Textract, OCR_MODE=local|hybrid). Jeton OBLIGATOIRE.
+      OCR_SERVICE_URL: 'http://ocr:8000'
+      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:?}'
+    networks:
+      - default
+      - ocr_internal
+    # ClamAV PARTAGÉ (staging + prod) : démon unique géré hors Coolify, joignable uniquement depuis le serveur
+    # sur l'adresse du pont docker0 (host-gateway). Voir /opt/clamav/compose.yaml sur le serveur.
+    extra_hosts:
+      - 'clamav:host-gateway'
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    depends_on:
+      database:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      # service_started : une panne de l'OCR local ne doit pas bloquer le déploiement du site.
+      ocr:
+        condition: service_started
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frankenphp_prod
+    restart: unless-stopped
+    environment:
+      APP_ENV: prod
+      KYSURE_ROLE: worker
+      SOPS_AGE_KEY: '${SOPS_AGE_KEY:?}'
+      DATABASE_URL: 'postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@database:5432/${POSTGRES_DB:?}?serverVersion=16&charset=utf8'
+      MESSENGER_TRANSPORT_DSN: 'amqp://${RABBITMQ_USER:?}:${RABBITMQ_PASSWORD:?}@rabbitmq:5672/%2f'
+      MAILER_DSN: '${MAILER_DSN:?}'
+      GOTENBERG_URL: 'http://gotenberg:3000/forms/chromium/convert/html'
+      LOCK_DSN: 'flock'
+      CADDY_MERCURE_JWT_SECRET: '${CADDY_MERCURE_JWT_SECRET:?}'
+      VIRUS_SCAN_MODE: clamav
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: '3310'
+      # C'est le worker qui appelle le service OCR (handler ProcessOcrMessageHandler, file async_heavy).
+      OCR_SERVICE_URL: 'http://ocr:8000'
+      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:?}'
+    networks:
+      - default
+      - ocr_internal
+    # ClamAV PARTAGÉ (staging + prod) : démon unique géré hors Coolify, joignable uniquement depuis le serveur
+    # sur l'adresse du pont docker0 (host-gateway). Voir /opt/clamav/compose.yaml sur le serveur.
+    extra_hosts:
+      - 'clamav:host-gateway'
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    depends_on:
+      database:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ocr:
+        condition: service_started
+
+  # Service d'extraction OCR LOCAL (FastAPI + Tesseract + pdfium), voir ocr-service/README.md.
+  # Joignable en interne sur ocr:8000 (jamais publié) avec un jeton Bearer. Réseau `ocr_internal` en
+  # `internal: true` : aucune sortie Internet ; seuls web et worker l'y rejoignent. Non-root, FS en lecture
+  # seule hors /tmp, capacités retirées. RAM : ~40 Mo au repos, ~230 Mo de pic mesuré ; limite 512 Mo.
+  ocr:
+    build:
+      context: ./ocr-service
+      target: runtime
+    restart: unless-stopped
+    environment:
+      # Fourni par Coolify, OBLIGATOIRE (>= 16 caractères ; le service refuse aussi de démarrer sans) : fail-closed.
+      OCR_SERVICE_TOKEN: '${OCR_SERVICE_TOKEN:?}'
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - ocr_internal
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  database:
+    image: 'postgres:16-alpine'
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: '${POSTGRES_DB:?}'
+      POSTGRES_USER: '${POSTGRES_USER:?}'
+      POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:?}'
+    volumes:
+      - 'postgres_prod_data:/var/lib/postgresql/data'
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: 'rabbitmq:4.3-management-alpine'
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: '${RABBITMQ_USER:?}'
+      RABBITMQ_DEFAULT_PASS: '${RABBITMQ_PASSWORD:?}'
+    volumes:
+      - 'rabbitmq_prod_data:/var/lib/rabbitmq'
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  gotenberg:
+    image: 'gotenberg/gotenberg:8'
+    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+networks:
+  # Réseau SANS sortie Internet, partagé par web, worker et le service OCR local uniquement.
+  ocr_internal:
+    internal: true
+
+volumes:
+  postgres_prod_data: null
+  rabbitmq_prod_data: null

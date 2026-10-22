@@ -1,6 +1,7 @@
 ---
 # Rotation des logs Docker (json-file par défaut = croissance illimitée).
-# S'applique en local, et en prod via `-f compose.yaml -f compose.prod.yaml`.
+# Fichier de DÉVELOPPEMENT (avec compose.override.yaml). Staging et production ont chacun leur fichier
+# autonome : compose.staging.yaml et compose.prod.yaml (déployés par Coolify).
 x-logging: &default-logging
   driver: json-file
   options:

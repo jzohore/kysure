@@ -11,6 +11,10 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
     # ---------------------------------------------------------
     if [ "$APP_ENV" = 'prod' ] || [ "$APP_ENV" = 'staging' ]; then
         TARGET_ENV_FILE=".env.${APP_ENV}.enc"
+        # Symfony nomme l'environnement « prod », mais le fichier de secrets s'appelle .env.production.enc.
+        if [ "$APP_ENV" = 'prod' ]; then
+            TARGET_ENV_FILE=".env.production.enc"
+        fi
 
         if [ -f "$TARGET_ENV_FILE" ] && [ -n "$SOPS_AGE_KEY" ]; then
             echo "🔑 [KYSURE SEC] Déchiffrement de $TARGET_ENV_FILE via SOPS..."
