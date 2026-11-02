@@ -15,7 +15,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[AsController]
-#[Route(path: '/app/compliance/folder/{slugId}/submit/for/review', name: 'app_compliance_submit_for_review', methods: ['POST'])]
+#[Route(path: '/app/compliance/{slugId}/submit-for-review', name: 'app_compliance_submit_for_review', methods: ['POST'])]
 class SubmitForReviewController extends AbstractController
 {
     public function __construct(
@@ -51,9 +51,9 @@ class SubmitForReviewController extends AbstractController
         }
 
         if ($this->security->isGranted('ROLE_CLIENT')) {
-            return $this->redirectToRoute('app_portal_folder_detail', ['slugId' => $complianceFolder->slugId]);
+            return $this->redirectToRoute('portal_folders_show', ['slugId' => $complianceFolder->slugId]);
         }
 
-        return $this->redirectToRoute('app_portal_folder_detail', ['slugId' => $complianceFolder->slugId]);
+        return $this->redirectToRoute('portal_folders_show', ['slugId' => $complianceFolder->slugId]);
     }
 }

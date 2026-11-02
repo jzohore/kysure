@@ -1,0 +1,99 @@
+{#
+    Sidebar flottante partagée (pro, admin, client) — à placer dans un ancêtre `data-controller="sidebar"`.
+
+    Paramètres :
+      - brand        : nom affiché en tête
+      - brand_href   : lien du logo
+      - sections     : liste de { title?: string, items: [{ icon, label, href, active, badge? }] }
+      - user_name, user_email, user_initials
+      - user_links   : liste de { icon, label, href, danger? }
+#}
+<aside data-sidebar-target="panel"
+       data-collapsed-state="false"
+       aria-label="Navigation principale"
+       class="group/sb fixed inset-y-2 left-2 z-50 flex w-64 -translate-x-[110%] flex-col rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-[transform,width] duration-200 ease-out data-[collapsed]:md:w-[60px] md:relative md:inset-auto md:z-auto md:my-2 md:ml-2 md:translate-x-0 md:shrink-0 md:shadow-sm">
+
+    {# En-tête : logo + bascule #}
+    <div class="flex h-14 shrink-0 items-center justify-between gap-2 px-3 group-data-[collapsed]/sb:md:justify-center">
+        <a href="{{ brand_href|default('/') }}"
+           class="flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900">
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-bold text-white" aria-hidden="true">{{ brand|slice(0, 1)|upper }}</span>
+            <span class="truncate text-sm font-semibold tracking-tight text-slate-900 group-data-[collapsed]/sb:md:hidden">{{ brand }}</span>
+        </a>
+
+        <button type="button" data-action="sidebar#toggle"
+                class="hidden shrink-0 rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 md:inline-flex group-data-[collapsed]/sb:md:hidden"
+                aria-label="Réduire le menu">
+            {{ ux_icon('lucide:panel-left-close', { class: 'size-4', 'aria-hidden': 'true' }) }}
+        </button>
+        <button type="button" data-action="sidebar#close"
+                class="shrink-0 rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 md:hidden"
+                aria-label="Fermer le menu">
+            {{ ux_icon('lucide:x', { class: 'size-4', 'aria-hidden': 'true' }) }}
+        </button>
+    </div>
+
+    {# Bouton « déplier » : visible uniquement en mode rail #}
+    <button type="button" data-action="sidebar#toggle"
+            class="mx-auto mb-1 hidden rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 group-data-[collapsed]/sb:md:inline-flex"
+            aria-label="Déplier le menu">
+        {{ ux_icon('lucide:panel-left-open', { class: 'size-4', 'aria-hidden': 'true' }) }}
+    </button>
+
+    {# Navigation #}
+    <nav class="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-2 py-2">
+        {% for section in sections %}
+            <div class="space-y-0.5">
+                {% if section.title|default(null) %}
+                    <p class="px-2.5 pb-1 pt-2 text-[11px] font-medium text-slate-400 group-data-[collapsed]/sb:md:hidden">{{ section.title }}</p>
+                {% endif %}
+                {% for item in section.items %}
+                    <a href="{{ item.href }}"
+                       title="{{ item.label }}"
+                       class="group/item flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 group-data-[collapsed]/sb:md:justify-center {{ item.active ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}"
+                       {% if item.active %}aria-current="page"{% endif %}>
+                        {{ ux_icon(item.icon, { class: 'size-4 shrink-0 ' ~ (item.active ? 'text-slate-900' : 'text-slate-500 group-hover/item:text-slate-700'), 'aria-hidden': 'true' }) }}
+                        <span class="min-w-0 flex-1 truncate group-data-[collapsed]/sb:md:hidden">{{ item.label }}</span>
+                        {% if item.badge|default(null) %}
+                            <span class="rounded-full bg-slate-200 px-1.5 text-[10px] font-semibold tabular-nums text-slate-700 group-data-[collapsed]/sb:md:hidden">{{ item.badge }}</span>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </nav>
+
+    {# Pied : compte utilisateur (menu vers le haut) #}
+    <div class="relative shrink-0 border-t border-slate-100 p-2" data-controller="dropdown">
+        <button type="button"
+                data-dropdown-target="button"
+                data-action="dropdown#toggle"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-label="Ouvrir le menu du compte"
+                class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 group-data-[collapsed]/sb:md:justify-center">
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold uppercase text-slate-700 ring-1 ring-slate-200">{{ user_initials }}</span>
+            <span class="min-w-0 flex-1 group-data-[collapsed]/sb:md:hidden">
+                <span class="block truncate text-[13px] font-medium text-slate-900">{{ user_name }}</span>
+                {% if user_email|default(null) %}<span class="block truncate text-[11px] text-slate-500">{{ user_email }}</span>{% endif %}
+            </span>
+            {{ ux_icon('lucide:chevrons-up-down', { class: 'size-3.5 shrink-0 text-slate-400 group-data-[collapsed]/sb:md:hidden', 'aria-hidden': 'true' }) }}
+        </button>
+
+        <div data-dropdown-target="menu" role="menu"
+             class="absolute bottom-full left-2 z-50 mb-1 hidden w-56 rounded-xl border border-slate-200 bg-white p-1 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
+            {% for link in user_links %}
+                {% if link.danger|default(false) %}<div class="mx-2 my-1 h-px bg-slate-100"></div>{% endif %}
+                <a href="{{ link.href }}" role="menuitem"
+                   class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none {{ link.danger|default(false) ? 'text-red-600 hover:bg-red-50' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus-visible:bg-slate-50' }}">
+                    {{ ux_icon(link.icon, { class: 'size-4 ' ~ (link.danger|default(false) ? '' : 'text-slate-400'), 'aria-hidden': 'true' }) }}
+                    {{ link.label }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+</aside>
+
+{# Fond assombri (mobile) #}
+<div data-sidebar-target="backdrop" data-action="click->sidebar#close"
+     class="fixed inset-0 z-40 hidden bg-slate-900/40 opacity-0 backdrop-blur-[2px] transition-opacity md:hidden" aria-hidden="true"></div>

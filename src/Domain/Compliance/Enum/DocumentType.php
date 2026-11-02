@@ -73,6 +73,23 @@ enum DocumentType: string
     }
 
     /**
+     * Consigne de prise de vue affichée au client AVANT l'envoi : une pièce lisible du premier coup
+     * évite un échec d'analyse automatique puis un aller-retour avec le cabinet. Purement indicatif.
+     */
+    public function getCaptureTip(): ?string
+    {
+        return match ($this) {
+            self::ID_CARD => 'Photographiez le recto puis le verso, ou scannez-les dans un seul PDF. Les quatre coins doivent être visibles, sans reflet sur la puce ni sur la zone de lecture en bas.',
+            self::PASSPORT => 'Photographiez la page avec la photo, bien à plat. Les deux lignes de caractères en bas de page doivent être entièrement visibles.',
+            self::RESIDENCE_PERMIT => 'Photographiez le recto et le verso, sans reflet, avec les quatre coins visibles.',
+            self::PROOF_OF_ADDRESS => 'Envoyez la page complète, avec votre nom, votre adresse et la date d\'émission bien lisibles.',
+            self::KBIS => 'Envoyez l\'extrait complet, de préférence le PDF d\'origine plutôt qu\'une photo d\'écran.',
+            self::RIB => 'Envoyez le RIB en entier, avec l\'IBAN et le titulaire bien lisibles.',
+            default => null,
+        };
+    }
+
+    /**
      * Définit si le système doit surveiller la péremption temporelle de cette pièce.
      * Crucial pour le Worker de relance automatique (Event-Driven).
      */

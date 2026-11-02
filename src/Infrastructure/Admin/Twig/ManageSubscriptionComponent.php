@@ -29,7 +29,7 @@ use Webmozart\Assert\Assert;
 /**
  * Pilotage de l'abonnement Stripe d'un cabinet depuis le back-office : sièges,
  * pause/reprise, résiliation programmée, resynchronisation forcée. Chaque
- * action retourne sur admin_workspace_details (rechargement complet), comme
+ * action retourne sur admin_workspaces_show (rechargement complet), comme
  * les autres composants de gestion de cette page.
  *
  * Action à impact financier direct sur le client (Stripe) : réservée à
@@ -140,7 +140,7 @@ class ManageSubscriptionComponent extends AbstractController
             ]);
         }
 
-        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+        return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $this->slugId]);
     }
 
     #[LiveAction]
@@ -163,7 +163,7 @@ class ManageSubscriptionComponent extends AbstractController
             ]);
         }
 
-        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+        return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $this->slugId]);
     }
 
     #[LiveAction]
@@ -186,7 +186,7 @@ class ManageSubscriptionComponent extends AbstractController
             ]);
         }
 
-        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+        return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $this->slugId]);
     }
 
     #[LiveAction]
@@ -209,7 +209,7 @@ class ManageSubscriptionComponent extends AbstractController
             ]);
         }
 
-        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+        return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $this->slugId]);
     }
 
     #[LiveAction]
@@ -232,7 +232,7 @@ class ManageSubscriptionComponent extends AbstractController
             ]);
         }
 
-        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+        return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $this->slugId]);
     }
 
     #[LiveAction]
@@ -252,6 +252,6 @@ class ManageSubscriptionComponent extends AbstractController
             ]);
         }
 
-        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+        return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $this->slugId]);
     }
 }

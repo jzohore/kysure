@@ -40,7 +40,7 @@ class LoginController
 
         // 2. Si c'est un client final déjà connecté
         if ($currentUser instanceof Client) {
-            return new RedirectResponse($urlGenerator->generate('app_portal_dashboard'));
+            return new RedirectResponse($urlGenerator->generate('portal_dashboard'));
         }
 
         return new Response(

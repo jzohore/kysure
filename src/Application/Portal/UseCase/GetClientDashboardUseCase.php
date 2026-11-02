@@ -7,9 +7,11 @@ namespace App\Application\Portal\UseCase;
 use App\Application\Portal\DTO\ActiveFolderDto;
 use App\Application\Portal\DTO\ClientCabinetRelationshipDto;
 use App\Application\Portal\DTO\ClientDashboardDto;
+use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Entity\ComplianceFolder;
 use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
+use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Domain\Suitability\Entity\InvestorProfileAssessment;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 use App\Domain\Suitability\Enum\InvestorProfileDashboardStatus;
@@ -65,11 +67,17 @@ readonly class GetClientDashboardUseCase
     private function buildRelationship(Client $client, ComplianceFolder $folder): ClientCabinetRelationshipDto
     {
         $workspace = $folder->workspace;
-        $portalStatus = ClientPortalStatus::fromFolderStatus($folder->status);
 
         // Compteur de pièces en attente scopé à CE dossier : sinon un cabinet afficherait
         // aussi les pièces demandées par un autre cabinet du même client.
         $pendingDocs = $this->documentRepository->countPendingForFolder($folder);
+        $portalStatus = ClientPortalStatus::resolve($folder->status, $pendingDocs);
+
+        // Toutes les pièces demandées sont déjà conformes : le client doit le savoir, même si
+        // le cabinet n'a pas encore validé le dossier dans son ensemble.
+        $documents = $this->documentRepository->findByFolder($folder);
+        $allDocumentsValid = [] !== $documents
+            && [] === array_filter($documents, static fn (ComplianceDocument $document): bool => DocumentStatus::VALID !== $document->status);
 
         $activeFolderDto = new ActiveFolderDto(
             id: $folder->slugId ?? (string) $folder->id,
@@ -93,6 +101,7 @@ readonly class GetClientDashboardUseCase
             cabinetContactEmail: $workspace->email,
             pendingDocumentsCount: $pendingDocs,
             investorProfileStatus: $investorProfileStatus,
+            allDocumentsValid: $allDocumentsValid,
         );
     }
 }

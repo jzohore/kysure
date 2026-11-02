@@ -22,7 +22,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * corrections au client. Réservé aux membres habilités à « valider des actes » (même droit qu'approuver le dossier).
  */
 #[AsController]
-#[Route(path: '/app/compliance/show/{slugId}')]
+#[Route(path: '/app/compliance/{slugId}')]
 #[IsGranted(ComplianceFolderVoter::APPROVE, subject: 'complianceFolder', message: 'Vous n\'êtes pas habilité à statuer sur les pièces de ce dossier.')]
 final class DocumentReviewController extends AbstractController
 {

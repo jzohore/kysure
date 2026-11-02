@@ -13,7 +13,7 @@ use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 #[AsController]
-#[Route(path: '/private-policy', name: 'website_policy')]
+#[Route(path: '/privacy-policy', name: 'website_privacy_policy')]
 final readonly class PrivacyPolicyController
 {
     /**

@@ -52,6 +52,41 @@ final class ComplianceDocumentOcrAnalysisTest extends TestCase
         self::assertCount(1, $document->folder->history);
     }
 
+    public function testIsHardToReadWhenTheAnalysisSucceededButReadNothing(): void
+    {
+        $document = $this->document();
+        $document->attachOcrAnalysis(null, ['Lecture impossible.'], 'v1');
+
+        self::assertTrue($document->wasHardToRead());
+    }
+
+    public function testIsNotHardToReadWhenDataWasExtracted(): void
+    {
+        $document = $this->document();
+        $document->attachOcrAnalysis(['holder_name' => 'Jean Dupont'], [], 'v1');
+
+        self::assertFalse($document->wasHardToRead());
+    }
+
+    public function testIsNotHardToReadBeforeAnyAnalysisOrWhenTheServiceWasUnavailable(): void
+    {
+        // Pas encore analysée : rien à reprocher au client.
+        self::assertFalse($this->document()->wasHardToRead());
+
+        // Service indisponible : ce n'est pas la faute de la photo, on ne demande rien au client.
+        $unavailable = $this->document();
+        $unavailable->markOcrUnavailable();
+        self::assertFalse($unavailable->wasHardToRead());
+    }
+
+    public function testIsNotHardToReadForATypeWithoutAutomaticAnalysis(): void
+    {
+        $document = $this->document(['type' => DocumentType::ARTICLES_OF_ASSOC]);
+        $document->attachOcrAnalysis(null, [], 'v1');
+
+        self::assertFalse($document->wasHardToRead());
+    }
+
     public function testStoresFindingsAndNullDataWhenExtractionFailed(): void
     {
         $document = $this->document();

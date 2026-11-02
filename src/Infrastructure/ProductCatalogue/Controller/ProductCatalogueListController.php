@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[AsController]
-#[Route(path: '/app/product-catalogue', name: 'app_product_catalogue_list')]
+#[Route(path: '/app/products', name: 'app_products_list')]
 class ProductCatalogueListController extends AbstractController
 {
     public function __construct(

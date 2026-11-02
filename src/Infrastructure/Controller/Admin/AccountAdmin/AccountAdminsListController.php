@@ -12,7 +12,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[AsController]
 #[IsGranted('ROLE_SUPER_ADMIN')]
-#[Route(path: '/admin/administrators/list', name: 'account_admin_list', methods: ['GET'])]
+#[Route(path: '/admin/team', name: 'admin_team_list', methods: ['GET'])]
 final class AccountAdminsListController extends AbstractController
 {
     public function __invoke(): Response

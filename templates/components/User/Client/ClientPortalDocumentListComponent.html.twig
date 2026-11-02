@@ -32,6 +32,22 @@
             </span>
         </div>
 
+        {# Consigne générale de prise de vue : repliée par défaut, pour ne pas alourdir l'écran #}
+        <details class="group border-b border-slate-100 px-4 py-3 sm:px-6">
+            <summary class="flex cursor-pointer list-none items-center gap-2 rounded-md text-sm font-medium text-slate-700 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 [&::-webkit-details-marker]:hidden">
+                <twig:ux:icon name="tabler:camera" class="size-4 text-slate-400" aria-hidden="true" />
+                Conseils pour une pièce lisible du premier coup
+                <twig:ux:icon name="tabler:chevron-down" class="ml-auto size-4 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <ul class="mt-3 space-y-1.5 pl-6 text-sm text-slate-600 list-disc marker:text-slate-300">
+                <li>Posez le document à plat, sur un fond uni, en pleine lumière.</li>
+                <li>Cadrez la pièce en entier : les quatre coins doivent être visibles.</li>
+                <li>Évitez les reflets (puce, hologrammes) et ne laissez pas votre ombre sur la page.</li>
+                <li>Gardez l'appareil bien parallèle au document et attendez que l'image soit nette.</li>
+                <li>Si vous avez le fichier d'origine (PDF), préférez-le à une photo d'écran.</li>
+            </ul>
+        </details>
+
         <ul class="divide-y divide-slate-100">
             {% for doc in kycDocuments %}
                 {# Un refus reste interne au cabinet tant que le conseiller ne l'a pas signalé (demande de corrections) :
@@ -114,6 +130,21 @@
 
                                 {% if statusValue == 'uploaded' %}
                                     <p class="text-xs sm:text-sm text-slate-500 mt-2">Pièce reçue — votre conseiller la vérifie.</p>
+                                    {# Consigne non bloquante : la pièce est bien reçue, on invite simplement à en renvoyer une plus nette. #}
+                                    {% if doc.wasHardToRead %}
+                                        <div class="mt-2.5 flex gap-2 rounded-md border-l-4 border-l-amber-500 bg-white px-3 py-2 text-xs sm:text-sm text-slate-700 ring-1 ring-slate-200" role="status">
+                                            <twig:ux:icon name="tabler:photo-exclamation" class="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden="true" />
+                                            <p>La lecture automatique de cette pièce a été difficile. Si vous le pouvez, renvoyez-en une photo plus nette : ce n'est pas obligatoire, votre conseiller peut aussi la vérifier à la main.</p>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+
+                                {# Consigne de prise de vue propre au type de pièce, avant l'envoi #}
+                                {% if uploadable and statusValue != 'valid' and not isProcessing and doc.type.captureTip %}
+                                    <p class="mt-2 flex gap-1.5 text-xs sm:text-sm text-slate-500">
+                                        <twig:ux:icon name="tabler:bulb" class="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden="true" />
+                                        <span>{{ doc.type.captureTip }}</span>
+                                    </p>
                                 {% endif %}
 
                                 {% if statusValue == 'rejected' and doc.rejectionReason %}
@@ -176,6 +207,11 @@
                                 <div class="min-w-0 flex-1">
                                     <p data-document-dropzone-target="fileName" class="truncate text-sm font-medium text-slate-900"></p>
                                     <p data-document-dropzone-target="fileMeta" class="mt-0.5 text-xs text-slate-600"></p>
+                                    {# Alerte de netteté non bloquante, posée par le contrôleur si l'image est trop petite #}
+                                    <p data-document-dropzone-target="hint" role="status" hidden
+                                       class="mt-2 rounded-md border-l-4 border-l-amber-500 bg-white px-3 py-2 text-xs text-slate-700 ring-1 ring-slate-200">
+                                        Cette image semble peu définie : le texte risque d'être difficile à lire. Reprenez la photo plus près et bien nette si vous le pouvez — vous pouvez aussi l'envoyer telle quelle.
+                                    </p>
                                     <a data-document-dropzone-target="previewLink" href="#" target="_blank" rel="noopener noreferrer"
                                        class="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline focus-visible:ring-2 focus-visible:ring-blue-600/30 rounded">
                                         <twig:ux:icon name="tabler:eye" class="size-3.5" aria-hidden="true" />

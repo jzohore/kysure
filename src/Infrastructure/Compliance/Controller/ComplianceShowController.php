@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[AsController]
-#[Route(path: '/app/compliance/show/{slugId}', name: 'app_compliance_show', methods: ['GET'])]
+#[Route(path: '/app/compliance/{slugId}', name: 'app_compliance_show', methods: ['GET'])]
 #[IsGranted(ComplianceFolderVoter::VIEW, subject: 'complianceFolder', message: 'Ce dossier est strictement confidentiel.')]
 class ComplianceShowController extends AbstractController
 {

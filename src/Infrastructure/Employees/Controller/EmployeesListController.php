@@ -16,7 +16,7 @@ use Twig\Error\SyntaxError;
 use Webmozart\Assert\Assert;
 
 #[AsController]
-#[Route(path: '/app/employees/list', name: 'app_employees_list', methods: ['GET', 'POST'])]
+#[Route(path: '/app/employees', name: 'app_employees_list', methods: ['GET', 'POST'])]
 final readonly class EmployeesListController
 {
     /**

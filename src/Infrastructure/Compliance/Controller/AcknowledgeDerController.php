@@ -67,7 +67,7 @@ final class AcknowledgeDerController extends AbstractController
                 'pdf_url' => $this->generateUrl('app_der_pdf', ['token' => $token]),
                 // Étape suivante : déposer les pièces. L'espace exige la connexion (lien magique envoyé
                 // par e-mail) : on ne connecte jamais quelqu'un à partir de ce seul lien d'accusé.
-                'portal_url' => $this->generateUrl('app_portal_folder_detail', ['id' => $document->folder->slugId]),
+                'portal_url' => $this->generateUrl('portal_folders_show', ['id' => $document->folder->slugId]),
                 'documents_to_provide' => $document->folder->documentsAwaitingClient(),
             ]);
         }

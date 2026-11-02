@@ -23,7 +23,7 @@ final class ClientDashboardController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/portal/account', name: 'app_portal_dashboard', methods: ['GET'])]
+    #[Route(path: '/portal/dashboard', name: 'portal_dashboard', methods: ['GET'])]
     public function __invoke(): Response
     {
         /** @var Client $client */

@@ -82,29 +82,29 @@
                                 <td class="px-4 py-3">
                                     <div class="flex flex-wrap items-center justify-end gap-1.5">
                                         {% if not admin.isArchived %}
-                                            <a href="{{ path('account_admin_edit', {slugId: admin.slugId}) }}"
+                                            <a href="{{ path('admin_team_edit', {slugId: admin.slugId}) }}"
                                                class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-50">Éditer</a>
 
                                             {% if admin.isActif %}
-                                                <form method="post" action="{{ path('account_admin_status', {slugId: admin.slugId, action: 'suspend'}) }}">
+                                                <form method="post" action="{{ path('admin_team_status', {slugId: admin.slugId, action: 'suspend'}) }}">
                                                     <input type="hidden" name="_token" value="{{ csrf_token('admin_account_status_' ~ admin.slugId) }}">
                                                     <button type="submit" class="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 hover:bg-amber-100">Suspendre</button>
                                                 </form>
                                             {% else %}
-                                                <form method="post" action="{{ path('account_admin_status', {slugId: admin.slugId, action: 'reactivate'}) }}">
+                                                <form method="post" action="{{ path('admin_team_status', {slugId: admin.slugId, action: 'reactivate'}) }}">
                                                     <input type="hidden" name="_token" value="{{ csrf_token('admin_account_status_' ~ admin.slugId) }}">
                                                     <button type="submit" class="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100">Réactiver</button>
                                                 </form>
                                             {% endif %}
 
-                                            <form method="post" action="{{ path('account_admin_status', {slugId: admin.slugId, action: 'archive'}) }}"
+                                            <form method="post" action="{{ path('admin_team_status', {slugId: admin.slugId, action: 'archive'}) }}"
                                                   onsubmit="return confirm('Archiver le compte de {{ admin.getFullName()|e('js') }} ? Il ne pourra plus se connecter.');">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('admin_account_status_' ~ admin.slugId) }}">
                                                 <button type="submit" class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-50">Archiver</button>
                                             </form>
                                         {% endif %}
 
-                                        <form method="post" action="{{ path('account_admin_delete', {slugId: admin.slugId}) }}"
+                                        <form method="post" action="{{ path('admin_team_delete', {slugId: admin.slugId}) }}"
                                               onsubmit="return confirm('Supprimer définitivement le compte de {{ admin.getFullName()|e('js') }} ? Cette action est irréversible.');">
                                             <input type="hidden" name="_token" value="{{ csrf_token('admin_account_delete_' ~ admin.slugId) }}">
                                             <button type="submit" class="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-100">Supprimer</button>

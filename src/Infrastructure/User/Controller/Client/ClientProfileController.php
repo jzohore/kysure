@@ -15,7 +15,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_CLIENT', message: 'Espace strictement réservé aux clients finaux.')]
 final class ClientProfileController extends AbstractController
 {
-    #[Route(path: '/portal/profile', name: 'app_portal_profile', methods: ['GET'])]
+    #[Route(path: '/portal/profile', name: 'portal_profile', methods: ['GET'])]
     public function __invoke(): Response
     {
         /** @var Client $client */

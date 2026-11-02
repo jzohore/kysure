@@ -1,0 +1,306 @@
+# Anciennes URLs → nouvelles (301). Généré lors de l'harmonisation des routes ;
+# à supprimer quand plus aucun lien historique n'est en circulation.
+
+legacy_00:
+    path: '/admin/account'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_dashboard
+        permanent: true
+        keepQueryParams: true
+
+legacy_01:
+    path: '/admin/administrators/add'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_team_new
+        permanent: true
+        keepQueryParams: true
+
+legacy_02:
+    path: '/admin/administrators/billings/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_billings_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_03:
+    path: '/admin/administrators/compliance/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_compliance_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_04:
+    path: '/admin/administrators/crons/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_crons_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_05:
+    path: '/admin/administrators/integration-api/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_integration_api_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_06:
+    path: '/admin/administrators/legal-documents/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_legal_documents_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_07:
+    path: '/admin/administrators/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_team_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_08:
+    path: '/admin/administrators/subscriptions/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_subscriptions_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_09:
+    path: '/admin/administrators/{slugId}/edit'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_team_edit
+        permanent: true
+        keepQueryParams: true
+
+legacy_10:
+    path: '/admin/audit-logs/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_audit_logs_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_11:
+    path: '/admin/organizations/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_workspaces_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_12:
+    path: '/admin/workspace/{slugId}/impersonate'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_workspaces_impersonate
+        permanent: true
+        keepQueryParams: true
+
+legacy_13:
+    path: '/app/billing/support'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_support_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_14:
+    path: '/app/billing/support/{slugId}'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_support_show
+        permanent: true
+        keepQueryParams: true
+
+legacy_15:
+    path: '/app/billing/support/{slugId}/attachments/{messageSlugId}'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_support_attachment_download
+        permanent: true
+        keepQueryParams: true
+
+legacy_16:
+    path: '/app/compliance/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_compliance_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_17:
+    path: '/app/compliance/show/{slugId}'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_compliance_show
+        permanent: true
+        keepQueryParams: true
+
+legacy_18:
+    path: '/app/compliance/show/{slugId}/fiche-patrimoniale'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_compliance_wealth_profile_edit
+        permanent: true
+        keepQueryParams: true
+
+legacy_19:
+    path: '/app/employees/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_employees_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_20:
+    path: '/app/kyc/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_kyc_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_21:
+    path: '/app/kyc/show/{slugId}'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_kyc_show
+        permanent: true
+        keepQueryParams: true
+
+legacy_22:
+    path: '/app/product-catalogue/new'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_products_new
+        permanent: true
+        keepQueryParams: true
+
+legacy_23:
+    path: '/app/product-catalogue/{slugId}/edit'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_products_edit
+        permanent: true
+        keepQueryParams: true
+
+legacy_24:
+    path: '/app/qr-code/image'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_onboarding_qr_image
+        permanent: true
+        keepQueryParams: true
+
+legacy_25:
+    path: '/app/screening/list'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_screening_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_26:
+    path: '/app/screening/show/{slugId}'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_screening_show
+        permanent: true
+        keepQueryParams: true
+
+legacy_27:
+    path: '/app/suitability/profil-investisseur/{slugId}/pdf'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_investor_profile_pdf
+        permanent: true
+        keepQueryParams: true
+
+legacy_28:
+    path: '/app/team/show/{slugId}'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_employees_show
+        permanent: true
+        keepQueryParams: true
+
+legacy_29:
+    path: '/espace-client'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: website_client_access
+        permanent: true
+        keepQueryParams: true
+
+legacy_30:
+    path: '/portal/account'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: portal_dashboard
+        permanent: true
+        keepQueryParams: true
+
+legacy_31:
+    path: '/portal/profil-investisseur/pdf/{slugId}'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: portal_investor_profile_pdf
+        permanent: true
+        keepQueryParams: true
+
+legacy_32:
+    path: '/portal/profil-investisseur/termine/{folderId}'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: portal_investor_profile_done
+        permanent: true
+        keepQueryParams: true
+
+legacy_33:
+    path: '/portal/profil-investisseur/{folderId}'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: portal_investor_profile
+        permanent: true
+        keepQueryParams: true
+
+legacy_34:
+    path: '/app/product-catalogue'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_products_list
+        permanent: true
+        keepQueryParams: true
+
+legacy_35:
+    path: '/admin/workspace/{slugId}'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: admin_workspaces_show
+        permanent: true
+        keepQueryParams: true
+
+legacy_36:
+    path: '/mentions'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: website_mentions
+        permanent: true
+        keepQueryParams: true
+
+legacy_37:
+    path: '/private-policy'
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: website_privacy_policy
+        permanent: true
+        keepQueryParams: true

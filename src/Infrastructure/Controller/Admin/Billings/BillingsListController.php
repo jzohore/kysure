@@ -13,7 +13,7 @@ use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 #[AsController]
-#[Route(path: '/admin/administrators/billings/list', name: 'admin_billings_list', methods: ['GET'])]
+#[Route(path: '/admin/billings', name: 'admin_billings_list', methods: ['GET'])]
 final class BillingsListController
 {
     /**

@@ -10,7 +10,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[AsController]
-#[Route(path: '/app/compliance/list', name: 'app_compliance_list', methods: ['GET'])]
+#[Route(path: '/app/compliance', name: 'app_compliance_list', methods: ['GET'])]
 class ComplianceListController extends AbstractController
 {
     public function __invoke(): Response

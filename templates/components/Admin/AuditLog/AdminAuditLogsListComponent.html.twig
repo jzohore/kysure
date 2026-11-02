@@ -84,7 +84,7 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     {% if log.workspace %}
-                                        <a href="{{ path('admin_workspace_details', {slugId: log.workspace.slugId}) }}"
+                                        <a href="{{ path('admin_workspaces_show', {slugId: log.workspace.slugId}) }}"
                                            class="font-medium text-slate-900 hover:underline">{{ log.workspace.name }}</a>
                                     {% else %}
                                         <span class="text-slate-400">{{ p.workspace_name ?? '—' }}</span>

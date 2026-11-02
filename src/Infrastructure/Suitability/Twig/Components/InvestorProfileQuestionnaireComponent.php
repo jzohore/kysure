@@ -159,7 +159,7 @@ class InvestorProfileQuestionnaireComponent extends AbstractController
 
             $doneRouteParams = null !== $this->folderId && '' !== $this->folderId ? ['folderId' => $this->folderId] : [];
 
-            return new RedirectResponse($this->urlGenerator->generate('app_portal_investor_profile_done', $doneRouteParams));
+            return new RedirectResponse($this->urlGenerator->generate('portal_investor_profile_done', $doneRouteParams));
         }
 
         ++$this->currentDimensionIndex;

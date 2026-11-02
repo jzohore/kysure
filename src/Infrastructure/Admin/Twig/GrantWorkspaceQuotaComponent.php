@@ -21,7 +21,7 @@ use Webmozart\Assert\Assert;
  * audit par {@see GrantWorkspaceQuotaUseCase}.
  *
  * Redirige après action (comme WorkspaceEditComponent / WorkspaceSuspendedComponent) :
- * la page admin_workspace_details affiche le quota restant en dehors de ce
+ * la page admin_workspaces_show affiche le quota restant en dehors de ce
  * composant, un simple re-render du composant ne le rafraîchirait pas.
  */
 #[AsLiveComponent(
@@ -91,6 +91,6 @@ class GrantWorkspaceQuotaComponent extends AbstractController
             ]);
         }
 
-        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+        return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $this->slugId]);
     }
 }

@@ -23,7 +23,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * les données lues et les points de vigilance, le CGP tranche toujours.
  */
 #[AsController]
-#[Route(path: '/app/compliance/show/{slugId}/documents/{documentId}/ocr', name: 'app_compliance_document_ocr_rerun', methods: ['POST'])]
+#[Route(path: '/app/compliance/{slugId}/documents/{documentId}/ocr', name: 'app_compliance_document_ocr_rerun', methods: ['POST'])]
 #[IsGranted(ComplianceFolderVoter::VIEW, subject: 'complianceFolder', message: 'Ce dossier est strictement confidentiel.')]
 final class RerunDocumentOcrController extends AbstractController
 {

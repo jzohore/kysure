@@ -17,7 +17,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Webmozart\Assert\Assert;
 
 #[AsController]
-#[Route(path: '/app/team/show/{slugId}', name: 'app_employees_show', methods: ['GET'])]
+#[Route(path: '/app/employees/{slugId}', name: 'app_employees_show', methods: ['GET'])]
 class EmployeesShowController extends AbstractController
 {
     public function __construct(

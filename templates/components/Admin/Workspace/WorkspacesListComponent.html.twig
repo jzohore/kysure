@@ -117,7 +117,7 @@
 
                             {# Actions #}
                             <td class="py-3.5 px-4 text-right">
-                                <a href="{{ path('admin_workspace_details', {slugId: workspace.slugId}) }}" class="inline-flex items-center justify-center p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors" title="Gérer le cabinet">
+                                <a href="{{ path('admin_workspaces_show', {slugId: workspace.slugId}) }}" class="inline-flex items-center justify-center p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors" title="Gérer le cabinet">
                                     <twig:ux:icon name="tabler:adjustments" class="size-4" />
                                     <span class="sr-only">Gérer</span>
                                 </a>

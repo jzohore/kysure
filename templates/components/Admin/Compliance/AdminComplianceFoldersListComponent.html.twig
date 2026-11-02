@@ -59,7 +59,7 @@
                             <tr class="hover:bg-slate-50/80">
                                 <td class="px-4 py-3 font-mono text-xs font-medium text-slate-900">{{ folder.reference }}</td>
                                 <td class="px-4 py-3">
-                                    <a href="{{ path('admin_workspace_details', {slugId: folder.workspace.slugId}) }}"
+                                    <a href="{{ path('admin_workspaces_show', {slugId: folder.workspace.slugId}) }}"
                                        class="font-medium text-slate-900 hover:underline">{{ folder.workspace.name }}</a>
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3">

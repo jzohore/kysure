@@ -182,7 +182,7 @@
         "friendsofphp/php-cs-fixer": "^3.95.27",
         "phpro/grumphp": "^2.23",
         "phpstan/phpstan": "^2.2.15",
-        "phpunit/phpunit": "^13.3.4",
+        "phpunit/phpunit": "^13.3.6",
         "rector/rector": "^2.6.7",
         "symfony/browser-kit": "8.1.*",
         "symfony/css-selector": "8.1.*",

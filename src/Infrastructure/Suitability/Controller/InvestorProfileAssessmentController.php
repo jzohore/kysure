@@ -24,7 +24,7 @@ final class InvestorProfileAssessmentController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/portal/profil-investisseur/{folderId}', name: 'app_portal_investor_profile', requirements: ['folderId' => 'comp_fol_[A-Za-z0-9]+'], defaults: ['folderId' => null], methods: ['GET'])]
+    #[Route(path: '/portal/investor-profile/{folderId}', name: 'portal_investor_profile', requirements: ['folderId' => 'comp_fol_[A-Za-z0-9]+'], defaults: ['folderId' => null], methods: ['GET'])]
     public function __invoke(?string $folderId = null): Response
     {
         /** @var Client $client */
@@ -33,13 +33,13 @@ final class InvestorProfileAssessmentController extends AbstractController
         if (($this->findInForceValidatedProfileUseCase)($client, $folderId) instanceof ValidatedInvestorProfile) {
             // Profil déjà validé par le CGP : pas de nouveau questionnaire tant qu'il n'a pas
             // été révoqué, sinon le client pourrait écraser lui-même la version qui fait foi.
-            return $this->redirectToRoute('app_portal_investor_profile_done', ['folderId' => $folderId]);
+            return $this->redirectToRoute('portal_investor_profile_done', ['folderId' => $folderId]);
         }
 
         $assessment = ($this->getOrCreateDraftAssessmentUseCase)($client, $folderId);
 
         if ($assessment->isSubmitted()) {
-            return $this->redirectToRoute('app_portal_investor_profile_done', ['folderId' => $folderId]);
+            return $this->redirectToRoute('portal_investor_profile_done', ['folderId' => $folderId]);
         }
 
         $workspace = $client->workspaces->first();

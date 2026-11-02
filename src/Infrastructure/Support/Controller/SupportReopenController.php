@@ -16,7 +16,7 @@ use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[AsController]
-#[Route(path: '/admin/support/reopen/{slugId}', name: 'admin_support_reopen', methods: ['POST'])]
+#[Route(path: '/admin/support/{slugId}/reopen', name: 'admin_support_reopen', methods: ['POST'])]
 #[IsGranted('ROLE_SUPER_ADMIN')]
 #[IsCsrfTokenValid('support-reopen')]
 readonly class SupportReopenController

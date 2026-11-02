@@ -153,12 +153,12 @@
                             {{ ux_icon('lucide:users', { class: 'size-4 text-slate-400' }) }}
                             Nouveaux Workspaces
                         </h2>
-                        <a href="{{ path('admin_organizations_list')|default('#') }}" class="text-xs font-medium text-violet-600 hover:text-violet-700">Voir tout</a>
+                        <a href="{{ path('admin_workspaces_list')|default('#') }}" class="text-xs font-medium text-violet-600 hover:text-violet-700">Voir tout</a>
                     </div>
 
                     <div class="p-2 space-y-1">
                         {% for workspace in stats.latestWorkspaces %}
-                            <a href="{{ path('admin_workspace_details', {slugId: workspace.slugId}) }}" class="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-colors group cursor-pointer">
+                            <a href="{{ path('admin_workspaces_show', {slugId: workspace.slugId}) }}" class="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-colors group cursor-pointer">
                                 <div class="flex items-center gap-4">
                                     <div class="size-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-sm uppercase border border-slate-200">
                                         {# Affichage des 2 premières lettres du nom #}

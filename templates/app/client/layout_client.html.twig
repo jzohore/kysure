@@ -1,95 +1,50 @@
 {% extends '@app/client/base_portal.html.twig' %}
 
+{# Pas de pied de page : le shell occupe toute la hauteur de la fenêtre. #}
+{% block footer %}{% endblock %}
+
 {% block layout %}
-    {# HEADER MOBILE-FIRST #}
-    <header class="bg-white/80 backdrop-blur-xl border-b border-slate-200 px-4 sm:px-6 py-3 flex justify-between items-center sticky top-0 z-40 shadow-sm w-full">
+    {% set current_route = app.request.attributes.get('_route') %}
+    <div class="flex h-screen w-full overflow-hidden bg-[#faf9f5]" data-controller="sidebar">
 
-        <div class="flex items-center gap-4">
-            {# Bouton Menu Burger (Mobile uniquement) #}
-            <button type="button" class="md:hidden p-2 -ml-2 text-slate-600 hover:text-slate-900 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0B261C]" aria-label="Ouvrir le menu">
-                <twig:ux:icon name="tabler:menu-2" class="size-6" />
-            </button>
+        {# Sidebar flottante partagée #}
+        {% include '@app/partials/_sidebar.html.twig' with {
+            brand: company_name|default('KYSURE'),
+            brand_href: path('portal_dashboard'),
+            sections: [
+                { items: [
+                    { icon: 'lucide:layout-dashboard', label: 'Vue d\'ensemble', href: path('portal_dashboard'), active: current_route == 'portal_dashboard' },
+                    { icon: 'lucide:folders', label: 'Mes dossiers', href: path('portal_folders_list'), active: 'folder' in current_route },
+                ] },
+                { title: 'Configuration', items: [
+                    { icon: 'lucide:user-round', label: 'Mon profil', href: path('portal_profile'), active: current_route == 'portal_profile' },
+                ] },
+            ],
+            user_name: app.user.fullName|default(app.user.email|default('Mon compte')),
+            user_email: app.user.email|default(null),
+            user_initials: app.user.initials|default('CL'),
+            user_links: [
+                { icon: 'lucide:user-round', label: 'Mon profil', href: path('portal_profile') },
+                { icon: 'lucide:log-out', label: 'Se déconnecter', href: path('portal_logout'), danger: true },
+            ],
+        } only %}
 
-            <div class="flex items-center gap-3">
-                <span class="font-bold text-slate-900 tracking-tight">{{ company_name|default('KYSURE') }}</span>
-            </div>
-        </div>
-
-        {# Menu profil #}
-        <div class="flex items-center gap-3" data-controller="dropdown">
-            <div class="relative inline-block">
-                <button type="button"
-                        data-dropdown-target="button"
-                        data-action="dropdown#toggle"
-                        aria-haspopup="menu"
-                        aria-expanded="false"
-                        aria-label="Ouvrir le menu du compte"
-                        class="flex items-center justify-center size-9 sm:size-8 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px] border border-slate-300 shadow-sm hover:bg-slate-200 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 uppercase">
-                    {{ app.user.initials|default('CL') }}
+        <div class="flex min-w-0 flex-1 flex-col">
+            {# Barre mobile : ouvre le tiroir #}
+            <header class="flex h-14 shrink-0 items-center gap-3 px-4 md:hidden">
+                <button type="button" data-action="sidebar#open"
+                        class="-ml-2 rounded-md p-2 text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                        aria-label="Ouvrir le menu">
+                    <twig:ux:icon name="lucide:menu" class="size-5" aria-hidden="true" />
                 </button>
+                <span class="text-sm font-semibold tracking-tight text-slate-900">{{ company_name|default('KYSURE') }}</span>
+            </header>
 
-                <div data-dropdown-target="menu"
-                     role="menu"
-                     class="hidden absolute right-0 mt-2 w-56 origin-top-right rounded-lg border border-slate-200 bg-white py-1 shadow-lg focus:outline-none z-50">
-                    <div class="px-3 py-2 border-b border-slate-100">
-                        <p class="text-sm font-medium text-slate-900 truncate">{{ app.user.fullName|default(app.user.email|default('Mon compte')) }}</p>
-                        {% if app.user.email is defined and app.user.email %}
-                            <p class="text-xs text-slate-500 truncate">{{ app.user.email }}</p>
-                        {% endif %}
-                    </div>
-                    <a href="{{ path('app_portal_profile') }}"
-                       role="menuitem"
-                       class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:bg-slate-50">
-                        Mon profil
-                    </a>
-                    <a href="{{ path('app_portal_logout') }}"
-                       role="menuitem"
-                       class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:bg-slate-50 border-t border-slate-100">
-                        Se déconnecter
-                    </a>
-                </div>
+            <div class="flex-1 overflow-y-auto">
+                <main id="main-content" class="mx-auto w-full max-w-5xl px-4 py-6 outline-none sm:px-6 sm:py-10 lg:px-8" tabindex="-1">
+                    {% block client_main %}{% endblock %}
+                </main>
             </div>
         </div>
-    </header>
-
-    {# STRUCTURE MASTER-DETAIL #}
-    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 flex-1 flex flex-col md:flex-row gap-8 lg:gap-12">
-
-        {# SIDEBAR (Cachée sur mobile par défaut via md:block) #}
-        <aside class="hidden md:block w-full md:w-64 shrink-0" aria-label="Menu principal">
-            <nav class="flex flex-col gap-1 sticky top-24">
-
-                {% set current_route = app.request.attributes.get('_route') %}
-
-                <a href="{{ path('app_portal_dashboard') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#0B261C] focus:ring-offset-1 {{ current_route == 'app_portal_dashboard' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}"
-                   {% if current_route == 'app_portal_dashboard' %}aria-current="page"{% endif %}>
-                    <twig:ux:icon name="tabler:layout-dashboard" class="size-4 {{ current_route == 'app_portal_dashboard' ? 'text-slate-700' : 'text-slate-400' }}" aria-hidden="true" />
-                    Vue d'ensemble
-                </a>
-
-                <a href="{{ path('app_portal_folders') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#0B261C] focus:ring-offset-1 {{ 'folder' in current_route ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                    <twig:ux:icon name="tabler:folders" class="size-4 {{ 'folder' in current_route ? 'text-slate-700' : 'text-slate-400' }}" aria-hidden="true" />
-                    Mes dossiers
-                </a>
-
-                <div class="mt-6 mb-2">
-                    <h3 class="px-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Configuration</h3>
-                </div>
-                <a href="{{ path('app_portal_profile') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#0B261C] focus:ring-offset-1 {{ current_route == 'app_portal_profile' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}"
-                   {% if current_route == 'app_portal_profile' %}aria-current="page"{% endif %}>
-                    <twig:ux:icon name="tabler:user" class="size-4 {{ current_route == 'app_portal_profile' ? 'text-slate-700' : 'text-slate-400' }}" aria-hidden="true" />
-                    Mon profil
-                </a>
-            </nav>
-        </aside>
-
-        {# CIBLE DU CONTENU ENFANT #}
-        <main id="main-content" class="flex-1 min-w-0 w-full outline-none" tabindex="-1">
-            {% block client_main %}{% endblock %}
-        </main>
-
     </div>
 {% endblock %}

@@ -35,7 +35,7 @@ class MagicClientLinkAuthenticator extends AbstractAuthenticator
      */
     public function supports(Request $request): ?bool
     {
-        return 'app_portal_verify_magic_link' === $request->attributes->get('_route')
+        return 'portal_verify_magic_link' === $request->attributes->get('_route')
             && $request->attributes->has('token');
     }
 
@@ -97,7 +97,7 @@ class MagicClientLinkAuthenticator extends AbstractAuthenticator
 
         // Si le 2FA N'EST PAS actif, cette redirection s'exécute normalement.
         // Si le 2FA EST actif, Scheb intercepte et l'ignore, mais notre session est sauvegardée.
-        return new RedirectResponse($this->urlGenerator->generate('app_portal_dashboard'));
+        return new RedirectResponse($this->urlGenerator->generate('portal_dashboard'));
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?RedirectResponse

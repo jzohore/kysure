@@ -22,7 +22,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  */
 #[AsController]
 #[IsGranted('ROLE_CLIENT', message: 'Espace strictement réservé aux clients.')]
-#[Route(path: '/portal/profil-investisseur/pdf/{slugId}', name: 'app_portal_investor_profile_pdf_download', methods: ['GET'])]
+#[Route(path: '/portal/investor-profile/{slugId}/pdf', name: 'portal_investor_profile_pdf', methods: ['GET'])]
 final class ClientInvestorProfilePdfDownloadController extends AbstractController
 {
     public function __construct(

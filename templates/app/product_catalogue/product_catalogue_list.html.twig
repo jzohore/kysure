@@ -10,7 +10,7 @@
             <p class="text-sm text-slate-500 mt-1">Les supports financiers que vous recommandez à vos clients.</p>
         </div>
 
-        <twig:Button as="a" href="{{ path('app_product_catalogue_new') }}" variant="dark">
+        <twig:Button as="a" href="{{ path('app_products_new') }}" variant="dark">
             <twig:ux:icon name="tabler:plus" class="size-4" aria-hidden="true" />
             Ajouter un produit
         </twig:Button>
@@ -49,9 +49,9 @@
                             <td class="px-5 py-3 text-slate-600">{{ product.minimumHorizonYears }} an{{ product.minimumHorizonYears > 1 ? 's' : '' }}</td>
                             <td class="px-5 py-3 text-slate-600">{{ (product.annualFeesBasisPoints / 100)|number_format(2, ',') }} %</td>
                             <td class="px-5 py-3 text-right whitespace-nowrap">
-                                <a href="{{ path('app_product_catalogue_edit', {slugId: product.slugId}) }}"
+                                <a href="{{ path('app_products_edit', {slugId: product.slugId}) }}"
                                    class="text-xs font-medium text-slate-500 hover:text-slate-900 mr-3">Modifier</a>
-                                <form method="post" action="{{ path('app_product_catalogue_toggle_archive', {slugId: product.slugId}) }}" class="inline">
+                                <form method="post" action="{{ path('app_products_toggle_archive', {slugId: product.slugId}) }}" class="inline">
                                     <input type="hidden" name="_token" value="{{ csrf_token('product_toggle_archive_' ~ product.slugId) }}">
                                     <button type="submit" class="text-xs font-medium text-slate-500 hover:text-red-600">
                                         {{ product.isArchived ? 'Réactiver' : 'Archiver' }}

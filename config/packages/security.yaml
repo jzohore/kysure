@@ -53,12 +53,12 @@ security:
                 - App\Infrastructure\Security\MagicAdminLinkAuthenticator
             form_login:
                 login_path: app_login
-                check_path: app_admin_verify
+                check_path: admin_verify
                 enable_csrf: true
                 default_target_path: admin_dashboard
                 always_use_default_target_path: true
             logout:
-                path: app_admin_logout
+                path: admin_logout
                 target: app_login
             login_throttling:
                 max_attempts: 5
@@ -74,12 +74,12 @@ security:
                 - App\Infrastructure\Security\MagicClientLinkAuthenticator
             form_login:
                 login_path: app_login
-                check_path: app_portal_verify
+                check_path: portal_verify
                 enable_csrf: true
-                default_target_path: app_portal_dashboard
+                default_target_path: portal_dashboard
                 always_use_default_target_path: true
             logout:
-                path: app_portal_logout
+                path: portal_logout
                 target: app_login
             login_throttling:
                 max_attempts: 5
@@ -150,8 +150,9 @@ security:
         # Protection de l'espace administrateur (back-office KYSURE)
         # La gestion de l'équipe et les zones sensibles restent réservées au SUPER_ADMIN ;
         # les opérateurs (ROLE_ADMIN) accèdent au reste du back-office.
+        - { path: '^/admin/(team|billings|compliance|crons|integrations|legal-documents|subscriptions|audit-logs)(/|$)', roles: ROLE_SUPER_ADMIN }
+        # Anciennes URLs (redirigées en 301 vers les nouvelles, qui sont protégées ci-dessus)
         - { path: ^/admin/administrators, roles: ROLE_SUPER_ADMIN }
-        - { path: ^/admin/audit-logs, roles: ROLE_SUPER_ADMIN }
         - { path: ^/admin, roles: ROLE_ADMIN }
 
 when@test:

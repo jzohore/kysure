@@ -13,7 +13,7 @@ use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 #[AsController]
-#[Route(path: '/mentions', name: 'website_mentions')]
+#[Route(path: '/legal-notice', name: 'website_mentions')]
 final readonly class MentionsController
 {
     /**

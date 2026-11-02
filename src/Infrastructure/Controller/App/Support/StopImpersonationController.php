@@ -53,7 +53,7 @@ final class StopImpersonationController extends AbstractController
         $slugId = \is_array($context) ? (string) ($context['workspace_slug'] ?? '') : '';
 
         return '' !== $slugId
-            ? $this->redirectToRoute('admin_workspace_details', ['slugId' => $slugId])
+            ? $this->redirectToRoute('admin_workspaces_show', ['slugId' => $slugId])
             : $this->redirectToRoute('admin_dashboard');
     }
 }

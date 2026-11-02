@@ -18,8 +18,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[AsController]
 #[IsGranted('ROLE_SUPER_ADMIN')]
 #[Route(
-    path: '/admin/administrators/{slugId}/status/{action}',
-    name: 'account_admin_status',
+    path: '/admin/team/{slugId}/status/{action}',
+    name: 'admin_team_status',
     requirements: ['action' => 'suspend|reactivate|archive'],
     methods: ['POST'],
 )]
@@ -50,7 +50,7 @@ final class AdminAccountStatusController extends AbstractController
         if (!$this->isCsrfTokenValid('admin_account_status_' . $slugId, (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'Jeton de sécurité invalide ou expiré.');
 
-            return $this->redirectToRoute('account_admin_list');
+            return $this->redirectToRoute('admin_team_list');
         }
 
         try {
@@ -63,7 +63,7 @@ final class AdminAccountStatusController extends AbstractController
         } catch (\InvalidArgumentException|\DomainException $e) {
             $this->addFlash('error', $e->getMessage());
 
-            return $this->redirectToRoute('account_admin_list');
+            return $this->redirectToRoute('admin_team_list');
         }
 
         $this->addFlash('success', match ($action) {
@@ -72,6 +72,6 @@ final class AdminAccountStatusController extends AbstractController
             'archive' => 'Compte archivé. Le membre en est informé par e-mail.',
         });
 
-        return $this->redirectToRoute('account_admin_list');
+        return $this->redirectToRoute('admin_team_list');
     }
 }

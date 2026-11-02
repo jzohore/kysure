@@ -18,7 +18,7 @@ use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 #[AsController]
-#[Route(path: '/app/screening/show/{slugId}', name: 'app_screening_show', methods: ['GET', 'POST'])]
+#[Route(path: '/app/screening/{slugId}', name: 'app_screening_show', methods: ['GET', 'POST'])]
 readonly class ScreeningShowController
 {
     public function __construct(

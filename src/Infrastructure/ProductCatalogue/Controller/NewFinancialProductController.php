@@ -21,7 +21,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * back-office, pas le chemin critique client.
  */
 #[AsController]
-#[Route(path: '/app/product-catalogue/new', name: 'app_product_catalogue_new', methods: ['GET', 'POST'])]
+#[Route(path: '/app/products/new', name: 'app_products_new', methods: ['GET', 'POST'])]
 final class NewFinancialProductController extends AbstractController
 {
     public function __construct(
@@ -46,7 +46,7 @@ final class NewFinancialProductController extends AbstractController
                 ($this->createFinancialProduct)($workspace, $dto);
                 $this->addFlash('success', 'Produit ajouté au catalogue.');
 
-                return $this->redirectToRoute('app_product_catalogue_list');
+                return $this->redirectToRoute('app_products_list');
             } catch (\DomainException $exception) {
                 $this->addFlash('error', $exception->getMessage());
             }

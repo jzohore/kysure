@@ -22,7 +22,7 @@ final class WorkspaceQrCodeController extends AbstractController
     ) {
     }
 
-    #[Route('/app/onboarding/qr', name: 'app_workspace_qr_display', methods: ['GET'])]
+    #[Route('/app/onboarding/qr', name: 'app_onboarding_qr', methods: ['GET'])]
     public function displayPage(): Response
     {
         $profile = $this->currentWorkspaceProvider->getWorkspace()->regulatoryProfile;
@@ -37,7 +37,7 @@ final class WorkspaceQrCodeController extends AbstractController
         ]);
     }
 
-    #[Route('/app/qr-code/image', name: 'app_workspace_public_qr_image', methods: ['GET'])]
+    #[Route('/app/onboarding/qr/image', name: 'app_onboarding_qr_image', methods: ['GET'])]
     public function generateImage(): Response
     {
         $workspace = $this->currentWorkspaceProvider->getWorkspace();

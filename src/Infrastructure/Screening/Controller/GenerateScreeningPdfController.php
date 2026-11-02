@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 #[AsController]
-#[Route(path: '/app/screening/generate/pdf/{slugId}', name: 'app_screening_generate_pdf', methods: ['POST'])]
+#[Route(path: '/app/screening/{slugId}/pdf', name: 'app_screening_pdf', methods: ['POST'])]
 readonly class GenerateScreeningPdfController
 {
     public function __construct(

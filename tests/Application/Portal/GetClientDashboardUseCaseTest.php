@@ -17,6 +17,7 @@ use App\Domain\Suitability\Repository\InvestorProfileAssessmentRepositoryInterfa
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\User\Entity\Client;
 use App\Domain\User\Entity\User;
+use App\Domain\User\Enum\ClientPortalStatus;
 use App\Domain\Workspace\Entity\Workspace;
 use App\Tests\Application\ReflectionHelperTrait;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -148,13 +149,62 @@ final class GetClientDashboardUseCaseTest extends TestCase
         self::assertSame('Cabinet B', $dashboard->cabinetRelationships[1]->activeFolder->workspaceName);
     }
 
+    public function testFolderAwaitingDocsWithNothingLeftToUploadIsUnderReviewNotActionRequired(): void
+    {
+        $this->folder = $this->folderWithStatus(ComplianceFolderStatus::PENDING_DOCS);
+
+        $status = $this->buildAndInvoke(pendingDocs: 0)->cabinetRelationships[0]->activeFolder->status;
+
+        self::assertSame(ClientPortalStatus::UNDER_REVIEW, $status);
+    }
+
+    public function testFolderAwaitingDocsStaysActionRequiredWhileDocumentsArePending(): void
+    {
+        $this->folder = $this->folderWithStatus(ComplianceFolderStatus::PENDING_DOCS);
+
+        $relationship = $this->buildAndInvoke(pendingDocs: 2)->cabinetRelationships[0];
+
+        self::assertSame(ClientPortalStatus::ACTION_REQUIRED, $relationship->activeFolder->status);
+        self::assertSame(2, $relationship->pendingDocumentsCount);
+    }
+
+    public function testFolderNeedingCorrectionStaysActionRequiredWhileADocumentIsRejected(): void
+    {
+        $this->folder = $this->folderWithStatus(ComplianceFolderStatus::NEEDS_CORRECTION);
+
+        $status = $this->buildAndInvoke(pendingDocs: 1)->cabinetRelationships[0]->activeFolder->status;
+
+        self::assertSame(ClientPortalStatus::ACTION_REQUIRED, $status);
+    }
+
+    public function testFolderAwaitingClientStaysActionRequiredEvenWithoutPendingDocuments(): void
+    {
+        $this->folder = $this->folderWithStatus(ComplianceFolderStatus::AWAITING_CLIENT);
+
+        $status = $this->buildAndInvoke(pendingDocs: 0)->cabinetRelationships[0]->activeFolder->status;
+
+        self::assertSame(ClientPortalStatus::ACTION_REQUIRED, $status);
+    }
+
+    private function folderWithStatus(ComplianceFolderStatus $status): IndividualFolder
+    {
+        return $this->createEntityState(IndividualFolder::class, [
+            'workspace' => $this->workspace,
+            'status' => $status,
+            'slugId' => 'fld_1',
+            'reference' => 'REF-2026-001',
+            'createdAt' => new \DateTimeImmutable('2026-01-01'),
+        ]);
+    }
+
     private function buildAndInvoke(
         ?InvestorProfileAssessment $draft = null,
         ?InvestorProfileAssessment $submitted = null,
         ?ValidatedInvestorProfile $validated = null,
+        int $pendingDocs = 0,
     ): ClientDashboardDto {
         $documentRepo = $this->createStub(ComplianceDocumentRepositoryInterface::class);
-        $documentRepo->method('countPendingForFolder')->willReturn(0);
+        $documentRepo->method('countPendingForFolder')->willReturn($pendingDocs);
 
         $folderRepo = $this->createStub(ComplianceFolderRepositoryInterface::class);
         $folderRepo->method('findAllActiveForClient')->willReturn([$this->folder]);

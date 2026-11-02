@@ -56,9 +56,9 @@ final readonly class SendMagicLinkHandler
         }
 
         $routeName = match ($recipientType) {
-            UserType::CLIENT => 'app_portal_verify_magic_link',
+            UserType::CLIENT => 'portal_verify_magic_link',
             UserType::CGP => 'app_verify_magic_link',
-            UserType::ADMIN => 'app_admin_verify_magic_link',
+            UserType::ADMIN => 'admin_verify_magic_link',
         };
 
         $magicLinkUrl = $this->generateLinkToken->generate(

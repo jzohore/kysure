@@ -36,7 +36,7 @@ class MagicAdminLinkAuthenticator extends AbstractAuthenticator
      */
     public function supports(Request $request): ?bool
     {
-        return 'app_admin_verify_magic_link' === $request->attributes->get('_route')
+        return 'admin_verify_magic_link' === $request->attributes->get('_route')
             && $request->attributes->has('token');
     }
 

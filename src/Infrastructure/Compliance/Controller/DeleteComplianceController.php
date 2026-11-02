@@ -16,7 +16,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[AsController]
-#[Route(path: '/app/compliance/folder/{slugId}/{type}/{method}/delete', name: 'app_compliance_delete_folder', methods: ['POST'])]
+#[Route(path: '/app/compliance/{slugId}/{type}/{method}/delete', name: 'app_compliance_delete_folder', methods: ['POST'])]
 class DeleteComplianceController extends AbstractController
 {
     public function __construct(

@@ -14,7 +14,7 @@ use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 #[AsController]
-#[Route(path: '/app/kyc/show/{slugId}', name: 'app_kyc_show', methods: ['GET', 'POST'])]
+#[Route(path: '/app/kyc/{slugId}', name: 'app_kyc_show', methods: ['GET', 'POST'])]
 final readonly class KycFolderShowController
 {
     public function __construct(

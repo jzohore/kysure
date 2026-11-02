@@ -13,7 +13,7 @@ use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 #[AsController]
-#[Route(path: '/admin/administrators/legal-documents/list', name: 'admin_legal_documents_list', methods: ['GET'])]
+#[Route(path: '/admin/legal-documents', name: 'admin_legal_documents_list', methods: ['GET'])]
 final class LegalDocumentsListController
 {
     /**

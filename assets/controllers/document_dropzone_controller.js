@@ -21,8 +21,11 @@ export default class extends Controller {
     static targets = [
         'input', 'cameraInput', 'idle', 'panel', 'thumb', 'fileName', 'fileMeta',
         'previewLink', 'progress', 'bar', 'progressLabel', 'error', 'sendButton',
-        'sendLabel', 'changeButton', 'cancelButton',
+        'sendLabel', 'changeButton', 'cancelButton', 'hint',
     ];
+
+    // En dessous de ce côté (en pixels), le texte d'une pièce photographiée est rarement lisible par l'OCR.
+    static MIN_IMAGE_SIDE = 900;
 
     static classes = ['active'];
 
@@ -128,11 +131,20 @@ export default class extends Controller {
         this.objectUrl = URL.createObjectURL(file);
 
         this.thumbTarget.replaceChildren();
+        if (this.hasHintTarget) {
+            this.hintTarget.hidden = true;
+        }
         if (file.type.startsWith('image/')) {
             const image = document.createElement('img');
             image.src = this.objectUrl;
             image.alt = 'Aperçu de la pièce sélectionnée';
             image.className = 'size-full object-cover';
+            // Consigne non bloquante : on avertit d'une image peu définie, sans jamais empêcher l'envoi.
+            image.addEventListener('load', () => {
+                if (this.hasHintTarget && Math.min(image.naturalWidth, image.naturalHeight) < this.constructor.MIN_IMAGE_SIDE) {
+                    this.hintTarget.hidden = false;
+                }
+            }, { once: true });
             this.thumbTarget.append(image);
         } else {
             const badge = document.createElement('span');

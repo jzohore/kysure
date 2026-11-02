@@ -13,7 +13,7 @@ use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 #[AsController]
-#[Route(path: '/admin/administrators/integration-api/list', name: 'admin_integration_api_list', methods: ['GET'])]
+#[Route(path: '/admin/integrations', name: 'admin_integration_api_list', methods: ['GET'])]
 final class ApisListController
 {
     /**

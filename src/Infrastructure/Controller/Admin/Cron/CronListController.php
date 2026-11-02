@@ -12,7 +12,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[AsController]
 #[IsGranted('ROLE_SUPER_ADMIN')]
-#[Route(path: '/admin/administrators/crons/list', name: 'admin_crons_list', methods: ['GET'])]
+#[Route(path: '/admin/crons', name: 'admin_crons_list', methods: ['GET'])]
 final class CronListController extends AbstractController
 {
     public function __invoke(): Response

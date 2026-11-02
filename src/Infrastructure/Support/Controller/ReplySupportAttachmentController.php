@@ -22,7 +22,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * PostSupportAttachmentController pour le détail de la contrainte technique).
  */
 #[AsController]
-#[Route(path: '/admin/support/{slugId}/attachment', name: 'admin_support_attachment_upload', methods: ['POST'])]
+#[Route(path: '/admin/support/{slugId}/attachments', name: 'admin_support_attachment_upload', methods: ['POST'])]
 final readonly class ReplySupportAttachmentController
 {
     public function __construct(

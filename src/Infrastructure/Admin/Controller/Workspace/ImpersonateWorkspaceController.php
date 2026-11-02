@@ -33,7 +33,7 @@ use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
  */
 #[AsController]
 #[IsGranted('ROLE_SUPER_ADMIN')]
-#[Route(path: '/admin/workspace/{slugId}/impersonate', name: 'admin_workspace_impersonate', methods: ['GET', 'POST'])]
+#[Route(path: '/admin/workspaces/{slugId}/impersonate', name: 'admin_workspaces_impersonate', methods: ['GET', 'POST'])]
 final class ImpersonateWorkspaceController extends AbstractController
 {
     public const string SESSION_CONTEXT_KEY = '_support_impersonation';
@@ -74,7 +74,7 @@ final class ImpersonateWorkspaceController extends AbstractController
         if (!$this->isCsrfTokenValid('impersonate_' . $slugId, (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'Jeton de sécurité invalide ou expiré.');
 
-            return $this->redirectToRoute('admin_workspace_impersonate', ['slugId' => $slugId, 'email' => $email]);
+            return $this->redirectToRoute('admin_workspaces_impersonate', ['slugId' => $slugId, 'email' => $email]);
         }
 
         try {
@@ -88,7 +88,7 @@ final class ImpersonateWorkspaceController extends AbstractController
         } catch (\InvalidArgumentException $e) {
             $this->addFlash('error', $e->getMessage());
 
-            return $this->redirectToRoute('admin_workspace_impersonate', ['slugId' => $slugId, 'email' => $email]);
+            return $this->redirectToRoute('admin_workspaces_impersonate', ['slugId' => $slugId, 'email' => $email]);
         }
 
         // Dépose l'identité « main » en session, sans toucher à « _security_admin ».

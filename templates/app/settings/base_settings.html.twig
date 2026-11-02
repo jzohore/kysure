@@ -1,0 +1,41 @@
+{% extends '@app/base_app.html.twig' %}
+
+{# Mobile : petit bouton dans le header qui ouvre une petite fenêtre avec les liens d'accès. #}
+{% block header_actions %}
+    <div class="relative lg:hidden" data-controller="dropdown">
+        <button type="button"
+                data-dropdown-target="button"
+                data-action="dropdown#toggle"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-label="Sections des paramètres"
+                class="flex size-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900">
+            {{ ux_icon('lucide:sliders-horizontal', { class: 'size-4', 'aria-hidden': 'true' }) }}
+        </button>
+        <div data-dropdown-target="menu" role="menu"
+             class="absolute right-0 z-50 mt-1.5 hidden w-60 rounded-xl border border-slate-200 bg-white p-1 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
+            {% include '@app/settings/_settings_nav.html.twig' with { variant: 'menu' } only %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="mb-6 lg:mb-8">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ page_title }}</h1>
+        {% if sub_title is defined %}<p class="mt-1 text-sm text-slate-500">{{ sub_title }}</p>{% endif %}
+    </div>
+
+    <div class="flex items-start gap-8">
+        <div class="min-w-0 flex-1">
+            {% block settings_content %}{% endblock %}
+        </div>
+
+        {# Desktop : seconde sidebar, à droite #}
+        <aside class="sticky top-4 hidden w-56 shrink-0 lg:block" aria-label="Sections des paramètres">
+            <nav class="space-y-0.5 rounded-2xl border border-slate-200/80 bg-white p-2 shadow-sm">
+                <p class="px-2.5 pb-1 pt-2 text-[11px] font-medium text-slate-400">Paramètres</p>
+                {% include '@app/settings/_settings_nav.html.twig' with { variant: 'aside' } only %}
+            </nav>
+        </aside>
+    </div>
+{% endblock %}

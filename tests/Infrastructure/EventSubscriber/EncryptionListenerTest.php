@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Infrastructure\EventSubscriber;
 
+use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Entity\IndividualFolder;
 use App\Infrastructure\EventSubscriber\EncryptionListener;
 use App\Infrastructure\Security\MessageCipher;
@@ -105,6 +106,94 @@ final class EncryptionListenerTest extends TestCase
         $this->listener->postPersist(new PostPersistEventArgs($folder, $this->entityManagerReturning($unitOfWork)));
 
         self::assertSame('Jean', $folder->firstName);
+    }
+
+    public function testPersistEncryptsOcrArraysIntoAnEnvelopeThenRestoresThem(): void
+    {
+        $data = ['document_number' => 'AB123456', 'birth_date' => '1980-04-12'];
+        $findings = ['Identité non correspondante : le nom sur la pièce (DUPONT) diffère de celui du dossier.'];
+        $document = $this->createEntityState(ComplianceDocument::class, ['ocrData' => $data, 'ocrFindings' => $findings]);
+
+        $this->listener->prePersist(new PrePersistEventArgs($document, $this->createStub(EntityManagerInterface::class)));
+
+        // Ce qui part en base : une enveloppe, aucune donnée lisible.
+        self::assertIsArray($document->ocrData);
+        self::assertSame(['_enc'], array_keys($document->ocrData));
+        self::assertStringNotContainsString('AB123456', json_encode($document->ocrData, \JSON_THROW_ON_ERROR));
+        self::assertIsArray($document->ocrFindings);
+        self::assertStringNotContainsString('DUPONT', json_encode($document->ocrFindings, \JSON_THROW_ON_ERROR));
+        self::assertSame($data, json_decode($this->cipher->decrypt($document->ocrData['_enc']), true));
+
+        $unitOfWork = $this->createStub(UnitOfWork::class);
+        $this->listener->postPersist(new PostPersistEventArgs($document, $this->entityManagerReturning($unitOfWork)));
+
+        self::assertSame($data, $document->ocrData);
+        self::assertSame($findings, $document->ocrFindings);
+    }
+
+    public function testPostLoadDecryptsAnOcrEnvelopeAndAlignsSnapshotOnThePlainArray(): void
+    {
+        $data = ['last_name' => 'DUPONT', 'mrz' => ['line_1' => 'IDFRA<<<<']];
+        $document = $this->createEntityState(ComplianceDocument::class, [
+            'ocrData' => ['_enc' => $this->cipher->encrypt(json_encode($data, \JSON_THROW_ON_ERROR))],
+        ]);
+
+        /** @var array<string, mixed> $snapshot */
+        $snapshot = [];
+        $unitOfWork = $this->createMock(UnitOfWork::class);
+        $unitOfWork->expects($this->once())
+            ->method('setOriginalEntityProperty')
+            ->willReturnCallback(static function (int $oid, string $property, mixed $value) use (&$snapshot): void {
+                $snapshot[$property] = $value;
+            });
+
+        $this->listener->postLoad(new PostLoadEventArgs($document, $this->entityManagerReturning($unitOfWork)));
+
+        self::assertSame($data, $document->ocrData);
+        self::assertNull($document->ocrFindings);
+        self::assertSame(['ocrData' => $data], $snapshot);
+    }
+
+    public function testPostLoadLeavesAnOcrAnalysisStillStoredInClearUntouched(): void
+    {
+        // Ligne antérieure au chiffrement (avant `app:ocr:encrypt-stored-data`) : lisible telle quelle.
+        $document = $this->createEntityState(ComplianceDocument::class, ['ocrData' => ['last_name' => 'DUPONT']]);
+
+        $unitOfWork = $this->createMock(UnitOfWork::class);
+        $unitOfWork->expects($this->never())->method('setOriginalEntityProperty');
+
+        $this->listener->postLoad(new PostLoadEventArgs($document, $this->entityManagerReturning($unitOfWork)));
+
+        self::assertSame(['last_name' => 'DUPONT'], $document->ocrData);
+    }
+
+    public function testPreUpdateEncryptsAChangedOcrArrayButNeverTwice(): void
+    {
+        $document = $this->createEntityState(ComplianceDocument::class, ['ocrData' => ['last_name' => 'DURAND']]);
+        $alreadyEncrypted = ['_enc' => $this->cipher->encrypt('{"a":1}')];
+
+        $changeSet = [
+            'ocrData' => [['last_name' => 'DUPONT'], ['last_name' => 'DURAND']],
+            'ocrFindings' => [null, $alreadyEncrypted],
+        ];
+        $this->listener->preUpdate(new PreUpdateEventArgs($document, $this->createStub(EntityManagerInterface::class), $changeSet));
+
+        self::assertSame(['_enc'], array_keys($changeSet['ocrData'][1]));
+        self::assertSame(['last_name' => 'DURAND'], json_decode($this->cipher->decrypt($changeSet['ocrData'][1]['_enc']), true));
+        // Une enveloppe déjà chiffrée n'est pas rechiffrée.
+        self::assertSame($alreadyEncrypted, $changeSet['ocrFindings'][1]);
+        // L'entité garde son clair.
+        self::assertSame(['last_name' => 'DURAND'], $document->ocrData);
+    }
+
+    public function testEmptyAndNullOcrValuesAreNotEncrypted(): void
+    {
+        $document = $this->createEntityState(ComplianceDocument::class, ['ocrData' => [], 'ocrFindings' => null]);
+
+        $this->listener->prePersist(new PrePersistEventArgs($document, $this->createStub(EntityManagerInterface::class)));
+
+        self::assertSame([], $document->ocrData);
+        self::assertNull($document->ocrFindings);
     }
 
     private function entityManagerReturning(UnitOfWork $unitOfWork): EntityManagerInterface

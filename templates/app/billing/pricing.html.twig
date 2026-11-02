@@ -1,20 +1,17 @@
-{% extends '@app/base_app.html.twig' %}
+{% extends '@app/settings/base_settings.html.twig' %}
 
 {% block title %}{{ page_title }} - {{ company_name }}{% endblock %}
 {% block page_title %}Offres & tarifs{% endblock %}
 
-{% block content %}
-    <header class="mb-8">
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Choisissez votre offre</h1>
-        <p class="text-sm text-slate-500 mt-1">
-            {% if pricing.hasActiveSubscription %}
-                Votre abonnement est actif. Vous pouvez ajouter des minutes d'entretien à tout moment.
-            {% else %}
-                Essai en cours&nbsp;: <span class="font-medium text-slate-700 tabular-nums">{{ pricing.trialDossiersRemaining }}</span> dossier(s) et
-                <span class="font-medium text-slate-700 tabular-nums">{{ pricing.remainingMeetingMinutes }}</span> min restants.
-            {% endif %}
-        </p>
-    </header>
+{% block settings_content %}
+    <p class="mb-8 text-sm text-slate-500">
+        {% if pricing.hasActiveSubscription %}
+            Votre abonnement est actif. Vous pouvez ajouter des minutes d'entretien à tout moment.
+        {% else %}
+            Essai en cours&nbsp;: <span class="font-medium text-slate-700 tabular-nums">{{ pricing.trialDossiersRemaining }}</span> dossier(s) et
+            <span class="font-medium text-slate-700 tabular-nums">{{ pricing.remainingMeetingMinutes }}</span> min restants.
+        {% endif %}
+    </p>
 
     {% if pricing.hasActiveSubscription %}
         <div class="mb-8 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">

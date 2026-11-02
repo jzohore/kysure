@@ -16,7 +16,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[AsController]
 #[IsGranted('ROLE_SUPER_ADMIN')]
-#[Route(path: '/admin/administrators/{slugId}/delete', name: 'account_admin_delete', methods: ['POST'])]
+#[Route(path: '/admin/team/{slugId}/delete', name: 'admin_team_delete', methods: ['POST'])]
 final class DeleteAdminController extends AbstractController
 {
     public function __construct(
@@ -34,7 +34,7 @@ final class DeleteAdminController extends AbstractController
         if (!$this->isCsrfTokenValid('admin_account_delete_' . $slugId, (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'Jeton de sécurité invalide ou expiré.');
 
-            return $this->redirectToRoute('account_admin_list');
+            return $this->redirectToRoute('admin_team_list');
         }
 
         try {
@@ -42,11 +42,11 @@ final class DeleteAdminController extends AbstractController
         } catch (\InvalidArgumentException|\DomainException $e) {
             $this->addFlash('error', $e->getMessage());
 
-            return $this->redirectToRoute('account_admin_list');
+            return $this->redirectToRoute('admin_team_list');
         }
 
         $this->addFlash('success', 'Compte supprimé définitivement.');
 
-        return $this->redirectToRoute('account_admin_list');
+        return $this->redirectToRoute('admin_team_list');
     }
 }

@@ -66,7 +66,7 @@ class ClientProfileFormComponent extends AbstractController
 
             $this->addFlash('success', 'Votre profil a bien été mis à jour.');
 
-            return $this->redirectToRoute('app_portal_profile');
+            return $this->redirectToRoute('portal_profile');
         } catch (\DomainException $e) {
             $this->logger->warning('Mise à jour du profil client refusée.', [
                 'client_slug_id' => $this->currentClient()->slugId,

@@ -18,7 +18,7 @@ final class AdminDashboardController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/admin/account', name: 'admin_dashboard', methods: ['GET'])]
+    #[Route(path: '/admin/dashboard', name: 'admin_dashboard', methods: ['GET'])]
     public function __invoke(): Response
     {
         return $this->render('@admin/dashboard.html.twig', [

@@ -16,7 +16,7 @@ use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[AsController]
-#[Route(path: '/admin/support/mark-as-resolve/{slugId}', name: 'admin_support_mark_as_resolve', methods: ['POST'])]
+#[Route(path: '/admin/support/{slugId}/resolve', name: 'admin_support_resolve', methods: ['POST'])]
 #[IsGranted('ROLE_SUPER_ADMIN')]
 #[IsCsrfTokenValid('support-resolve')]
 readonly class SupportMarkAsResolveController

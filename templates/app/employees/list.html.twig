@@ -1,11 +1,10 @@
-{% extends '@app/base_app.html.twig' %}
+{% extends '@app/settings/base_settings.html.twig' %}
 
 {% block title %}{{ page_title }} | {{ company_name }}{% endblock %}
 {% block page_title %}{{ page_title }}{% endblock %}
 
 
-{% block content %}
-    {{ include('@app/settings/_header_settings.html.twig') }}
+{% block settings_content %}
     {# 1. HEADER : TITRE ET BOUTON D'ACTION #}
     <div class="flex flex-col sm:flex-row sm:items-center justify-end gap-4 mb-8">
         <twig:Button as="a" href="{{ path('app_employees_invitation') }}"

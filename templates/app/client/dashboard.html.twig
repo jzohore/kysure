@@ -5,121 +5,128 @@
 
 
 {% block client_main %}
-    {# 1. HEADER PAGE #}
-    <div class="mb-8">
-        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            Bonjour {{ dashboard.clientFirstName }},
+    <div class="mb-10">
+        <h1 class="font-serif text-3xl tracking-tight text-slate-900 sm:text-4xl">
+            Bonjour {{ dashboard.clientFirstName }}
         </h1>
-        <p class="text-sm sm:text-base text-slate-600 mt-1">
+        <p class="mt-2 text-[15px] text-slate-600">
             {% if dashboard.cabinetRelationships|length > 1 %}
-                Voici un résumé de votre situation réglementaire auprès de vos {{ dashboard.cabinetRelationships|length }} cabinets.
+                Votre situation réglementaire auprès de vos {{ dashboard.cabinetRelationships|length }} cabinets.
             {% else %}
-                Voici un résumé de votre situation réglementaire.
+                Votre situation réglementaire.
             {% endif %}
         </p>
     </div>
 
-    {# Un client peut être suivi par plusieurs cabinets à la fois : une section par relation
-       active, jamais une seule mise en avant arbitraire qui masquerait les autres. #}
-    {% for relationship in dashboard.cabinetRelationships %}
-        {% if dashboard.cabinetRelationships|length > 1 %}
-            <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2 {{ not loop.first ? 'mt-10' : '' }}">
-                <twig:ux:icon name="tabler:building-bank" class="size-4" aria-hidden="true" />
-                {{ relationship.activeFolder.workspaceName }}
-            </h2>
-        {% endif %}
+    {# Un client peut être suivi par plusieurs cabinets à la fois : une section par relation active.
+       Séparation par l'en-tête du cabinet et un grand espace, pas par des boîtes imbriquées. #}
+    <div class="space-y-14">
+        {% for relationship in dashboard.cabinetRelationships %}
+            {% set status = relationship.activeFolder.status %}
+            {% set profile = relationship.investorProfileStatus %}
+            {% set cabinet_name = relationship.activeFolder.workspaceName %}
+            {% set folder_url = path('portal_folders_show', {id: relationship.activeFolder.id}) %}
 
-        {# 2. LE DOSSIER DE CE CABINET (Pleine largeur) #}
-        {% set status = relationship.activeFolder.status %}
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-            <div class="border-l-4 {{ status.accentBorderClass }} p-6 sm:p-8">
-                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
-                    <div class="flex items-start gap-4">
-                        <div class="p-2.5 rounded-lg ring-1 ring-inset {{ status.iconWrapClasses }} shrink-0">
-                            <twig:ux:icon name="tabler:shield-lock" class="size-6" aria-hidden="true" />
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-semibold text-slate-900 tracking-tight">
-                                {{ relationship.activeFolder.title }}
-                            </h2>
-                            <p class="text-sm text-slate-600 mt-1.5 leading-relaxed max-w-xl">
-                                {% if status.value == 'action_required' %}
-                                    Votre cabinet requiert <strong>{{ relationship.pendingDocumentsCount }} pièce(s) justificative(s)</strong> pour finaliser la mise en conformité de votre dossier.
-                                {% elseif status.value == 'under_review' %}
-                                    Votre dossier a été transmis à votre cabinet. L'analyse est en cours&nbsp;: aucune action n'est requise de votre part, vous serez prévenu·e dès qu'elle sera terminée.
-                                {% else %}
-                                    L'ensemble de vos documents réglementaires a été vérifié et validé.
-                                {% endif %}
-                            </p>
-                        </div>
+            <section aria-labelledby="cabinet-{{ loop.index }}-title">
+                {# En-tête du cabinet #}
+                <div class="mb-3 flex items-center justify-between gap-4 px-1">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white" aria-hidden="true">{{ cabinet_name|first|upper }}</span>
+                        <h2 id="cabinet-{{ loop.index }}-title" class="truncate text-lg font-semibold tracking-tight text-slate-900">{{ cabinet_name }}</h2>
                     </div>
-                    <div class="shrink-0">
-                        <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset {{ status.badgeClasses }}">
-                            {{ status.label }}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-end gap-3">
-                    {% if status.value == 'action_required' %}
-                        <a href="{{ path('app_portal_folder_detail', {id: relationship.activeFolder.id}) }}"
-                           class="inline-flex items-center justify-center gap-2 bg-[#0B261C] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B261C] focus-visible:ring-offset-2 transition-all shadow-sm">
-                            Transmettre mes pièces
-                            <twig:ux:icon name="tabler:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
-                        </a>
-                    {% else %}
-                        <a href="{{ path('app_portal_folder_detail', {id: relationship.activeFolder.id}) }}"
-                           class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-md transition-colors">
-                            Voir le détail
-                            <twig:ux:icon name="tabler:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        {# 3. PROFIL INVESTISSEUR DE CE CABINET #}
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-            <div class="flex items-start gap-4">
-                <div class="p-2.5 rounded-lg bg-indigo-50 ring-1 ring-inset ring-indigo-100 shrink-0">
-                    <twig:ux:icon name="tabler:chart-bar" class="size-5 text-indigo-600" aria-hidden="true" />
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="font-medium text-slate-900">Votre profil investisseur pour {{ relationship.activeFolder.workspaceName }}</h3>
-                    <p class="text-sm text-slate-500 mt-0.5">
-                        {{ relationship.investorProfileStatus.description }}
-                    </p>
-                </div>
-                <a href="{{ path('app_portal_investor_profile', {folderId: relationship.activeFolder.id}) }}"
-                   class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-md transition-colors">
-                    {{ relationship.investorProfileStatus.ctaLabel }}
-                    <twig:ux:icon name="tabler:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
-                </a>
-            </div>
-        </div>
-
-        {# 4. CE CABINET #}
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 {{ loop.last ? '' : 'mb-8' }}">
-            <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <twig:ux:icon name="tabler:building-bank" class="size-4 text-slate-400" aria-hidden="true" />
-                Votre cabinet
-            </h3>
-            <div class="flex items-start gap-4">
-                <div class="size-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                    <span class="text-lg font-bold text-slate-400" aria-hidden="true">{{ relationship.activeFolder.workspaceName|first }}</span>
-                </div>
-                <div>
-                    <h4 class="font-medium text-slate-900">{{ relationship.activeFolder.workspaceName }}</h4>
-                    <p class="text-sm text-slate-500 mt-0.5">Conseil en gestion de patrimoine</p>
-
                     {% if relationship.cabinetContactEmail %}
-                        <a href="mailto:{{ relationship.cabinetContactEmail }}" class="mt-3 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors group">
-                            <twig:ux:icon name="tabler:mail" class="size-4 text-slate-400" aria-hidden="true" />
-                            {{ relationship.cabinetContactEmail }}
+                        <a href="mailto:{{ relationship.cabinetContactEmail }}"
+                           class="hidden min-w-0 items-center gap-1.5 rounded-md text-sm text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 sm:inline-flex">
+                            <twig:ux:icon name="lucide:mail" class="size-4 shrink-0" aria-hidden="true" />
+                            <span class="truncate">{{ relationship.cabinetContactEmail }}</span>
                         </a>
                     {% endif %}
                 </div>
-            </div>
-        </div>
-    {% endfor %}
+
+                {# Une seule carte à plat, deux lignes séparées par un filet #}
+                <div class="divide-y divide-slate-200/80 overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
+
+                    {# Ligne 1 — Dossier de conformité #}
+                    <div class="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-5 sm:p-6">
+                        <div class="flex min-w-0 flex-1 items-start gap-4">
+                            <span class="mt-0.5 shrink-0 rounded-lg p-2 ring-1 ring-inset {{ status.iconWrapClasses }}">
+                                <twig:ux:icon name="lucide:shield-check" class="size-5" aria-hidden="true" />
+                            </span>
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    <h3 class="font-medium text-slate-900">{{ relationship.activeFolder.title }}</h3>
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ status.badgeClasses }}">{{ status.label }}</span>
+                                </div>
+                                <p class="mt-1 max-w-xl text-sm leading-relaxed text-slate-600">
+                                    {% if status.value == 'action_required' and relationship.pendingDocumentsCount > 0 %}
+                                        Votre cabinet requiert <strong class="font-semibold text-slate-900">{{ relationship.pendingDocumentsCount }} pièce(s) justificative(s)</strong> pour finaliser votre dossier.
+                                    {% elseif status.value == 'action_required' %}
+                                        Votre cabinet attend des informations de votre part pour finaliser votre dossier.
+                                    {% elseif status.value == 'under_review' and relationship.allDocumentsValid %}
+                                        Toutes vos pièces sont conformes. Votre cabinet finalise la validation de votre dossier : aucune action de votre part.
+                                    {% elseif status.value == 'under_review' %}
+                                        Dossier transmis, analyse en cours. Aucune action n'est requise de votre part.
+                                    {% else %}
+                                        L'ensemble de vos documents a été vérifié et validé.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="shrink-0">
+                            {% if status.value == 'action_required' %}
+                                <a href="{{ folder_url }}"
+                                   class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:w-auto">
+                                    Transmettre mes pièces
+                                    <twig:ux:icon name="lucide:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
+                                </a>
+                            {% else %}
+                                <a href="{{ folder_url }}"
+                                   class="inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300">
+                                    Voir le détail
+                                    <twig:ux:icon name="lucide:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# Ligne 2 — Profil investisseur : l'état (fait / à faire) se lit au premier coup d'œil #}
+                    <div class="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-5 sm:p-6">
+                        <div class="flex min-w-0 flex-1 items-start gap-4">
+                            {% if profile.isCompletedByClient %}
+                                <span class="mt-0.5 shrink-0 rounded-lg bg-emerald-50 p-2 text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                                    <twig:ux:icon name="lucide:circle-check" class="size-5" aria-hidden="true" />
+                                </span>
+                            {% else %}
+                                <span class="mt-0.5 shrink-0 rounded-lg bg-slate-50 p-2 text-slate-500 ring-1 ring-inset ring-slate-200">
+                                    <twig:ux:icon name="lucide:chart-no-axes-column" class="size-5" aria-hidden="true" />
+                                </span>
+                            {% endif %}
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    <h3 class="font-medium text-slate-900">Profil investisseur</h3>
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ profile.isCompletedByClient ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-amber-200' }}">{{ profile.badgeLabel }}</span>
+                                </div>
+                                <p class="mt-1 max-w-xl text-sm leading-relaxed text-slate-600">{{ profile.description }}</p>
+                            </div>
+                        </div>
+                        <div class="shrink-0">
+                            {% if profile.isCompletedByClient %}
+                                <a href="{{ path('portal_investor_profile', {folderId: relationship.activeFolder.id}) }}"
+                                   class="inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300">
+                                    {{ profile.ctaLabel }}
+                                    <twig:ux:icon name="lucide:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
+                                </a>
+                            {% else %}
+                                <a href="{{ path('portal_investor_profile', {folderId: relationship.activeFolder.id}) }}"
+                                   class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:w-auto">
+                                    {{ profile.ctaLabel }}
+                                    <twig:ux:icon name="lucide:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </section>
+        {% endfor %}
+    </div>
 {% endblock %}

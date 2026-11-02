@@ -13,7 +13,7 @@ use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 #[AsController]
-#[Route(path: '/app/kyc/list', name: 'app_kyc_list', methods: ['GET', 'POST'])]
+#[Route(path: '/app/kyc', name: 'app_kyc_list', methods: ['GET', 'POST'])]
 final class KycListController
 {
     /**

@@ -21,7 +21,7 @@ final class FolderDetailController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/portal/folders/{id}', name: 'app_portal_folder_detail', methods: ['GET'])]
+    #[Route(path: '/portal/folders/{id}', name: 'portal_folders_show', methods: ['GET'])]
     public function __invoke(string $id): Response
     {
         /** @var Client $client */

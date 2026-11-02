@@ -62,11 +62,11 @@ enum SystemAdminMenuItem: string
     {
         return match ($this) {
             self::DASHBOARD => 'admin_dashboard',
-            self::WORKSPACES => 'admin_organizations_list',
+            self::WORKSPACES => 'admin_workspaces_list',
             self::SUPPORT => 'admin_support_list',
             self::SUBSCRIPTIONS => 'admin_subscriptions_list',
             self::COMPLIANCE => 'admin_compliance_list',
-            self::ADMINS => 'account_admin_list',
+            self::ADMINS => 'admin_team_list',
             self::AUDIT_LOGS => 'admin_audit_logs_list',
             self::CRONS => 'admin_crons_list',
             self::FEEDBACK => 'admin_feedback_list',

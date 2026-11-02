@@ -1,11 +1,10 @@
-{% extends '@app/base_app.html.twig' %}
+{% extends '@app/settings/base_settings.html.twig' %}
 
 {% block title %}{{ page_title }} | {{ company_name }}{% endblock %}
 {% block page_title %}{{ page_title }}{% endblock %}
 
 
-{% block content %}
-    {{ include('@app/settings/_header_settings.html.twig') }}
+{% block settings_content %}
     <div class="max-w-3xl space-y-8 pb-12">
 
         {# 1. Profil Utilisateur #}

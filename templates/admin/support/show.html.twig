@@ -38,7 +38,7 @@
                                 <twig:Button type="button" class="text-sm" {{ ...trigger_attrs }}>Marquer comme résolu</twig:Button>
                             </twig:AlertDialog:Trigger>
                             <twig:AlertDialog:Content>
-                                <form method="post" action="{{ path('admin_support_mark_as_resolve', {slugId: thread.slugId}) }}">
+                                <form method="post" action="{{ path('admin_support_resolve', {slugId: thread.slugId}) }}">
                                     <input type="hidden" name="_token" value="{{ csrf_token('support-resolve') }}">
                                     <twig:AlertDialog:Header>
                                         <twig:AlertDialog:Title>Confirmer la résolution du ticket ?</twig:AlertDialog:Title>
@@ -124,7 +124,7 @@
                                 <dd class="text-xs font-medium text-slate-700">{{ thread.user.createdAt|format_datetime(locale: 'fr') }}</dd>
                             </div>
                         </dl>
-                        <a href="{{ path('admin_workspace_details', {slugId: thread.workspace.slugId}) }}"
+                        <a href="{{ path('admin_workspaces_show', {slugId: thread.workspace.slugId}) }}"
                            class="mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-50 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-100 transition-colors border border-slate-100">
                             {{ ux_icon('lucide:external-link', { class: 'size-3' }) }}
                             Voir l'espace client

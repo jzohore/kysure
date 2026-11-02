@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Compliance\Entity;
 
+use App\Domain\Common\Attribute\Encrypted;
 use App\Domain\Compliance\Enum\DocumentRejectionReason;
 use App\Domain\Compliance\Enum\DocumentType;
 use App\Domain\Compliance\Enum\OcrAnalysisState;
@@ -87,6 +88,7 @@ class ComplianceDocument
     /**
      * @var array<string, mixed>|null
      */
+    #[Encrypted]
     #[ORM\Column(type: Types::JSON, nullable: true)]
     public private(set) ?array $ocrData = null;
 
@@ -95,8 +97,11 @@ class ComplianceDocument
      * `DocumentValidator`). Ce ne sont que des signalements : seul un humain
      * (le CGP) décide d'un rejet. Jamais affiché au client final.
      *
+     * Chiffrés comme `ocrData` : les messages citent le nom, le prénom ou le titulaire lus sur la pièce.
+     *
      * @var list<string>|null
      */
+    #[Encrypted]
     #[ORM\Column(type: Types::JSON, nullable: true)]
     public private(set) ?array $ocrFindings = null;
 
@@ -397,6 +402,20 @@ class ComplianceDocument
             && null !== $this->storagePath
             && $this->type->supportsOcr()
             && !$this->hasOcrAnalysis();
+    }
+
+    /**
+     * L'analyse automatique a abouti mais n'a rien pu lire : photo floue, coupée ou trop sombre.
+     * Sert uniquement à inviter le client à renvoyer une version plus nette (consigne non
+     * bloquante) : le détail des points de vigilance ({@see self::$ocrFindings}) reste interne.
+     */
+    public function wasHardToRead(): bool
+    {
+        return $this->type->supportsOcr()
+            && DocumentStatus::UPLOADED === $this->status
+            && $this->ocrAnalyzedAt instanceof \DateTimeImmutable
+            && !$this->ocrUnavailableAt instanceof \DateTimeImmutable
+            && ([] === $this->ocrData || null === $this->ocrData);
     }
 
     public function ocrAnalysisState(): OcrAnalysisState

@@ -28,7 +28,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * le craft, conformément à la doctrine produit de KYSURE.
  */
 #[AsController]
-#[Route(path: '/app/compliance/show/{slugId}/fiche-patrimoniale', name: 'app_client_file_edit', methods: ['GET', 'POST'])]
+#[Route(path: '/app/compliance/{slugId}/wealth-profile', name: 'app_compliance_wealth_profile_edit', methods: ['GET', 'POST'])]
 #[IsGranted(ComplianceFolderVoter::EDIT, subject: 'complianceFolder', message: 'Vous ne pouvez pas modifier ce dossier.')]
 final class ClientFileFormController extends AbstractController
 {

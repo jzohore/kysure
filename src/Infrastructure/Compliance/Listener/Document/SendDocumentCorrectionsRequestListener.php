@@ -30,7 +30,7 @@ readonly class SendDocumentCorrectionsRequestListener
         Assert::notNull($event->folder->id);
 
         // Lien profond vers le dépôt : le portail demande la connexion (lien magique) si besoin.
-        $portalUrl = $this->urlGenerator->generate('app_portal_folder_detail', ['id' => $event->folder->slugId], UrlGeneratorInterface::ABSOLUTE_URL);
+        $portalUrl = $this->urlGenerator->generate('portal_folders_show', ['id' => $event->folder->slugId], UrlGeneratorInterface::ABSOLUTE_URL);
 
         $this->messageBus->dispatch(new SendDocumentCorrectionsRequestMessage(
             folderId: $event->folder->id->toString(),

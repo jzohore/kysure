@@ -22,7 +22,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  */
 #[AsController]
 #[IsGranted('ROLE_USER')]
-#[Route(path: '/app/suitability/profil-investisseur/{slugId}/pdf', name: 'app_investor_profile_pdf_download', methods: ['GET'])]
+#[Route(path: '/app/suitability/investor-profile/{slugId}/pdf', name: 'app_investor_profile_pdf', methods: ['GET'])]
 readonly class InvestorProfilePdfDownloadController
 {
     public function __construct(

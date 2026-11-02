@@ -91,7 +91,7 @@
                         {% for sub in items %}
                             <tr class="align-top hover:bg-slate-50/80">
                                 <td class="px-4 py-3">
-                                    <a href="{{ path('admin_workspace_details', {slugId: sub.workspace.slugId}) }}"
+                                    <a href="{{ path('admin_workspaces_show', {slugId: sub.workspace.slugId}) }}"
                                        class="font-medium text-slate-900 hover:underline">{{ sub.workspace.name }}</a>
                                     <p class="text-[11px] text-slate-400">Créé le {{ sub.createdAt|date('d/m/Y') }}</p>
                                 </td>

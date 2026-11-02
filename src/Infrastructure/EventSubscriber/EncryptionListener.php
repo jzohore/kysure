@@ -28,6 +28,9 @@ use Doctrine\ORM\Events;
 #[AsDoctrineListener(event: Events::postLoad)]
 final class EncryptionListener
 {
+    /** Clé de l'enveloppe qui porte un tableau chiffré dans une colonne JSON. */
+    public const string ENVELOPE_KEY = '_enc';
+
     /**
      * Mémo des propriétés chiffrées par classe : métadonnées pures, aucune donnée utilisateur
      * → sûr en mode worker, pas de reset nécessaire.
@@ -50,9 +53,10 @@ final class EncryptionListener
 
         foreach ($this->encryptedProperties($entity) as $property) {
             $value = $property->getValue($entity);
+            $encrypted = $this->encryptValue($value);
 
-            if (\is_string($value) && '' !== $value) {
-                $property->setValue($entity, $this->cipher->encrypt($value));
+            if ($encrypted !== $value) {
+                $property->setValue($entity, $encrypted);
             }
         }
     }
@@ -77,9 +81,10 @@ final class EncryptionListener
             }
 
             $newValue = $args->getNewValue($field);
+            $encrypted = $this->encryptValue($newValue);
 
-            if (\is_string($newValue) && '' !== $newValue) {
-                $args->setNewValue($field, $this->cipher->encrypt($newValue));
+            if ($encrypted !== $newValue) {
+                $args->setNewValue($field, $encrypted);
             }
         }
     }
@@ -102,16 +107,58 @@ final class EncryptionListener
 
         foreach ($properties as $property) {
             $value = $property->getValue($entity);
+            $plain = $this->decryptValue($value);
 
-            if (!\is_string($value) || '' === $value) {
+            // Rien à déchiffrer (null, vide, ou ligne antérieure au chiffrement encore en clair).
+            if ($plain === $value) {
                 continue;
             }
 
-            $plainText = $this->cipher->decrypt($value);
-            $property->setValue($entity, $plainText);
+            $property->setValue($entity, $plain);
             // L'instantané contient le chiffré lu en base : on l'aligne sur le clair.
-            $unitOfWork->setOriginalEntityProperty($oid, $property->getName(), $plainText);
+            $unitOfWork->setOriginalEntityProperty($oid, $property->getName(), $plain);
         }
+    }
+
+    /**
+     * Texte : chiffré tel quel. Tableau JSON (ex. `ocrData`) : la propriété reste un `array` typé
+     * et la colonne reste du JSON, on y stocke une enveloppe `{"_enc": "<chiffré>"}` — aucune
+     * migration de schéma, et les lignes encore en clair restent lisibles jusqu'à leur réécriture.
+     */
+    private function encryptValue(mixed $value): mixed
+    {
+        if (\is_string($value) && '' !== $value) {
+            return $this->cipher->encrypt($value);
+        }
+
+        if (\is_array($value) && [] !== $value && !self::isEnvelope($value)) {
+            return [self::ENVELOPE_KEY => $this->cipher->encrypt(json_encode($value, \JSON_THROW_ON_ERROR))];
+        }
+
+        return $value;
+    }
+
+    private function decryptValue(mixed $value): mixed
+    {
+        if (\is_string($value) && '' !== $value) {
+            return $this->cipher->decrypt($value);
+        }
+
+        if (\is_array($value) && self::isEnvelope($value)) {
+            return json_decode($this->cipher->decrypt($value[self::ENVELOPE_KEY]), true, 512, \JSON_THROW_ON_ERROR);
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     *
+     * @phpstan-assert-if-true array{_enc: string} $value
+     */
+    public static function isEnvelope(array $value): bool
+    {
+        return 1 === \count($value) && \is_string($value[self::ENVELOPE_KEY] ?? null);
     }
 
     /**

@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/admin/workspaces/{slug}/verify-siret', name: 'admin_workspace_action_verify_siret', methods: ['POST'])]
+#[Route('/admin/workspaces/{slug}/verify-siret', name: 'admin_workspaces_verify_siret', methods: ['POST'])]
 final class VerifySiretController extends AbstractController
 {
     public function __construct(private readonly VerifyWorkspaceSiretUseCase $useCase)
@@ -26,7 +26,7 @@ final class VerifySiretController extends AbstractController
         if (!$this->isCsrfTokenValid('verify_siret_' . $slug, $token)) {
             $this->addFlash('error', 'Jeton de sécurité invalide ou expiré.');
 
-            return $this->redirectToRoute('admin_workspace_details', ['slugId' => $slug]);
+            return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $slug]);
         }
         try {
             $adminEmail = $this->getUser()?->getUserIdentifier() ?? 'admin@kysure.fr';
@@ -39,6 +39,6 @@ final class VerifySiretController extends AbstractController
             $this->addFlash('error', $e->getMessage());
         }
 
-        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $slug]);
+        return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $slug]);
     }
 }

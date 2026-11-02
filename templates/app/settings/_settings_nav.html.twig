@@ -1,0 +1,28 @@
+{#
+    Liens d'accès des Paramètres (source unique, deux rendus).
+      - variant = 'aside' : colonne de droite (desktop)
+      - variant = 'menu'  : liste du petit popover (mobile)
+#}
+{% set current_route = app.request.attributes.get('_route') %}
+{% set links = [
+    { route: 'app_settings_account', label: 'Mon compte', icon: 'lucide:user-round', visible: true },
+    { route: 'app_settings_regulatory_profile', label: 'Profil réglementaire', icon: 'lucide:scale', visible: workspace_can('edit_cabinet') },
+    { route: 'app_settings_organization', label: 'Organisation', icon: 'lucide:building-2', visible: workspace_can('edit_cabinet') },
+    { route: 'app_settings_subscription', label: 'Abonnement', icon: 'lucide:credit-card', visible: workspace_can('billing') },
+    { route: 'app_settings_billing', label: 'Usage & minutes', icon: 'lucide:timer', visible: workspace_can('billing') },
+    { route: 'app_pricing', label: 'Offres & tarifs', icon: 'lucide:tag', visible: workspace_can('billing') },
+    { route: 'app_settings_logs', label: 'Audit Logs', icon: 'lucide:scroll-text', visible: true },
+    { route: 'app_employees_list', label: 'Équipe & Accès', icon: 'lucide:users-round', visible: true },
+    { route: 'app_settings_team_permissions', label: 'Rôles & permissions', icon: 'lucide:key-round', visible: workspace_can('manage_permissions') },
+] %}
+
+{% for link in links|filter(l => l.visible) %}
+    {% set is_active = current_route == link.route %}
+    <a href="{{ path(link.route) }}"
+       {% if variant == 'menu' %}role="menuitem"{% endif %}
+       class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 {{ is_active ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}"
+       {% if is_active %}aria-current="page"{% endif %}>
+        {{ ux_icon(link.icon, { class: 'size-4 shrink-0 ' ~ (is_active ? 'text-slate-900' : 'text-slate-400'), 'aria-hidden': 'true' }) }}
+        <span class="truncate">{{ link.label }}</span>
+    </a>
+{% endfor %}

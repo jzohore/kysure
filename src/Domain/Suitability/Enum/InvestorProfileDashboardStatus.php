@@ -27,6 +27,24 @@ enum InvestorProfileDashboardStatus
         };
     }
 
+    /**
+     * Terminé du point de vue du client : il n'a plus rien à faire (transmis ou validé).
+     */
+    public function isCompletedByClient(): bool
+    {
+        return self::SUBMITTED === $this || self::VALIDATED === $this;
+    }
+
+    public function getBadgeLabel(): string
+    {
+        return match ($this) {
+            self::NOT_STARTED => 'À compléter',
+            self::IN_PROGRESS => 'En cours',
+            self::SUBMITTED => 'Transmis',
+            self::VALIDATED => 'Validé',
+        };
+    }
+
     public function getDescription(): string
     {
         return match ($this) {

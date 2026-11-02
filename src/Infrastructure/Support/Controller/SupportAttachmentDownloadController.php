@@ -21,7 +21,7 @@ use Webmozart\Assert\Assert;
  * La voter garantit que seul le cabinet propriétaire du ticket (ou un super-admin) y accède.
  */
 #[AsController]
-#[Route(path: '/app/billing/support/{slugId}/attachments/{messageSlugId}', name: 'app_support_attachment_download', methods: ['GET'])]
+#[Route(path: '/app/support/{slugId}/attachments/{messageSlugId}', name: 'app_support_attachment_download', methods: ['GET'])]
 #[Route(path: '/admin/support/{slugId}/attachments/{messageSlugId}', name: 'admin_support_attachment_download', methods: ['GET'])]
 readonly class SupportAttachmentDownloadController
 {

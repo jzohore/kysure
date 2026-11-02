@@ -12,6 +12,27 @@ enum ClientPortalStatus: string
     case ACTION_REQUIRED = 'action_required';
     case UNDER_REVIEW = 'under_review';
 
+    /**
+     * Statut vu par le client : source unique pour le tableau de bord, « Mes dossiers » et le détail.
+     *
+     * Le statut du dossier ne bascule en analyse que lorsque le conseiller le soumet : tant qu'il
+     * ne l'a pas fait, un client qui a tout transmis verrait « pièces requises (0) ». Plus aucune
+     * pièce à fournir ni à corriger ($pendingDocuments inclut les refus) = il n'a plus rien à
+     * faire. AWAITING_CLIENT est exclu : il peut attendre autre chose que des pièces.
+     */
+    public static function resolve(ComplianceFolderStatus $folderStatus, int $pendingDocuments): self
+    {
+        $status = self::fromFolderStatus($folderStatus);
+
+        if (self::ACTION_REQUIRED === $status
+            && 0 === $pendingDocuments
+            && in_array($folderStatus, [ComplianceFolderStatus::PENDING_DOCS, ComplianceFolderStatus::NEEDS_CORRECTION], true)) {
+            return self::UNDER_REVIEW;
+        }
+
+        return $status;
+    }
+
     public static function fromFolderStatus(ComplianceFolderStatus $folderStatus): self
     {
         return match ($folderStatus) {

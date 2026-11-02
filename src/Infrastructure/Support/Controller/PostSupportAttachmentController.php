@@ -24,7 +24,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * Le widget déclenche ensuite un `live:render` pour rafraîchir la conversation.
  */
 #[AsController]
-#[Route(path: '/app/billing/support/attachment', name: 'app_support_attachment_upload', methods: ['POST'])]
+#[Route(path: '/app/support/attachments', name: 'app_support_attachment_upload', methods: ['POST'])]
 final readonly class PostSupportAttachmentController
 {
     public function __construct(

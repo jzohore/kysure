@@ -69,7 +69,7 @@ readonly class GetFolderDetailUseCase
             title: $folder->title ?? 'Dossier de conformité',
             reference: $folder->reference,
             openedAtFormatted: $folder->createdAt->format('d/m/Y'),
-            status: ClientPortalStatus::fromFolderStatus($folder->status),
+            status: ClientPortalStatus::resolve($folder->status, $this->documentRepository->countPendingForFolder($folder)),
             documents: $documentDtos,
             der: $der,
         );

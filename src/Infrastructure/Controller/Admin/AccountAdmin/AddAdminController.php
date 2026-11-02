@@ -19,7 +19,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[AsController]
 #[IsGranted('ROLE_SUPER_ADMIN')]
-#[Route(path: '/admin/administrators/add', name: 'account_admin_add', methods: ['GET', 'POST'])]
+#[Route(path: '/admin/team/new', name: 'admin_team_new', methods: ['GET', 'POST'])]
 final class AddAdminController extends AbstractController
 {
     public function __construct(
@@ -49,7 +49,7 @@ final class AddAdminController extends AbstractController
         if (!$this->isCsrfTokenValid('admin_account_create', (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'Jeton de sécurité invalide ou expiré.');
 
-            return $this->redirectToRoute('account_admin_add');
+            return $this->redirectToRoute('admin_team_new');
         }
 
         $phone = trim((string) $request->request->get('phoneNumber'));
@@ -69,11 +69,11 @@ final class AddAdminController extends AbstractController
         } catch (\InvalidArgumentException|\DomainException $e) {
             $this->addFlash('error', $e->getMessage());
 
-            return $this->redirectToRoute('account_admin_add');
+            return $this->redirectToRoute('admin_team_new');
         }
 
         $this->addFlash('success', 'Compte créé. Un e-mail de bienvenue vient d\'être envoyé au nouveau membre.');
 
-        return $this->redirectToRoute('account_admin_list');
+        return $this->redirectToRoute('admin_team_list');
     }
 }

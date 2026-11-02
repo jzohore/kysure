@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Kyc\Entity;
 
+use App\Domain\Common\Attribute\Encrypted;
 use App\Domain\Compliance\Enum\DocumentType;
 use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Infrastructure\Trait\GenerateSlugPrefixedTrait;
@@ -48,6 +49,7 @@ class KycDocument
     /**
      * @var array<string, mixed>|null
      */
+    #[Encrypted]
     #[ORM\Column(type: Types::JSON, nullable: true)]
     public private(set) ?array $ocrData = null;
 

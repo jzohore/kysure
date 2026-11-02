@@ -1,10 +1,9 @@
-{% extends '@app/base_app.html.twig' %}
+{% extends '@app/settings/base_settings.html.twig' %}
 
 {% block title %}{{ page_title }} | {{ company_name }}{% endblock %}
 {% block page_title %}{{ page_title }}{% endblock %}
 
-{% block content %}
-    {{ include('@app/settings/_header_settings.html.twig') }}
+{% block settings_content %}
 
     {% set ws = workspaceInfo() %}
     {% set active = subInfo.hasActiveAccess %}

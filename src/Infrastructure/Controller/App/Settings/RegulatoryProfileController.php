@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[AsController]
-#[Route(path: '/app/settings/regulatory/profile', name: 'app_settings_regulatory_profile')]
+#[Route(path: '/app/settings/regulatory-profile', name: 'app_settings_regulatory_profile')]
 class RegulatoryProfileController extends AbstractController
 {
     public function __construct(

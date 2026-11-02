@@ -6,7 +6,7 @@
 {% block breadcrumb_items %}
     <twig:Breadcrumb:Separator />
     <twig:Breadcrumb:Item>
-        <twig:Breadcrumb:Link href="{{ path('admin_organizations_list') }}" class="text-xs">
+        <twig:Breadcrumb:Link href="{{ path('admin_workspaces_list') }}" class="text-xs">
             Workspaces & clients
         </twig:Breadcrumb:Link>
     </twig:Breadcrumb:Item>
@@ -79,7 +79,7 @@
                     <p class="text-sm text-slate-600">
                         Se connecter à la place d'un membre du cabinet pour l'assister. Motif obligatoire, tracé dans le journal d'audit du cabinet.
                     </p>
-                    <a href="{{ path('admin_workspace_impersonate', workspace.ownerEmail ? {slugId: workspace.slugId, email: workspace.ownerEmail} : {slugId: workspace.slugId}) }}"
+                    <a href="{{ path('admin_workspaces_impersonate', workspace.ownerEmail ? {slugId: workspace.slugId, email: workspace.ownerEmail} : {slugId: workspace.slugId}) }}"
                        class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-xs font-medium text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
                         <twig:ux:icon name="tabler:spy" class="size-4" aria-hidden="true" />
                         Impersonate
@@ -140,7 +140,7 @@
                             </div>
                         </div>
 
-                        <form action="{{ path('admin_workspace_action_verify_siret', {slug: workspace.slugId}) }}"
+                        <form action="{{ path('admin_workspaces_verify_siret', {slug: workspace.slugId}) }}"
                               method="POST"
                               data-controller="submit-emitter"
                               data-submit-emitter-event-name-value="kysure:siret-loading"
@@ -165,7 +165,7 @@
                          data-action="kysure:orias-loading@window->inline-status-loader#showLoading">
                         <div class="flex items-center justify-between">
                             <dt class="text-xs text-slate-500" data-inline-status-loader-target="title">N° ORIAS</dt>
-                            <form action="{{ path('admin_workspace_action_verify_orias', {slug: workspace.slugId}) }}"
+                            <form action="{{ path('admin_workspaces_verify_orias', {slug: workspace.slugId}) }}"
                                   method="POST"
                                   data-controller="submit-emitter"
                                   data-submit-emitter-event-name-value="kysure:orias-loading"

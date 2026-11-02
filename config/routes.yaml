@@ -6,9 +6,9 @@ controllers:
 app_verify_magic_link:
     path: 'verify/magic/link/{token}'
     methods: ['GET']
-app_portal_verify_magic_link:
+portal_verify_magic_link:
     path: 'portal/verify/magic/link/{token}'
     methods: ['GET']
-app_admin_verify_magic_link:
+admin_verify_magic_link:
     path: 'admin/verify/magic/link/{token}'
     methods: ['GET']

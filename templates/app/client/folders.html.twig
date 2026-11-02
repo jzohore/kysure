@@ -19,7 +19,7 @@
             <ul class="divide-y divide-slate-100">
                 {% for folder in folders %}
                     <li class="group hover:bg-slate-50 transition-colors">
-                        <a href="{{ path('app_portal_folder_detail', {id: folder.id}) }}" class="block p-6">
+                        <a href="{{ path('portal_folders_show', {id: folder.id}) }}" class="block p-6">
                             <div class="flex items-center justify-between">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-3">

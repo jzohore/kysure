@@ -18,7 +18,7 @@ use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 #[AsController]
-#[Route(path: '/app/billing/support/{slugId}', name: 'app_support_show', methods: ['GET', 'POST'])]
+#[Route(path: '/app/support/{slugId}', name: 'app_support_show', methods: ['GET', 'POST'])]
 #[Route(path: '/admin/support/{slugId}', name: 'admin_support_show', methods: ['GET', 'POST'])]
 readonly class SupportShowController
 {

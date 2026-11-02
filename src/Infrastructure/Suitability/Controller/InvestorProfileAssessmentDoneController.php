@@ -29,7 +29,7 @@ final class InvestorProfileAssessmentDoneController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/portal/profil-investisseur/termine/{folderId}', name: 'app_portal_investor_profile_done', requirements: ['folderId' => 'comp_fol_[A-Za-z0-9]+'], defaults: ['folderId' => null], methods: ['GET'])]
+    #[Route(path: '/portal/investor-profile/{folderId}/done', name: 'portal_investor_profile_done', requirements: ['folderId' => 'comp_fol_[A-Za-z0-9]+'], defaults: ['folderId' => null], methods: ['GET'])]
     public function __invoke(?string $folderId = null): Response
     {
         /** @var Client $client */

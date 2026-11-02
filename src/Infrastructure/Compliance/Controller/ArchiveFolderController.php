@@ -17,7 +17,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[AsController]
-#[Route(path: '/app/compliance/folder/{slugId}/{type}/{method}/archive', name: 'app_compliance_archive_folder', methods: ['POST'])]
+#[Route(path: '/app/compliance/{slugId}/{type}/{method}/archive', name: 'app_compliance_archive_folder', methods: ['POST'])]
 final class ArchiveFolderController extends AbstractController
 {
     public function __construct(

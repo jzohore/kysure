@@ -22,7 +22,7 @@ use Twig\Error\SyntaxError;
  * vers le bon type de compte, sans révéler si l'adresse est connue.
  */
 #[AsController]
-#[Route(path: '/espace-client', name: 'website_client_access', methods: ['GET'])]
+#[Route(path: '/client-area', name: 'website_client_access', methods: ['GET'])]
 final readonly class ClientAccessController
 {
     /**
@@ -37,7 +37,7 @@ final readonly class ClientAccessController
     ): Response {
         // Un client déjà connecté n'a pas besoin d'un nouveau lien : direction son espace.
         if ($security->getUser() instanceof Client) {
-            return new RedirectResponse($urlGenerator->generate('app_portal_dashboard'));
+            return new RedirectResponse($urlGenerator->generate('portal_dashboard'));
         }
 
         return new Response(

@@ -39,7 +39,7 @@ final readonly class SendAssessmentReminderHandler
         }
 
         $client = $assessment->client;
-        $url = $this->router->generate('app_portal_investor_profile', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $url = $this->router->generate('portal_investor_profile', [], UrlGeneratorInterface::ABSOLUTE_URL);
 
         $email = new ClientAssessmentReminderEmail($client->email, $client->getNormalizedFirstName(), $url);
         $this->mailer->send($email);

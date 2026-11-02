@@ -69,7 +69,7 @@ final class ClientPortalDocumentListComponent extends AbstractController
         if (!$this->getFolder()->canBeSubmitted()) {
             $this->addFlash('error', 'Le dossier ne peut pas être soumis dans son état actuel.');
 
-            return $this->redirectToRoute('app_portal_folder_detail', ['id' => $this->getFolder()->slugId]);
+            return $this->redirectToRoute('portal_folders_show', ['id' => $this->getFolder()->slugId]);
         }
 
         try {
@@ -81,6 +81,6 @@ final class ClientPortalDocumentListComponent extends AbstractController
             $this->addFlash('error', $e->getMessage());
         }
 
-        return $this->redirectToRoute('app_portal_folder_detail', ['id' => $this->getFolder()->slugId]);
+        return $this->redirectToRoute('portal_folders_show', ['id' => $this->getFolder()->slugId]);
     }
 }

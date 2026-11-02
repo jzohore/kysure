@@ -13,7 +13,7 @@ final class AdminSecurityController extends AbstractController
      * Cette route est la destination du Magic Link envoyé par email.
      * Le composant "login_link" du security.yaml l'intercepte automatiquement.
      */
-    #[Route('/admin/verify', name: 'app_admin_verify')]
+    #[Route('/admin/verify', name: 'admin_verify')]
     public function verify(): never
     {
         throw new \LogicException('Intercepté par le firewall.');
@@ -22,7 +22,7 @@ final class AdminSecurityController extends AbstractController
     /**
      * Route de déconnexion pour le client final.
      */
-    #[Route('/admin/logout', name: 'app_admin_logout', methods: ['GET'])]
+    #[Route('/admin/logout', name: 'admin_logout', methods: ['GET'])]
     public function logout(): never
     {
         // Même principe, Symfony intercepte la requête et détruit la session.

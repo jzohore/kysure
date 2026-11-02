@@ -15,7 +15,7 @@ use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 #[AsController]
-#[Route(path: '/app/screening/list', name: 'app_screening_list', methods: ['GET', 'POST'])]
+#[Route(path: '/app/screening', name: 'app_screening_list', methods: ['GET', 'POST'])]
 class ScreeningListController
 {
     /**

@@ -96,7 +96,7 @@ class WorkspaceSuspendedComponent extends AbstractController
             ]);
 
             // En cas d'erreur métier, on ne redirige pas, on laisse le composant afficher l'erreur
-            return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+            return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $this->slugId]);
         } catch (\Throwable $e) {
             // 🛡️ SECOPS STRICT : On masque l'erreur technique au client final !
             $this->addFlash(
@@ -113,7 +113,7 @@ class WorkspaceSuspendedComponent extends AbstractController
         }
 
         // Action de redirection UX (force un rechargement de page complet)
-        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+        return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $this->slugId]);
     }
 
     #[LiveAction]
@@ -141,6 +141,6 @@ class WorkspaceSuspendedComponent extends AbstractController
             ]);
         }
 
-        return $this->redirectToRoute('admin_workspace_details', ['slugId' => $this->slugId]);
+        return $this->redirectToRoute('admin_workspaces_show', ['slugId' => $this->slugId]);
     }
 }

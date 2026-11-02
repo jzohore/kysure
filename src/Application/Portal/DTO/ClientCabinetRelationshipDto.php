@@ -18,6 +18,7 @@ readonly class ClientCabinetRelationshipDto
         public ?string $cabinetContactEmail,
         public int $pendingDocumentsCount,
         public InvestorProfileDashboardStatus $investorProfileStatus,
+        public bool $allDocumentsValid = false,
     ) {
     }
 }

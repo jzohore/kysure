@@ -20,7 +20,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[AsController]
 #[IsGranted('ROLE_SUPER_ADMIN')]
-#[Route(path: '/admin/administrators/{slugId}/edit', name: 'account_admin_edit', methods: ['GET', 'POST'])]
+#[Route(path: '/admin/team/{slugId}/edit', name: 'admin_team_edit', methods: ['GET', 'POST'])]
 final class EditAdminController extends AbstractController
 {
     public function __construct(
@@ -36,7 +36,7 @@ final class EditAdminController extends AbstractController
         } catch (\InvalidArgumentException $e) {
             $this->addFlash('error', $e->getMessage());
 
-            return $this->redirectToRoute('account_admin_list');
+            return $this->redirectToRoute('admin_team_list');
         }
 
         if ($request->isMethod('POST')) {
@@ -60,7 +60,7 @@ final class EditAdminController extends AbstractController
         if (!$this->isCsrfTokenValid('admin_account_edit_' . $slugId, (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'Jeton de sécurité invalide ou expiré.');
 
-            return $this->redirectToRoute('account_admin_edit', ['slugId' => $slugId]);
+            return $this->redirectToRoute('admin_team_edit', ['slugId' => $slugId]);
         }
 
         $phone = trim((string) $request->request->get('phoneNumber'));
@@ -80,11 +80,11 @@ final class EditAdminController extends AbstractController
         } catch (\InvalidArgumentException|\DomainException $e) {
             $this->addFlash('error', $e->getMessage());
 
-            return $this->redirectToRoute('account_admin_edit', ['slugId' => $slugId]);
+            return $this->redirectToRoute('admin_team_edit', ['slugId' => $slugId]);
         }
 
         $this->addFlash('success', 'Compte mis à jour.');
 
-        return $this->redirectToRoute('account_admin_list');
+        return $this->redirectToRoute('admin_team_list');
     }
 }

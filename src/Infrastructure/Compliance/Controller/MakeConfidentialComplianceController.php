@@ -19,7 +19,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
 
 #[AsController]
-#[Route(path: '/app/compliance/folder/{type}/{method}/{slugId}/confidential', name: 'app_compliance_make_confidential_folder', methods: ['POST'])]
+#[Route(path: '/app/compliance/{slugId}/{type}/{method}/confidential', name: 'app_compliance_make_confidential_folder', methods: ['POST'])]
 #[IsCsrfTokenValid('make-confidential-compliance')]
 class MakeConfidentialComplianceController extends AbstractController
 {

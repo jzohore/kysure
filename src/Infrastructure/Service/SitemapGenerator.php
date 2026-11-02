@@ -26,7 +26,7 @@ final readonly class SitemapGenerator
             'app_register',
             'website_features',
             'website_terms_and_conditions',
-            'website_policy',
+            'website_privacy_policy',
             'website_mentions',
         ];
     }

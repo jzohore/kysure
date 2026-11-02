@@ -13,7 +13,7 @@ final class PortalSecurityController extends AbstractController
      * Cette route est la destination du Magic Link envoyé par email.
      * Le composant "login_link" du security.yaml l'intercepte automatiquement.
      */
-    #[Route('/portal/verify', name: 'app_portal_verify')]
+    #[Route('/portal/verify', name: 'portal_verify')]
     public function verify(): never
     {
         throw new \LogicException('Intercepté par le firewall.');
@@ -22,7 +22,7 @@ final class PortalSecurityController extends AbstractController
     /**
      * Route de déconnexion pour le client final.
      */
-    #[Route('/portal/logout', name: 'app_portal_logout', methods: ['GET'])]
+    #[Route('/portal/logout', name: 'portal_logout', methods: ['GET'])]
     public function logout(): never
     {
         // Même principe, Symfony intercepte la requête et détruit la session.
