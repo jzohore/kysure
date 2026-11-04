@@ -36,6 +36,8 @@ readonly class ComplianceDocumentResponse
         public ?string $reviewedByName = null,
         // Refus signalé au client (null : refus encore interne au cabinet).
         public ?\DateTimeImmutable $correctionRequestedAt = null,
+        // Verso déposé à part (pièce à deux faces) ; le recto est `storagePath`.
+        public ?string $backStoragePath = null,
     ) {
     }
 }

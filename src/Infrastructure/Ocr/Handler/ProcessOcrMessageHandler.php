@@ -54,8 +54,14 @@ final readonly class ProcessOcrMessageHandler
         $fullPath = $this->storage->getTemporaryUrl($doc->storagePath);
         Assert::notNull($fullPath, 'Impossible de générer une URL temporaire pour le document.');
 
+        $backFullPath = null;
+        if (null !== $doc->backStoragePath) {
+            $backFullPath = $this->storage->getTemporaryUrl($doc->backStoragePath);
+            Assert::notNull($backFullPath, 'Impossible de générer une URL temporaire pour le verso du document.');
+        }
+
         try {
-            $extractedData = $this->ocrProvider->extractData($doc->type, $fullPath);
+            $extractedData = $this->ocrProvider->extractData($doc->type, $fullPath, $backFullPath);
         } catch (\DomainException $exception) {
             // Contrat de OcrProviderInterface : \DomainException = document illisible
             // ou non pris en charge. Condition définitive → pas de retry, on

@@ -67,6 +67,11 @@ readonly class UploadDocumentUseCase
             throw new \DomainException('Cette pièce ne peut pas être déposée ou remplacée dans son état actuel.');
         }
 
+        $isBackSide = 'back' === $request->side;
+        if ($isBackSide && !$document->canReceiveBackSide()) {
+            throw new \DomainException('Le verso se dépose après le recto, et seulement pour une pièce à deux faces.');
+        }
+
         // Empreinte du fichier tel que reçu, calculée avant tout déplacement ou traitement d'image.
         $sha256 = hash_file('sha256', $request->file->getPathname());
         if (false === $sha256) {
@@ -91,13 +96,14 @@ readonly class UploadDocumentUseCase
         // Type MIME réel (sniffing du contenu), pas celui déclaré par le navigateur.
         $auditedMimeType = $request->file->getMimeType() ?? $request->file->getClientMimeType();
 
-        $oldStoragePath = $document->storagePath; // À conserver pour la suppression asynchrone future
+        $oldStoragePath = $isBackSide ? $document->backStoragePath : $document->storagePath; // À conserver pour la suppression asynchrone future
 
         // 1. Stockage Local Temporaire (Instantané)
         $niceName = sprintf(
-            '%s-%s-%s.%s',
+            '%s-%s%s-%s.%s',
             $folder->reference, // Ex: "DOS-2026-05"
             $document->type->value, // Ex: "id_card"
+            $isBackSide ? '-verso' : '',
             uniqid(),
             $request->file->guessExtension()
         );
@@ -116,6 +122,7 @@ readonly class UploadDocumentUseCase
             size: (int) filesize($localTempPath),
             sha256: $sha256,
             uploadedAt: now(),
+            isBackSide: $isBackSide,
         ));
 
         $this->eventDispatcher->dispatch(new DocumentReceivedLocalEvent(
@@ -125,7 +132,8 @@ readonly class UploadDocumentUseCase
             mimeType: $auditedMimeType,
             originalName: $niceName,
             size: (int) filesize($localTempPath),
-            oldStoragePath: $oldStoragePath
+            oldStoragePath: $oldStoragePath,
+            isBackSide: $isBackSide,
         ));
     }
 }

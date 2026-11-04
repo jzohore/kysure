@@ -66,12 +66,16 @@ readonly class ProcessAndStoreKycDocumentMessageHandler
             $finalStoragePath = $this->storage->store($fileToStore, $directory);
 
             // 4. Persistance Domaine
-            $document->markAsUploaded($finalStoragePath, $message->originalName, $message->mimeType, $message->size);
+            if ($message->isBackSide) {
+                $document->markBackAsUploaded($finalStoragePath, $message->mimeType, $message->size);
+            } else {
+                $document->markAsUploaded($finalStoragePath, $message->originalName, $message->mimeType, $message->size);
+            }
             $this->complianceDocumentRepository->save($document);
 
             // 5. L'ancien fichier n'est supprimé qu'une fois le nouveau stocké : un échec ne fait rien perdre.
             if ($message->oldStoragePath && $message->oldStoragePath !== $finalStoragePath) {
-                $this->storage->delete($message->oldStoragePath);
+                $this->deleteReplacedFile($message->oldStoragePath, $message->documentId);
             }
         } catch (\Throwable $e) {
             $this->logger->error('Error during KYC processing: ' . $e->getMessage());
@@ -94,6 +98,24 @@ readonly class ProcessAndStoreKycDocumentMessageHandler
 
         if ($processedPath !== $originalPath && file_exists($processedPath)) {
             unlink($processedPath);
+        }
+    }
+
+    /**
+     * Le nouveau fichier est déjà stocké ET enregistré : un stockage lent ou en panne au moment de purger l'ancien
+     * ne doit ni faire échouer le dépôt du client ni empêcher l'analyse (qui se déclenche après ce handler). On
+     * journalise le chemin orphelin pour une purge ultérieure plutôt que de perdre la pièce toute neuve.
+     */
+    private function deleteReplacedFile(string $oldStoragePath, string $documentId): void
+    {
+        try {
+            $this->storage->delete($oldStoragePath);
+        } catch (\Throwable $exception) {
+            $this->logger->warning('KYC : ancien fichier remplacé non supprimé, à purger manuellement.', [
+                'document_id' => $documentId,
+                'old_storage_path' => $oldStoragePath,
+                'reason' => $exception->getMessage(),
+            ]);
         }
     }
 }

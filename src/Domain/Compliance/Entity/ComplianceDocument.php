@@ -61,6 +61,19 @@ class ComplianceDocument
     #[ORM\Column(length: 255, nullable: true)]
     public private(set) ?string $storagePath = null;
 
+    /**
+     * Verso des pièces à deux faces ({@see DocumentType::hasBackSide()}) ; le recto reste dans {@see self::$storagePath}.
+     * Facultatif : un PDF qui porte déjà les deux faces se dépose en un seul fichier.
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    public private(set) ?string $backStoragePath = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    public private(set) ?string $backMimeType = null;
+
+    #[ORM\Column(nullable: true)]
+    public private(set) ?int $backSize = null;
+
     /** Motif de refus tel que LU PAR LE CLIENT (libellé du motif + précision éventuelle). */
     #[ORM\Column(type: 'text', nullable: true)]
     public private(set) ?string $rejectionReason = null;
@@ -258,6 +271,40 @@ class ComplianceDocument
                 $this->type->getLabel(),
                 $subject
             )
+        );
+    }
+
+    /** Le verso peut être déposé : pièce à deux faces dont le recto est déjà stocké. */
+    public function canReceiveBackSide(): bool
+    {
+        return $this->type->hasBackSide() && null !== $this->storagePath;
+    }
+
+    /**
+     * Action métier : le client a déposé le verso. Comme un nouveau recto, il invalide la décision du conseiller et
+     * l'analyse précédentes : elles portaient sur un dossier de pièce incomplet. L'analyse repart donc de zéro,
+     * recto + verso ensemble.
+     *
+     * @throws \DomainException si la pièce n'a pas de verso ou si le recto n'est pas encore là
+     */
+    public function markBackAsUploaded(string $storagePath, string $mimeType, int $size): void
+    {
+        if (!$this->canReceiveBackSide()) {
+            throw new \DomainException('Le verso ne peut être déposé qu\'après le recto d\'une pièce à deux faces.');
+        }
+
+        $this->backStoragePath = $storagePath;
+        $this->backMimeType = $mimeType;
+        $this->backSize = $size;
+        $this->status = DocumentStatus::UPLOADED;
+        $this->resetReview();
+        $this->resetOcrAnalysis();
+        // L'ancienneté du dépôt (uploadedAt) reste celle du recto ; la nouvelle demande d'analyse est datée à part.
+        $this->ocrRequestedAt = now();
+
+        $this->folder->saveHistory(
+            'Verso téléversé',
+            sprintf('Le verso du document "%s" a été ajouté au dossier.', $this->type->getLabel())
         );
     }
 

@@ -21,7 +21,7 @@ use Webmozart\Assert\Assert;
 class DocumentValidator
 {
     /** Version des règles de contrôle — à incrémenter à chaque évolution des règles ci-dessous. */
-    public const string VERSION = '2026-10-19';
+    public const string VERSION = '2026-11-02';
 
     /** Ancienneté maximale d'un justificatif de domicile / d'un extrait K-bis (libellés de {@see DocumentType}). */
     private const int MAX_DOCUMENT_AGE_MONTHS = 3;
@@ -47,6 +47,7 @@ class DocumentValidator
             DocumentType::ID_CARD, DocumentType::PASSPORT, DocumentType::RESIDENCE_PERMIT => $this->validateIdentityDocument($document->type, $data, $expected),
             DocumentType::PROOF_OF_ADDRESS => $this->validateProofOfAddress($data, $expected),
             DocumentType::KBIS => $this->validateKbis($data, $expected),
+            DocumentType::RIB => $this->validateRib($data, $expected),
             default => [],
         };
     }
@@ -180,10 +181,7 @@ class DocumentValidator
 
         $companyName = $this->text($data, 'company_name');
         if (null !== $expected->companyName && '' !== $companyName) {
-            $found = $this->normalizeString($companyName);
-            $declared = $this->normalizeString($expected->companyName);
-
-            if (!str_contains($found, $declared) && !str_contains($declared, $found) && levenshtein($found, $declared) > self::NAME_TOLERANCE) {
+            if (!$this->companyNameMatches($companyName, $expected->companyName)) {
                 $errors[] = sprintf('La dénomination de l\'extrait K-bis (%s) diffère de celle du dossier.', $companyName);
             }
         }
@@ -197,8 +195,75 @@ class DocumentValidator
     }
 
     // =========================================================================
+    // RELEVÉ D'IDENTITÉ BANCAIRE
+    // =========================================================================
+
+    /**
+     * Le titulaire du compte doit être le client (ou la société du dossier) : un RIB au nom d'un tiers
+     * est un signal LCB-FT. L'IBAN est re-contrôlé ici (clé mod 97) quel que soit le moteur d'extraction.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return list<string>
+     */
+    private function validateRib(array $data, ExpectedIdentity $expected): array
+    {
+        $errors = [];
+
+        $holder = $this->text($data, 'holder_name');
+        if (null !== $expected->lastName || null !== $expected->companyName) {
+            if ('' === $holder) {
+                $errors[] = 'Titulaire du RIB illisible : recoupement avec le dossier impossible, vérification manuelle requise.';
+            } elseif (null !== $expected->lastName ? !$this->holderMatches($holder, $expected->lastName) : !$this->companyNameMatches($holder, (string) $expected->companyName)) {
+                $errors[] = sprintf('Le titulaire du RIB (%s) ne correspond pas au client du dossier.', $holder);
+            }
+        }
+
+        $iban = $this->text($data, 'iban');
+        if ('' === $iban) {
+            $errors[] = 'IBAN introuvable ou illisible (clé de contrôle invalide) : vérification manuelle requise.';
+        } elseif (!$this->isValidIban($iban)) {
+            $errors[] = 'IBAN invalide : la clé de contrôle ne correspond pas. Erreur de lecture ou de saisie à vérifier.';
+        }
+
+        return $errors;
+    }
+
+    // =========================================================================
     // OUTILS
     // =========================================================================
+
+    /**
+     * Clé de contrôle IBAN (ISO 13616, mod 97). Calculée chiffre à chiffre : pas de grand entier.
+     */
+    private function isValidIban(string $iban): bool
+    {
+        $compact = strtoupper((string) preg_replace('/\s+/', '', $iban));
+
+        if (1 !== preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/', $compact)) {
+            return false;
+        }
+
+        $rearranged = substr($compact, 4) . substr($compact, 0, 4);
+        $remainder = 0;
+
+        foreach (str_split($rearranged) as $char) {
+            // Lettres → 10..35 (A=10) ; chiffres inchangés.
+            foreach (str_split(ctype_alpha($char) ? (string) (\ord($char) - 55) : $char) as $digit) {
+                $remainder = ($remainder * 10 + (int) $digit) % 97;
+            }
+        }
+
+        return 1 === $remainder;
+    }
+
+    private function companyNameMatches(string $found, string $declared): bool
+    {
+        $found = $this->normalizeString($found);
+        $declared = $this->normalizeString($declared);
+
+        return str_contains($found, $declared) || str_contains($declared, $found) || levenshtein($found, $declared) <= self::NAME_TOLERANCE;
+    }
 
     /**
      * Fraîcheur (« moins de 3 mois ») d'un justificatif ou d'un extrait daté.

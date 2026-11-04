@@ -89,6 +89,7 @@ class ComplianceFolderShowAssembler
                 reviewedAt: $doc->reviewedAt,
                 reviewedByName: $doc->reviewedByName,
                 correctionRequestedAt: $doc->correctionRequestedAt,
+                backStoragePath: $doc->backStoragePath,
             );
 
             if ($isKyb && null === $docDto->stakeholderSlug) {

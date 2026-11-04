@@ -14,6 +14,8 @@ readonly class ProcessAndStoreKycDocumentMessage
         public string $originalName,
         public int $size,
         public ?string $oldStoragePath = null,
+        /** Verso d'une pièce à deux faces (le recto reste le fichier principal). */
+        public bool $isBackSide = false,
     ) {
     }
 }

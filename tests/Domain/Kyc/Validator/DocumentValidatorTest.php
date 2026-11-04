@@ -104,7 +104,6 @@ final class DocumentValidatorTest extends TestCase
      */
     public static function typesWithoutRulesProvider(): iterable
     {
-        yield 'RIB' => [DocumentType::RIB];
         yield 'origine des fonds' => [DocumentType::SOURCE_OF_FUNDS];
         yield 'RBE' => [DocumentType::RBE];
         yield 'statuts' => [DocumentType::ARTICLES_OF_ASSOC];
@@ -365,5 +364,82 @@ final class DocumentValidatorTest extends TestCase
         foreach ($findings as $finding) {
             self::assertStringNotContainsString('expiration', $finding);
         }
+    }
+
+    // --- RIB ------------------------------------------------------------------------
+
+    /**
+     * @param array<string, mixed> $overrides
+     *
+     * @return array<string, mixed>
+     */
+    private function ribData(array $overrides = []): array
+    {
+        return array_merge([
+            'holder_name' => 'M. Jean DUPONT',
+            'iban' => 'FR76 3000 6000 0112 3456 7890 189',
+            'bic' => 'AGRIFRPP',
+        ], $overrides);
+    }
+
+    public function testAConsistentRibRaisesNothing(): void
+    {
+        self::assertSame([], $this->validator->validate($this->document(DocumentType::RIB, $this->ribData())));
+    }
+
+    public function testAJointAccountContainingTheClientNameIsAccepted(): void
+    {
+        $document = $this->document(DocumentType::RIB, $this->ribData(['holder_name' => 'M. DUPONT Jean ou Mme DUPONT Claire']));
+
+        self::assertSame([], $this->validator->validate($document));
+    }
+
+    public function testARibInAnotherNameIsReported(): void
+    {
+        $document = $this->document(DocumentType::RIB, $this->ribData(['holder_name' => 'Marie MARTIN']));
+
+        $this->assertFindingMentions('titulaire du RIB', $this->validator->validate($document));
+    }
+
+    public function testAnUnreadableRibHolderIsASeparateFinding(): void
+    {
+        $document = $this->document(DocumentType::RIB, $this->ribData(['holder_name' => '']));
+
+        $this->assertFindingMentions('illisible', $this->validator->validate($document));
+    }
+
+    public function testAnIbanWithAWrongCheckKeyIsReported(): void
+    {
+        $document = $this->document(DocumentType::RIB, $this->ribData(['iban' => 'FR7630006000011234567890188']));
+
+        $this->assertFindingMentions('IBAN invalide', $this->validator->validate($document));
+    }
+
+    public function testAMissingIbanIsReported(): void
+    {
+        $document = $this->document(DocumentType::RIB, ['holder_name' => 'Jean DUPONT']);
+
+        $this->assertFindingMentions('IBAN introuvable', $this->validator->validate($document));
+    }
+
+    public function testAForeignIbanWithAValidKeyRaisesNothing(): void
+    {
+        $document = $this->document(DocumentType::RIB, $this->ribData(['iban' => 'DE89 3704 0044 0532 0130 00']));
+
+        self::assertSame([], $this->validator->validate($document));
+    }
+
+    public function testABusinessRibIsCrossCheckedAgainstTheCompanyName(): void
+    {
+        $ok = $this->document(DocumentType::RIB, $this->ribData(['holder_name' => 'CONIBI SAS']), $this->businessFolder());
+        $ko = $this->document(DocumentType::RIB, $this->ribData(['holder_name' => 'Autre Holding']), $this->businessFolder());
+
+        self::assertSame([], $this->validator->validate($ok));
+        $this->assertFindingMentions('titulaire du RIB', $this->validator->validate($ko));
+    }
+
+    public function testRibSupportsOcr(): void
+    {
+        self::assertTrue(DocumentType::RIB->supportsOcr());
     }
 }

@@ -18,6 +18,7 @@ final readonly class ClientDocumentUploadedEvent
         private int $size,
         private string $sha256,
         private \DateTimeImmutable $uploadedAt,
+        private bool $isBackSide = false,
     ) {
     }
 
@@ -49,6 +50,11 @@ final readonly class ClientDocumentUploadedEvent
     public function getSha256(): string
     {
         return $this->sha256;
+    }
+
+    public function isBackSide(): bool
+    {
+        return $this->isBackSide;
     }
 
     public function getUploadedAt(): \DateTimeImmutable

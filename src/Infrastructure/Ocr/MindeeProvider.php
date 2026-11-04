@@ -20,7 +20,7 @@ readonly class MindeeProvider implements OcrProviderInterface
     ) {
     }
 
-    public function extractData(DocumentType $type, string $filePath): array
+    public function extractData(DocumentType $type, string $filePath, ?string $backFilePath = null): array
     {
         foreach ($this->parsers as $parser) {
             if ($parser->supports($type)) {

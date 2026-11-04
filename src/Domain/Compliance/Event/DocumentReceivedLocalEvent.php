@@ -18,6 +18,7 @@ class DocumentReceivedLocalEvent extends Event
         public readonly string $originalName,
         public readonly int $size,
         public readonly ?string $oldStoragePath = null,
+        public readonly bool $isBackSide = false,
     ) {
     }
 }

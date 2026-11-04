@@ -67,9 +67,18 @@ enum DocumentType: string
     public function supportsOcr(): bool
     {
         return match ($this) {
-            self::ID_CARD, self::PASSPORT, self::RESIDENCE_PERMIT, self::PROOF_OF_ADDRESS, self::KBIS => true,
+            self::ID_CARD, self::PASSPORT, self::RESIDENCE_PERMIT, self::PROOF_OF_ADDRESS, self::KBIS, self::RIB => true,
             default => false,
         };
+    }
+
+    /**
+     * La pièce a deux faces déposées séparément : le recto dans l'emplacement principal, le verso dans un second
+     * fichier. Seul le verso de la CNI porte la bande de lecture optique (MRZ) qui sert de second avis à l'analyse.
+     */
+    public function hasBackSide(): bool
+    {
+        return self::ID_CARD === $this;
     }
 
     /**
@@ -79,7 +88,7 @@ enum DocumentType: string
     public function getCaptureTip(): ?string
     {
         return match ($this) {
-            self::ID_CARD => 'Photographiez le recto puis le verso, ou scannez-les dans un seul PDF. Les quatre coins doivent être visibles, sans reflet sur la puce ni sur la zone de lecture en bas.',
+            self::ID_CARD => 'Déposez le recto, puis le verso dans le second emplacement (ou les deux faces dans un seul PDF, au premier). Les quatre coins doivent être visibles, sans reflet sur la puce ni sur la zone de lecture en bas.',
             self::PASSPORT => 'Photographiez la page avec la photo, bien à plat. Les deux lignes de caractères en bas de page doivent être entièrement visibles.',
             self::RESIDENCE_PERMIT => 'Photographiez le recto et le verso, sans reflet, avec les quatre coins visibles.',
             self::PROOF_OF_ADDRESS => 'Envoyez la page complète, avec votre nom, votre adresse et la date d\'émission bien lisibles.',

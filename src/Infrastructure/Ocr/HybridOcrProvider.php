@@ -37,12 +37,12 @@ readonly class HybridOcrProvider implements OcrProviderInterface
     /**
      * @return array<string, mixed>
      */
-    public function extractData(DocumentType $type, string $filePath): array
+    public function extractData(DocumentType $type, string $filePath, ?string $backFilePath = null): array
     {
         return match ($type) {
             DocumentType::PROOF_OF_ADDRESS, DocumentType::RIB => $this->local->extractData($type, $filePath),
             DocumentType::KBIS => $this->localThenTextract($type, $filePath),
-            DocumentType::ID_CARD, DocumentType::PASSPORT, DocumentType::RESIDENCE_PERMIT => $this->textractWithMrzSecondOpinion($type, $filePath),
+            DocumentType::ID_CARD, DocumentType::PASSPORT, DocumentType::RESIDENCE_PERMIT => $this->textractWithMrzSecondOpinion($type, $filePath, $backFilePath),
             default => throw new \DomainException(sprintf('Aucun moteur OCR configuré pour le type « %s » : vérification manuelle.', $type->value)),
         };
     }
@@ -74,12 +74,12 @@ readonly class HybridOcrProvider implements OcrProviderInterface
      *
      * @return array<string, mixed>
      */
-    private function textractWithMrzSecondOpinion(DocumentType $type, string $filePath): array
+    private function textractWithMrzSecondOpinion(DocumentType $type, string $filePath, ?string $backFilePath): array
     {
-        $data = $this->textract->extractData($type, $filePath);
+        $data = $this->textract->extractData($type, $filePath, $backFilePath);
 
         try {
-            $local = $this->local->extractData($type, $filePath);
+            $local = $this->local->extractData($type, $filePath, $backFilePath);
         } catch (\Throwable $exception) {
             // Le second avis est optionnel : sa panne ne doit pas faire échouer une analyse Textract réussie.
             $this->logger->warning('OCR hybride : second avis MRZ indisponible.', [
@@ -96,6 +96,8 @@ readonly class HybridOcrProvider implements OcrProviderInterface
         }
 
         $data['mrz'] = $mrz;
+        $data = $this->correctFirstNameFromMrz($data, $local, $mrz);
+
         foreach (self::MRZ_FILLABLE_FIELDS as $field) {
             if (empty($data[$field]) && !empty($local[$field])) {
                 $data[$field] = $local[$field];
@@ -103,5 +105,46 @@ readonly class HybridOcrProvider implements OcrProviderInterface
         }
 
         return $data;
+    }
+
+    /**
+     * Sur une ancienne CNI, Textract lit parfois le lieu de naissance (« DALOA ») à la place du prénom. Seule exception
+     * à « jamais écraser Textract » : le prénom local ne le remplace que s'il figure dans la MRZ aux clés valides alors
+     * que celui de Textract n'y figure pas — c'est alors une erreur de lecture prouvée, pas un désaccord à signaler.
+     *
+     * @param array<string, mixed> $data
+     * @param array<string, mixed> $local
+     * @param array<mixed>         $mrz
+     *
+     * @return array<string, mixed>
+     */
+    private function correctFirstNameFromMrz(array $data, array $local, array $mrz): array
+    {
+        $textractFirstName = $this->asciiKey($data['first_name'] ?? null);
+        $localFirstName = $this->asciiKey($local['first_name'] ?? null);
+
+        if ('' === $textractFirstName || '' === $localFirstName || $textractFirstName === $localFirstName) {
+            return $data;
+        }
+
+        $mrzText = $this->asciiKey(implode('', array_filter($mrz, is_string(...))));
+
+        if (!str_contains($mrzText, $textractFirstName) && str_contains($mrzText, $localFirstName)) {
+            $data['first_name'] = $local['first_name'];
+        }
+
+        return $data;
+    }
+
+    /** Majuscules ASCII sans accents ni séparateurs : la MRZ n'a ni accents ni espaces (les `<` disparaissent aussi). */
+    private function asciiKey(mixed $value): string
+    {
+        if (!is_string($value)) {
+            return '';
+        }
+
+        $ascii = \Transliterator::create('Any-Latin; Latin-ASCII; Upper()')?->transliterate($value) ?: strtoupper($value);
+
+        return (string) preg_replace('/[^A-Z0-9]/', '', $ascii);
     }
 }

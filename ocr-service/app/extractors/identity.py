@@ -6,10 +6,13 @@ import re
 from datetime import date
 from typing import Protocol
 
-from .common import clean_line, find_dates, fold, lines_of, normalize_text
+from .common import clean_line, find_dates, fold, lines_of, normalize_text, parse_date
 from .mrz import find_mrz
 
 _NAME_VALUE = re.compile(r"^[A-ZÀ-Ý][A-ZÀ-Ý' \-]{1,60}$")
+# Date écrite sans séparateur lisible : sur une ancienne CNI les points entre jour, mois et année sont minuscules et
+# Tesseract les lit comme des espaces (« 19 01 2036 »). N'est tentée qu'à côté d'un libellé : jamais sur du texte libre.
+_SPACED_DATE = re.compile(r"(?<!\d)(\d{2})\s+(\d{2})\s+(\d{4})(?!\d)")
 _BILINGUAL_NOISE = re.compile(r"\b(?:surname|given names?|names?|nom|prenoms?)\b", re.IGNORECASE)
 
 
@@ -87,4 +90,9 @@ def _date_after(text: str, labels: tuple[str, ...]) -> str | None:
             dates = find_dates(window)
             if dates and dates[0].start <= 15:
                 return dates[0].value.isoformat()
+            spaced = _SPACED_DATE.search(window[:25])
+            if spaced:
+                parsed = parse_date(f"{spaced.group(1)}/{spaced.group(2)}/{spaced.group(3)}")
+                if parsed:
+                    return parsed.isoformat()
     return None

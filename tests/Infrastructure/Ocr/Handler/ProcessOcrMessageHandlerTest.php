@@ -17,6 +17,7 @@ use App\Infrastructure\Ocr\Handler\ProcessOcrMessageHandler;
 use App\Infrastructure\Ocr\Message\ProcessOcrMessage;
 use App\Tests\Application\ReflectionHelperTrait;
 use Doctrine\Common\Collections\ArrayCollection;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -258,5 +259,29 @@ final class ProcessOcrMessageHandlerTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         ($this->handlerWith($ocrProvider))(new ProcessOcrMessage(self::DOCUMENT_ID));
+    }
+
+    #[AllowMockObjectsWithoutExpectations]
+    public function testTheBackSideOfAnIdCardIsHandedToTheProviderWithTheFront(): void
+    {
+        $document = $this->document([
+            'type' => DocumentType::ID_CARD,
+            'storagePath' => 'compliance_folders/comp_fol_1/recto.jpg',
+            'backStoragePath' => 'compliance_folders/comp_fol_1/verso.jpg',
+        ]);
+        $this->repository->method('findById')->willReturn($document);
+
+        $storage = $this->createStub(DocumentStorageInterface::class);
+        $storage->method('getTemporaryUrl')->willReturnCallback(static fn (string $path): string => 'https://s3.test/tmp/' . basename($path));
+
+        $provider = $this->createMock(OcrProviderInterface::class);
+        $provider->expects($this->once())
+            ->method('extractData')
+            ->with(DocumentType::ID_CARD, 'https://s3.test/tmp/recto.jpg', 'https://s3.test/tmp/verso.jpg')
+            ->willReturn(['last_name' => 'DUPONT']);
+
+        $handler = new ProcessOcrMessageHandler($this->repository, $provider, $storage, new DocumentValidator(), $this->eventDispatcher, new NullLogger());
+
+        ($handler)(new ProcessOcrMessage(self::DOCUMENT_ID));
     }
 }

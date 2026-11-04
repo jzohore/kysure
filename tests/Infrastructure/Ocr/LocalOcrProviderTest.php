@@ -235,4 +235,55 @@ final class LocalOcrProviderTest extends TestCase
 
         return $content;
     }
+
+    public function testMergesTheFrontAndBackSidesOfAnIdCard(): void
+    {
+        $back = tempnam(sys_get_temp_dir(), 'ocr_back_');
+        self::assertIsString($back);
+        file_put_contents($back, self::FILE_CONTENT);
+
+        $client = new MockHttpClient([
+            new MockResponse(json_encode(['last_name' => 'ALOIS', 'first_name' => 'PAUL'], \JSON_THROW_ON_ERROR)),
+            new MockResponse(json_encode(['last_name' => 'AL0IS', 'mrz' => ['line_1' => 'IDFRA<<', 'line_2' => '1303<<']], \JSON_THROW_ON_ERROR)),
+        ]);
+        $provider = new LocalOcrProvider(new OcrServiceClient($client, new SpyLogger(), 'http://ocr.test:8000', self::TOKEN));
+
+        try {
+            $data = $provider->extractData(DocumentType::ID_CARD, $this->file, $back);
+        } finally {
+            @unlink($back);
+        }
+
+        // Le recto fait foi pour ce qu'il a lu ; le verso apporte la MRZ.
+        self::assertSame('ALOIS', $data['last_name']);
+        self::assertSame('PAUL', $data['first_name']);
+        self::assertSame(['line_1' => 'IDFRA<<', 'line_2' => '1303<<'], $data['mrz']);
+        self::assertSame(2, $client->getRequestsCount());
+    }
+
+    public function testAnUnreadableSideDoesNotDiscardTheOtherOne(): void
+    {
+        $client = new MockHttpClient([
+            new MockResponse('{"error":"unreadable_document"}', ['http_code' => 422]),
+            new MockResponse(json_encode(['mrz' => ['line_1' => 'IDFRA<<', 'line_2' => '1303<<']], \JSON_THROW_ON_ERROR)),
+        ]);
+        $provider = new LocalOcrProvider(new OcrServiceClient($client, new SpyLogger(), 'http://ocr.test:8000', self::TOKEN));
+
+        $data = $provider->extractData(DocumentType::ID_CARD, $this->file, $this->file);
+
+        self::assertArrayHasKey('mrz', $data);
+    }
+
+    public function testBothSidesUnreadableIsADefinitiveDomainException(): void
+    {
+        $client = new MockHttpClient([
+            new MockResponse('{"error":"unreadable_document"}', ['http_code' => 422]),
+            new MockResponse('{"error":"unreadable_document"}', ['http_code' => 422]),
+        ]);
+        $provider = new LocalOcrProvider(new OcrServiceClient($client, new SpyLogger(), 'http://ocr.test:8000', self::TOKEN));
+
+        $this->expectException(\DomainException::class);
+
+        $provider->extractData(DocumentType::ID_CARD, $this->file, $this->file);
+    }
 }

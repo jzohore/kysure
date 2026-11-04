@@ -1,0 +1,45 @@
+{# Erreur et aperçu avant envoi du contrôleur document-dropzone : rien ne part tant que le client n'a pas cliqué sur « Envoyer » #}
+<p data-document-dropzone-target="error" role="alert" hidden
+   class="mt-3 rounded-md border-l-4 border-l-red-500 bg-white px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200"></p>
+
+{# Aperçu avant envoi : rien ne part tant que le client n'a pas cliqué sur « Envoyer » #}
+<div data-document-dropzone-target="panel" hidden class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+    <div class="flex items-start gap-3 sm:gap-4">
+        <div data-document-dropzone-target="thumb" class="size-20 sm:size-24 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-slate-200 flex items-center justify-center"></div>
+        <div class="min-w-0 flex-1">
+            <p data-document-dropzone-target="fileName" class="truncate text-sm font-medium text-slate-900"></p>
+            <p data-document-dropzone-target="fileMeta" class="mt-0.5 text-xs text-slate-600"></p>
+            {# Alerte de netteté non bloquante, posée par le contrôleur si l'image est trop petite #}
+            <p data-document-dropzone-target="hint" role="status" hidden
+               class="mt-2 rounded-md border-l-4 border-l-amber-500 bg-white px-3 py-2 text-xs text-slate-700 ring-1 ring-slate-200">
+                Cette image semble peu définie : le texte risque d'être difficile à lire. Reprenez la photo plus près et bien nette si vous le pouvez — vous pouvez aussi l'envoyer telle quelle.
+            </p>
+            <a data-document-dropzone-target="previewLink" href="#" target="_blank" rel="noopener noreferrer"
+               class="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline focus-visible:ring-2 focus-visible:ring-blue-600/30 rounded">
+                <twig:ux:icon name="tabler:eye" class="size-3.5" aria-hidden="true" />
+                Voir en grand
+            </a>
+
+            <div data-document-dropzone-target="progress" hidden role="progressbar" aria-label="Envoi de la pièce"
+                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" class="mt-3">
+                <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div data-document-dropzone-target="bar" class="h-full w-0 rounded-full bg-blue-600 transition-[width] duration-200"></div>
+                </div>
+                <p data-document-dropzone-target="progressLabel" class="mt-1.5 text-xs text-slate-600" aria-live="polite"></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <twig:Button type="button" variant="ghost" data-document-dropzone-target="cancelButton" data-action="click->document-dropzone#cancel" class="h-11 sm:h-9">
+            Annuler
+        </twig:Button>
+        <twig:Button type="button" variant="outline" data-document-dropzone-target="changeButton" data-action="click->document-dropzone#browse" class="h-11 sm:h-9">
+            Changer de fichier
+        </twig:Button>
+        <twig:Button type="button" variant="primary" data-document-dropzone-target="sendButton" data-action="click->document-dropzone#send" class="h-11 sm:h-9">
+            <twig:ux:icon name="tabler:send" aria-hidden="true" />
+            <span data-document-dropzone-target="sendLabel">Envoyer</span>
+        </twig:Button>
+    </div>
+</div>

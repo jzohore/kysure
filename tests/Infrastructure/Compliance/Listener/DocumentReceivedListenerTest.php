@@ -23,6 +23,7 @@ use Psr\Log\NullLogger;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\TransportException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Uid\Uuid;
 
 final class DocumentReceivedListenerTest extends TestCase
@@ -188,5 +189,53 @@ final class DocumentReceivedListenerTest extends TestCase
         ($this->listener)($event);
 
         self::assertSame(DocumentStatus::UPLOADED, $event->complianceDocument->status);
+    }
+
+    private function idCardEvent(bool $isBackSide, ?string $backPath = null): DocumentReceivedLocalEvent
+    {
+        $event = $this->event('compliance_folders/comp_fol_1/recto.jpg', DocumentType::ID_CARD);
+        if (null !== $backPath) {
+            $event->complianceDocument->markBackAsUploaded($backPath, 'image/jpeg', 10);
+        }
+
+        return new DocumentReceivedLocalEvent($event->complianceDocument, $event->complianceFolder, '/tmp/x.jpg', 'image/jpeg', 'cni.jpg', 1024, null, $isBackSide);
+    }
+
+    #[AllowMockObjectsWithoutExpectations]
+    public function testTheAnalysisOfAFrontOnlyIdCardWaitsForTheBackSide(): void
+    {
+        $event = $this->idCardEvent(isBackSide: false);
+        $this->storeSucceeds($event);
+        $dispatched = [];
+        $this->messageBus->expects($this->once())->method('dispatch')
+            ->willReturnCallback(static function (object $message, array $stamps = []) use (&$dispatched): Envelope {
+                $dispatched = $stamps;
+
+                return new Envelope($message);
+            });
+
+        ($this->listener)($event);
+
+        self::assertCount(1, $dispatched);
+        self::assertInstanceOf(DelayStamp::class, $dispatched[0]);
+        self::assertSame(60_000, $dispatched[0]->getDelay());
+    }
+
+    #[AllowMockObjectsWithoutExpectations]
+    public function testTheAnalysisStartsImmediatelyOnceTheBackSideIsThere(): void
+    {
+        $event = $this->idCardEvent(isBackSide: true, backPath: 'compliance_folders/comp_fol_1/verso.jpg');
+        $this->storeSucceeds($event);
+        $dispatched = null;
+        $this->messageBus->expects($this->once())->method('dispatch')
+            ->willReturnCallback(static function (object $message, array $stamps = []) use (&$dispatched): Envelope {
+                $dispatched = $stamps;
+
+                return new Envelope($message);
+            });
+
+        ($this->listener)($event);
+
+        self::assertSame([], $dispatched);
     }
 }

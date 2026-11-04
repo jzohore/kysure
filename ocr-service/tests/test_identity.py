@@ -89,3 +89,19 @@ def test_the_costly_full_page_rescan_is_skipped_once_the_band_gave_the_mrz() -> 
 
     identity.extract(Spy("bruit", band=FR_CNI), today=TODAY)
     assert Spy.page_reads == 0
+
+
+def test_legacy_card_back_with_space_separated_dates_gives_the_expiry() -> None:
+    # Verso d'une ancienne CNI : les points entre jour, mois et année sont lus comme des espaces.
+    back = "Carte valable jusqu'au : 19 01 2036\ndélivrée le : 20 01 2021\npar : PRÉFECTURE DE POLICE"
+
+    data = identity.extract(FakeContent(back), today=TODAY)
+
+    assert data == {"date_of_expiry": "2036-01-19"}
+
+
+def test_space_separated_numbers_without_a_label_are_never_taken_for_a_date() -> None:
+    data = identity.extract(FakeContent("Tel : 01 23 4567\nRéférence 19 01 2036"), today=TODAY)
+
+    assert "date_of_expiry" not in data
+

@@ -43,6 +43,7 @@ readonly class AuditLogClientDocumentUploadedListener
                 'document_reference' => $folder->reference ?? 'N/A',
                 'workspace_name' => $workspace->name,
                 'actor_type' => 'client',
+                'side' => $event->isBackSide() ? 'back' : 'front',
                 'mime_type' => $event->getMimeType(),
                 'size' => $event->getSize(),
                 'file_sha256' => $event->getSha256(),

@@ -15,6 +15,10 @@ class UploadDocumentRequest
     #[Assert\NotBlank]
     public string $folderId;
 
+    /** Face déposée d'une pièce à deux faces : `front` (recto, par défaut) ou `back` (verso). */
+    #[Assert\Choice(choices: ['front', 'back'], message: 'Face de pièce inconnue.')]
+    public string $side = 'front';
+
     #[Assert\NotNull(message: 'Veuillez sélectionner un fichier.')]
     #[Assert\File(
         maxSize: '10M',

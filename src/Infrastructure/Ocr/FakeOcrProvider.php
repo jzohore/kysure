@@ -9,7 +9,7 @@ use App\Domain\Port\OcrProviderInterface;
 
 class FakeOcrProvider implements OcrProviderInterface
 {
-    public function extractData(DocumentType $type, string $filePath): array
+    public function extractData(DocumentType $type, string $filePath, ?string $backFilePath = null): array
     {
         // On simule une latence réseau et le temps de calcul de l'IA (500ms)
         usleep(500000);
@@ -61,6 +61,12 @@ class FakeOcrProvider implements OcrProviderInterface
                 'holder_name' => 'ALOIS PAUL (MOCK)',
                 'address' => '12 rue des Lilas 75011 Paris',
                 'document_date' => new \DateTimeImmutable('-1 month')->format('Y-m-d'),
+            ],
+
+            DocumentType::RIB => [
+                'holder_name' => 'ALOIS PAUL (MOCK)',
+                'iban' => 'FR7630006000011234567890189',
+                'bic' => 'AGRIFRPP',
             ],
 
             default => throw new \Exception("Mock non implémenté pour le type de document: {$type->value}"),

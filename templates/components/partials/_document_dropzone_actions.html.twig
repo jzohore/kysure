@@ -1,0 +1,21 @@
+{# Boutons de choix d'un fichier (contrôleur document-dropzone). Variable : buttonLabel #}
+<div data-document-dropzone-target="idle" class="flex flex-col sm:flex-row gap-2">
+    <input type="file" class="sr-only" tabindex="-1" aria-hidden="true"
+           accept="application/pdf,image/jpeg,image/png"
+           data-document-dropzone-target="input"
+           data-action="change->document-dropzone#selected">
+    <input type="file" class="sr-only" tabindex="-1" aria-hidden="true"
+           accept="image/jpeg,image/png" capture="environment"
+           data-document-dropzone-target="cameraInput"
+           data-action="change->document-dropzone#selected">
+
+    <twig:Button type="button" variant="dark" data-action="click->document-dropzone#browse" class="h-11 sm:h-9 w-full sm:w-auto">
+        <twig:ux:icon name="tabler:upload" aria-hidden="true" />
+        {{ buttonLabel }}
+    </twig:Button>
+    {# Sur mobile : ouvre directement l'appareil photo #}
+    <twig:Button type="button" variant="outline" data-action="click->document-dropzone#takePhoto" class="h-11 w-full sm:hidden">
+        <twig:ux:icon name="tabler:camera" aria-hidden="true" />
+        Prendre en photo
+    </twig:Button>
+</div>

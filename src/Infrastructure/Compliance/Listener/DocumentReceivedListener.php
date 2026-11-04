@@ -13,6 +13,7 @@ use App\Infrastructure\Ocr\Message\ProcessOcrMessage;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Webmozart\Assert\Assert;
 
 /**
@@ -27,6 +28,9 @@ use Webmozart\Assert\Assert;
 #[AsEventListener]
 readonly class DocumentReceivedListener
 {
+    /** Délai laissé pour le verso après le dépôt du recto d'une CNI (l'analyse est idempotente : un rejeu ne coûte rien). */
+    private const int BACK_SIDE_GRACE_MS = 60_000;
+
     public function __construct(
         private ProcessAndStoreKycDocumentMessageHandler $storeHandler,
         private ComplianceDocumentRepositoryInterface $documentRepository,
@@ -52,6 +56,7 @@ readonly class DocumentReceivedListener
                 originalName: $event->originalName,
                 size: $event->size,
                 oldStoragePath: $event->oldStoragePath,
+                isBackSide: $event->isBackSide,
             ));
         } catch (\Throwable $exception) {
             $this->releaseDocument($event, $exception->getMessage());
@@ -67,7 +72,10 @@ readonly class DocumentReceivedListener
         }
 
         if ($document->type->supportsOcr()) {
-            $this->requestOcrAnalysis($documentId->toString());
+            // Recto seul d'une pièce à deux faces : on laisse au client le temps de déposer le verso, pour analyser
+            // les deux faces d'un coup (une analyse facturée) plutôt que le recto, puis tout recommencer au verso.
+            $awaitsBackSide = !$event->isBackSide && $document->type->hasBackSide() && null === $document->backStoragePath;
+            $this->requestOcrAnalysis($documentId->toString(), $awaitsBackSide ? self::BACK_SIDE_GRACE_MS : 0);
         }
     }
 
@@ -75,10 +83,10 @@ readonly class DocumentReceivedListener
      * Lance l'analyse automatique en tâche de fond. Jamais bloquant : si la file est injoignable,
      * le dépôt du client a réussi et reste valable — le CGP verra la pièce « à vérifier » sans analyse.
      */
-    private function requestOcrAnalysis(string $documentId): void
+    private function requestOcrAnalysis(string $documentId, int $delayMs = 0): void
     {
         try {
-            $this->messageBus->dispatch(new ProcessOcrMessage($documentId));
+            $this->messageBus->dispatch(new ProcessOcrMessage($documentId), $delayMs > 0 ? [new DelayStamp($delayMs)] : []);
         } catch (\Throwable $exception) {
             $this->logger->error('OCR : impossible de mettre l\'analyse en file, la pièce reste à vérifier manuellement.', [
                 'document_id' => $documentId,

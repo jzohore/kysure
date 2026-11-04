@@ -307,4 +307,67 @@ final class UploadDocumentUseCaseTest extends TestCase
         $this->expectException(DocumentNotFoundException::class);
         ($this->useCase)($this->request($folder, $document));
     }
+
+    #[AllowMockObjectsWithoutExpectations]
+    public function testTheBackSideIsTracedAndForwardedAsSuch(): void
+    {
+        $folder = $this->folder();
+        $document = $this->askedDocument($folder, DocumentType::ID_CARD);
+        $document->markAsUploaded('compliance_folders/comp_fol_1/recto.jpg', 'recto.jpg', 'image/jpeg', 10);
+        $this->wire($folder, $document);
+
+        $dispatched = [];
+        $this->eventDispatcher->expects($this->exactly(2))
+            ->method('dispatch')
+            ->willReturnCallback(static function (object $event) use (&$dispatched): object {
+                $dispatched[] = $event;
+
+                return $event;
+            });
+
+        $request = $this->request($folder, $document);
+        $request->side = 'back';
+        ($this->useCase)($request);
+
+        self::assertInstanceOf(ClientDocumentUploadedEvent::class, $dispatched[0]);
+        self::assertTrue($dispatched[0]->isBackSide());
+        self::assertInstanceOf(DocumentReceivedLocalEvent::class, $dispatched[1]);
+        self::assertTrue($dispatched[1]->isBackSide);
+        // L'ancien verso (absent ici) est ce qui serait remplacé, jamais le recto.
+        self::assertNull($dispatched[1]->oldStoragePath);
+    }
+
+    #[AllowMockObjectsWithoutExpectations]
+    public function testTheBackSideIsRefusedBeforeTheFrontSideAndNeverScanned(): void
+    {
+        $folder = $this->folder();
+        $document = $this->askedDocument($folder, DocumentType::ID_CARD);
+        $this->wire($folder, $document);
+
+        $this->virusScanner->expects($this->never())->method('scan');
+        $this->eventDispatcher->expects($this->never())->method('dispatch');
+
+        $request = $this->request($folder, $document);
+        $request->side = 'back';
+
+        $this->expectException(\DomainException::class);
+
+        ($this->useCase)($request);
+    }
+
+    #[AllowMockObjectsWithoutExpectations]
+    public function testTheBackSideIsRefusedOnASingleSidedDocument(): void
+    {
+        $folder = $this->folder();
+        $document = $this->askedDocument($folder, DocumentType::PASSPORT);
+        $document->markAsUploaded('compliance_folders/comp_fol_1/page.jpg', 'page.jpg', 'image/jpeg', 10);
+        $this->wire($folder, $document);
+
+        $request = $this->request($folder, $document);
+        $request->side = 'back';
+
+        $this->expectException(\DomainException::class);
+
+        ($this->useCase)($request);
+    }
 }

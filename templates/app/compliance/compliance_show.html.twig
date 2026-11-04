@@ -1,6 +1,24 @@
 {% extends '@app/base_app.html.twig' %}
 
 {# Macros au niveau racine du template (Twig 3.28+ : macro dans un block déprécié). Appel : _self.nom() #}
+
+{# Liens de consultation de la pièce. Pièce à deux faces (CNI) : un lien nommé par face, pour ne jamais en perdre une de vue. #}
+{% macro file_links(doc, label) %}
+    {% if doc.storagePath %}
+        {% set faces = doc.backStoragePath
+            ? [{ name: 'Voir le recto', path: doc.storagePath }, { name: 'Voir le verso', path: doc.backStoragePath }]
+            : [{ name: 'Voir le document', path: doc.storagePath }] %}
+        {% for face in faces %}
+            <a href="{{ face.path|private_url }}" target="_blank" rel="noopener noreferrer" aria-label="{{ label }} — {{ face.name|lower }}"
+               class="inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-slate-700 underline-offset-4 hover:text-slate-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+                <twig:ux:icon name="tabler:eye" class="size-4 text-slate-400" aria-hidden="true" />
+                {{ face.name }}
+            </a>
+        {% endfor %}
+    {% endif %}
+{% endmacro %}
+
+{# Données lues par l'analyse automatique, en liste de définitions aérée. #}
 {% macro render_ocr(ocrData) %}
     {% set labels = {
         'first_name': 'Prénom', 'last_name': 'Nom de famille', 'birth_date': 'Date de naissance',
@@ -15,55 +33,53 @@
         'iban': 'IBAN', 'bic': 'BIC'
     } %}
 
-    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+    <dl class="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
         {% for key, value in ocrData %}
-            <div class="{{ value is iterable ? 'col-span-1 sm:col-span-2 lg:col-span-3' : 'col-span-1' }}">
-                <dt class="text-slate-500 font-medium text-[11px] uppercase tracking-wider mb-1.5">
+            <div class="{{ value is iterable ? 'sm:col-span-2' : '' }}">
+                <dt class="text-xs text-slate-500">
                     {{ labels[key]|default(key|replace({'_': ' '})|capitalize) }}
                 </dt>
-                <dd class="text-slate-900 text-xs">
+                <dd class="mt-1 text-sm text-slate-900">
                     {% if value is empty %}
-                        <span class="text-slate-300 italic">Non détecté</span>
+                        <span class="italic text-slate-400">Non détecté</span>
                     {% elseif key in ['birth_date', 'date_of_registration', 'document_date', 'date_of_expiry'] %}
-                        <span class="font-medium">{{ value|date('d/m/Y') }}</span>
+                        {{ value|date('d/m/Y') }}
                     {% elseif key == 'share_capital' %}
-                        <span class="font-medium">{{ value|number_format(0, ',', ' ') }} €</span>
+                        {{ value|number_format(0, ',', ' ') }} €
                     {% elseif key == 'management' %}
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-1">
+                        <ul class="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
                             {% for person in value %}
-                                <div class="bg-slate-50 ring-1 ring-slate-900/5 p-3 rounded-xl flex flex-col justify-center">
-                                    <span class="font-bold text-slate-800">{{ person.name }}</span>
-                                    <span class="text-slate-500 text-[10px] uppercase tracking-wide mt-0.5">{{ person.role }}</span>
-                                </div>
+                                <li class="rounded-xl border border-slate-200 bg-white p-3">
+                                    <span class="block font-medium text-slate-900">{{ person.name }}</span>
+                                    <span class="block text-xs text-slate-500">{{ person.role }}</span>
+                                </li>
                             {% endfor %}
-                        </div>
+                        </ul>
                     {% elseif key == 'establishments' %}
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                        <ul class="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
                             {% for est in value %}
-                                <div class="bg-slate-50 ring-1 ring-slate-900/5 p-3 rounded-xl flex flex-col">
-                                    <span class="font-bold text-slate-800">{{ est.activity|default('Activité non précisée') }}</span>
-                                    <span class="text-slate-500 text-[10px] mt-1">{{ est.address }}</span>
-                                </div>
+                                <li class="rounded-xl border border-slate-200 bg-white p-3">
+                                    <span class="block font-medium text-slate-900">{{ est.activity|default('Activité non précisée') }}</span>
+                                    <span class="block text-xs text-slate-500">{{ est.address }}</span>
+                                </li>
                             {% endfor %}
-                        </div>
+                        </ul>
                     {% elseif key == 'mrz' %}
-                        <div class="bg-slate-900 text-emerald-400 font-mono text-[11px] p-3 rounded-xl overflow-x-auto tracking-widest shadow-inner mt-1" aria-label="Zone de lecture optique">
+                        <div class="mt-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-3 font-mono text-xs tracking-widest text-slate-700" aria-label="Zone de lecture optique">
                             {% for line_val in value %}
                                 <div class="whitespace-nowrap">{{ line_val }}</div>
                             {% endfor %}
                         </div>
                     {% elseif key == 'iban' %}
                         {# Donnée bancaire : jamais affichée en entier (minimisation) #}
-                        <span class="font-medium tabular-nums">{{ value|slice(0, 4) }} •••• •••• {{ value|slice(-4) }}</span>
+                        <span class="tabular-nums">{{ value|slice(0, 4) }} •••• •••• {{ value|slice(-4) }}</span>
                     {% elseif key == 'address' and value is not iterable %}
                         {# Textract et le service OCR local renvoient l'adresse en une ligne ; Mindee, un objet structuré #}
-                        <div class="text-slate-700">{{ value }}</div>
+                        {{ value }}
                     {% elseif key == 'address' %}
-                        <div class="text-slate-700">
-                            {{ value.full_address|default(value.city ~ (value.department ? ' (' ~ value.department ~ ')' : '')) }}
-                        </div>
+                        {{ value.full_address|default(value.city ~ (value.department ? ' (' ~ value.department ~ ')' : '')) }}
                     {% else %}
-                        <span class="font-medium">{{ value }}</span>
+                        {{ value }}
                     {% endif %}
                 </dd>
             </div>
@@ -73,29 +89,29 @@
 
 {# Nom du fichier d'une pièce. Un document généré par KYSURE (DER) n'a pas de nom d'origine : seul son chemin est connu. #}
 {% macro file_label(doc) %}
-    <p class="text-xs text-slate-500 mt-0.5 truncate max-w-[200px] sm:max-w-xs">
-        {%- if doc.filename -%}
-            {{ doc.filename }}
-        {%- elseif doc.storagePath -%}
-            {{ doc.statusValue in ['generated', 'acknowledged'] ? 'PDF généré par KYSURE' : 'Fichier reçu' }}
-        {%- else -%}
-            Aucun fichier
-        {%- endif -%}
-    </p>
+    {%- if doc.isAwaitingClient -%}
+        En attente du client
+    {%- elseif doc.filename -%}
+        {{ doc.filename }}
+    {%- elseif doc.storagePath -%}
+        {{ doc.statusValue in ['generated', 'acknowledged'] ? 'PDF généré par KYSURE' : 'Fichier reçu' }}
+    {%- else -%}
+        Aucun fichier
+    {%- endif -%}
 {% endmacro %}
 
-{# Pied de ligne d'une pièce : état de l'analyse automatique à gauche, action « Analyser / Relancer » à droite.
+{# État de l'analyse automatique à gauche, action « Analyser / Relancer » à droite.
    Action réservée à l'équipe KYSURE et au dev (chaque analyse peut être facturée par le fournisseur OCR). #}
 {% macro ocr_footer(doc, folderSlug) %}
     {% set canAnalyse = (app.environment == 'dev' or is_granted('ROLE_ADMIN'))
         and doc.storagePath and doc.statusValue == 'uploaded' and doc.ocrState in ['completed', 'unavailable'] %}
     {% if doc.ocrState in ['in_progress', 'manual_check', 'unavailable', 'completed'] %}
-        <div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">{{ _self.render_ocr_state(doc.ocrState, doc.ocrFindings, doc.ocrAnalyzedAt) }}</div>
             {% if canAnalyse %}
-                <form action="{{ path('app_compliance_document_ocr_rerun', { slugId: folderSlug, documentId: doc.id }) }}" method="post" class="sm:ml-auto shrink-0">
+                <form action="{{ path('app_compliance_document_ocr_rerun', { slugId: folderSlug, documentId: doc.id }) }}" method="post" class="shrink-0 sm:ml-auto">
                     <input type="hidden" name="_token" value="{{ csrf_token('rerun_ocr_' ~ doc.id) }}">
-                    <twig:Button type="submit" variant="outline" size="sm" aria-label="{{ doc.ocrState == 'completed' ? 'Relancer' : 'Lancer' }} l'analyse automatique du document {{ doc.typeLabel }}">
+                    <twig:Button type="submit" variant="ghost" size="sm" aria-label="{{ doc.ocrState == 'completed' ? 'Relancer' : 'Lancer' }} l'analyse automatique du document {{ doc.typeLabel }}">
                         {% if doc.ocrState == 'completed' %}
                             <twig:ux:icon name="tabler:refresh" class="size-4 text-slate-500" aria-hidden="true" /> Relancer l'analyse
                         {% else %}
@@ -113,8 +129,8 @@
 {% macro review_bar(doc, folderSlug, canReview) %}
     {% set csrf = csrf_token('review_doc_' ~ doc.id) %}
     {% if doc.statusValue == 'valid' and doc.reviewedAt %}
-        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p class="text-xs text-slate-600 flex items-center gap-1.5">
+        <div class="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p class="flex items-center gap-2 text-sm text-slate-600">
                 <twig:ux:icon name="tabler:circle-check" class="size-4 text-emerald-600" aria-hidden="true" />
                 Validée par {{ doc.reviewedByName }} le {{ doc.reviewedAt|date('d/m/Y à H:i') }}
             </p>
@@ -123,8 +139,8 @@
             {% endif %}
         </div>
     {% elseif doc.statusValue == 'rejected' and doc.reviewedAt %}
-        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p class="text-xs text-slate-600 flex flex-wrap items-center gap-1.5">
+        <div class="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-slate-600">
                 <twig:ux:icon name="tabler:circle-x" class="size-4 text-rose-600" aria-hidden="true" />
                 Refusée par {{ doc.reviewedByName }} le {{ doc.reviewedAt|date('d/m/Y à H:i') }} ·
                 {% if doc.correctionRequestedAt %}
@@ -138,12 +154,12 @@
             {% endif %}
         </div>
     {% elseif canReview and doc.awaitsReview %}
-        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <p class="text-xs text-slate-600">À vérifier : validez la pièce, ou refusez-la avec un motif communiqué au client.</p>
-            <div class="flex items-center gap-2 shrink-0">
+        <div class="mt-6 flex flex-col gap-4 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-slate-600">À vérifier : validez la pièce, ou refusez-la avec un motif communiqué au client.</p>
+            <div class="flex shrink-0 items-center gap-2">
                 <twig:Dialog id="reject_doc_{{ doc.id }}" class="sm:max-w-lg">
                     <twig:Dialog:Trigger>
-                        <twig:Button variant="destructive" size="sm" {{ ...dialog_trigger_attrs }}>
+                        <twig:Button variant="outline" size="sm" {{ ...dialog_trigger_attrs }}>
                             <twig:ux:icon name="tabler:x" class="size-4" aria-hidden="true" /> Refuser
                         </twig:Button>
                     </twig:Dialog:Trigger>
@@ -168,7 +184,7 @@
                             </div>
                             <div>
                                 <label for="reject_comment_{{ doc.id }}" class="block text-sm font-medium text-slate-900">Précision pour le client</label>
-                                <p id="reject_comment_help_{{ doc.id }}" class="text-xs text-slate-600 mt-0.5">Facultative, sauf pour « Autre motif ». 500 caractères maximum.</p>
+                                <p id="reject_comment_help_{{ doc.id }}" class="mt-0.5 text-xs text-slate-600">Facultative, sauf pour « Autre motif ». 500 caractères maximum.</p>
                                 <textarea id="reject_comment_{{ doc.id }}" name="comment" rows="3" maxlength="500" aria-describedby="reject_comment_help_{{ doc.id }}" class="mt-1.5 block w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" placeholder="Ex. : merci de photographier la pièce à plat, sans reflet."></textarea>
                             </div>
                             <twig:Dialog:Footer>
@@ -224,68 +240,121 @@
 
 {% macro render_ocr_state(state, findings, analyzedAt = null) %}
     {% if state == 'in_progress' %}
-        <p class="text-xs text-slate-600 flex items-center gap-1.5" role="status">
-            <twig:ux:icon name="tabler:clock-hour-4" class="size-3.5 text-slate-400" aria-hidden="true" />
+        <p class="flex items-center gap-2 text-sm text-slate-500" role="status">
+            <twig:ux:icon name="tabler:clock-hour-4" class="size-4 text-slate-400" aria-hidden="true" />
             Analyse automatique en cours…
         </p>
     {% elseif state == 'manual_check' %}
-        <p class="text-xs text-slate-600 flex items-center gap-1.5">
-            <twig:ux:icon name="tabler:eye" class="size-3.5 text-slate-400" aria-hidden="true" />
+        <p class="flex items-center gap-2 text-sm text-slate-500">
+            <twig:ux:icon name="tabler:eye" class="size-4 text-slate-400" aria-hidden="true" />
             Vérification manuelle : ce type de pièce n'est pas analysé automatiquement.
         </p>
     {% elseif state == 'unavailable' and findings is empty %}
-        <p class="text-xs text-amber-800 flex items-center gap-1.5" role="status">
-            <twig:ux:icon name="tabler:alert-triangle" class="size-3.5 text-amber-600" aria-hidden="true" />
+        <p class="flex items-center gap-2 text-sm text-amber-800" role="status">
+            <twig:ux:icon name="tabler:alert-triangle" class="size-4 text-amber-600" aria-hidden="true" />
             L'analyse automatique n'a pas abouti. Vérification manuelle requise.
         </p>
     {% endif %}
     {% if state == 'completed' and analyzedAt %}
-        <p class="text-xs text-slate-600 flex items-center gap-1.5">
-            <twig:ux:icon name="tabler:calendar-check" class="size-3.5 text-slate-400" aria-hidden="true" />
-            Dernière analyse automatique le <time datetime="{{ analyzedAt|date('c') }}">{{ analyzedAt|date('d/m/Y à H:i') }}</time>
+        <p class="flex items-center gap-2 text-sm text-slate-500">
+            <twig:ux:icon name="tabler:calendar-check" class="size-4 text-slate-400" aria-hidden="true" />
+            Analysée le <time datetime="{{ analyzedAt|date('c') }}">{{ analyzedAt|date('d/m/Y à H:i') }}</time>
         </p>
     {% endif %}
 {% endmacro %}
 
+{# Points de vigilance relevés par l'analyse automatique : des signalements pour la revue du conseiller, jamais une décision. #}
 {% macro render_findings(findings) %}
     {% if findings is not empty %}
-        <div class="mt-3 p-3 bg-amber-50 rounded-lg ring-1 ring-inset ring-amber-600/20 text-xs text-amber-800 flex gap-2 items-start" role="status">
-            <twig:ux:icon name="tabler:alert-triangle" class="size-4 shrink-0 mt-0.5 text-amber-600" aria-hidden="true" />
-            <div>
-                <span class="font-bold">Points de vigilance de l'analyse automatique — à vérifier :</span>
-                <ul class="mt-1 list-disc pl-4 space-y-0.5">
-                    {% for finding in findings %}
-                        <li class="whitespace-pre-line">{{ finding }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
+        <div class="mt-5 border-l-2 border-amber-400 pl-4" role="status">
+            <p class="text-sm font-medium text-slate-900">Points de vigilance de l'analyse automatique</p>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600 marker:text-amber-400">
+                {% for finding in findings %}
+                    <li class="whitespace-pre-line">{{ finding }}</li>
+                {% endfor %}
+            </ul>
         </div>
     {% endif %}
 {% endmacro %}
 
-{% macro status_badge(status, isRequestedToClient = false) %}
+{# Statut d'une pièce : une pastille de couleur et un libellé, sans cadre. #}
+{% macro status_label(status, isRequestedToClient = false) %}
     {% if isRequestedToClient or status == 'requested' %}
-        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20" role="status">
-            <twig:ux:icon name="tabler:mail-forward" class="size-3" aria-hidden="true" />
-            Demandé au client
-        </span>
+        {% set s = { dot: 'bg-violet-500', label: 'Demandé au client' } %}
     {% else %}
         {% set config = {
-            'draft':    { bg: 'bg-slate-50',   text: 'text-slate-700',   ring: 'ring-slate-600/20',   label: 'Brouillon' },
-            'pending':  { bg: 'bg-slate-50',   text: 'text-slate-700',   ring: 'ring-slate-600/20',   label: 'En attente' },
-            'processing': { bg: 'bg-indigo-50', text: 'text-indigo-700', ring: 'ring-indigo-600/20', label: 'Traitement' },
-            'generated': { bg: 'bg-slate-50',   text: 'text-slate-700',   ring: 'ring-slate-600/20',   label: 'Généré' },
-            'acknowledged': { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-600/20', label: 'Accusé de réception' },
-            'uploaded': { bg: 'bg-amber-50',   text: 'text-amber-700',   ring: 'ring-amber-600/20',   label: 'À vérifier' },
-            'valid':    { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-600/20', label: 'Validé' },
-            'rejected': { bg: 'bg-rose-50',    text: 'text-rose-700',    ring: 'ring-rose-600/20',    label: 'Refusé' },
-            'expired':  { bg: 'bg-gray-50',    text: 'text-gray-700',    ring: 'ring-gray-600/20',    label: 'Expiré' }
+            'draft':        { dot: 'bg-slate-300',   label: 'Brouillon' },
+            'pending':      { dot: 'bg-slate-300',   label: 'En attente' },
+            'processing':   { dot: 'bg-indigo-500',  label: 'Traitement' },
+            'generated':    { dot: 'bg-slate-400',   label: 'Généré' },
+            'acknowledged': { dot: 'bg-emerald-500', label: 'Accusé de réception' },
+            'uploaded':     { dot: 'bg-amber-500',   label: 'À vérifier' },
+            'valid':        { dot: 'bg-emerald-500', label: 'Validé' },
+            'rejected':     { dot: 'bg-rose-500',    label: 'Refusé' },
+            'expired':      { dot: 'bg-slate-400',   label: 'Expiré' }
         } %}
         {% set s = config[status]|default(config['pending']) %}
-        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold {{ s.bg }} {{ s.text }} ring-1 ring-inset {{ s.ring }}" role="status">
-            {{ s.label }}
-        </span>
     {% endif %}
+    <span class="inline-flex shrink-0 items-center gap-2 text-sm text-slate-600" role="status">
+        <span class="size-2 rounded-full {{ s.dot }}" aria-hidden="true"></span>
+        {{ s.label }}
+    </span>
+{% endmacro %}
+
+{# Une pièce du dossier : titre et statut, fichiers, puis ce qui demande l'attention du conseiller, dans l'ordre. #}
+{% macro document_card(doc, folderSlug, canReview, subject) %}
+    <article class="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+        <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+            <div class="min-w-0">
+                <h3 class="text-base font-medium text-slate-900">{{ doc.typeLabel }}</h3>
+                <p class="mt-1 max-w-md truncate text-sm text-slate-500">{{ _self.file_label(doc) }}</p>
+            </div>
+            {{ _self.status_label(doc.statusValue, doc.isAwaitingClient) }}
+        </div>
+
+        {% if doc.storagePath %}
+            <div class="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+                {{ _self.file_links(doc, 'Visualiser le document ' ~ subject) }}
+            </div>
+        {% endif %}
+
+        {% if doc.statusValue == 'rejected' and doc.rejectionReason %}
+            <div class="mt-5 border-l-2 border-rose-400 pl-4" role="alert">
+                <p class="text-sm font-medium text-slate-900">Motif du refus</p>
+                <p class="mt-1 whitespace-pre-line text-sm text-slate-600">{{ doc.rejectionReason }}</p>
+            </div>
+        {% endif %}
+
+        {{ _self.render_findings(doc.ocrFindings) }}
+        {{ _self.ocr_footer(doc, folderSlug) }}
+
+        {% if doc.ocrData %}
+            <details class="group/details mt-5">
+                <summary class="flex w-fit cursor-pointer list-none select-none items-center gap-1.5 rounded-md pr-2 text-sm text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+                    <twig:ux:icon name="tabler:chevron-right" class="size-4 transition-transform group-open/details:rotate-90" aria-hidden="true" />
+                    Voir les données extraites
+                </summary>
+                <div class="mt-4 overflow-x-auto rounded-xl bg-slate-50 p-5 sm:p-6">
+                    {{ _self.render_ocr(doc.ocrData) }}
+                </div>
+            </details>
+        {% endif %}
+
+        {{ _self.review_bar(doc, folderSlug, canReview) }}
+    </article>
+{% endmacro %}
+
+{# Titre de section en serif, avec le décompte des pièces et celles qui attendent le conseiller. #}
+{% macro section_heading(id, title, docs) %}
+    {% set toReview = docs|filter(d => d.statusValue == 'uploaded')|length %}
+    <div class="mb-6">
+        <h2 id="{{ id }}" class="font-serif text-2xl tracking-tight text-slate-900">{{ title }}</h2>
+        {% if docs|length > 0 %}
+            <p class="mt-1 text-sm text-slate-500">
+                {{ docs|length }} pièce{{ docs|length > 1 ? 's' : '' }}{% if toReview > 0 %} · {{ toReview }} à vérifier{% endif %}
+            </p>
+        {% endif %}
+    </div>
 {% endmacro %}
 
 {% block title %}Dossier {{ dto.reference }} | {{ company_name }}{% endblock %}
@@ -301,534 +370,215 @@
 {% endblock %}
 
 {% block content %}
-    {# --------------------------------------------------------- #}
-    {# MACROS D'AFFICHAGE                                        #}
-    {# --------------------------------------------------------- #}
+    {# Une seule colonne de lecture : tout le dossier se parcourt de haut en bas, sans panneau latéral. #}
+    <div class="mx-auto max-w-4xl px-4 pb-24 pt-6 sm:px-6 lg:px-8" data-controller="mercure-reload" data-mercure-reload-topic-value="{{ mercure('folder_' ~ dto.slugId) }}">
 
+        <a href="{{ path('app_compliance_list') }}" class="inline-flex items-center gap-2 rounded-md text-sm text-slate-500 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+            <twig:ux:icon name="solar:arrow-left-bold" class="size-4" aria-hidden="true" />
+            Retour à la liste
+        </a>
 
-    {# Points de vigilance relevés par l'analyse automatique. Ce sont des
-       signalements pour la revue du conseiller — jamais une décision de rejet. #}
+        {# EN-TÊTE #}
+        <header class="mt-8">
+            <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+                <span>Dossier <span class="sr-only">référence</span> {{ dto.reference }}</span>
+                <span aria-hidden="true">·</span>
+                <span>{{ dto.isKyb ? 'Personne morale (KYB)' : 'Personne physique (KYC)' }}</span>
+                <span aria-hidden="true">·</span>
+                <span>{{ dto.isManual ? 'Création manuelle' : 'Création API' }}</span>
+            </p>
 
+            <h1 class="mt-3 break-words font-serif text-3xl tracking-tight text-slate-900 sm:text-4xl">
+                {{ dto.headerTitle }}
+            </h1>
+            <p class="mt-2 text-base text-slate-600">{{ dto.headerSubtitle }}</p>
 
-
-
-        {# Top Navigation #}
-        <div class="px-4 sm:px-6 py-4 flex items-center gap-4">
-            <twig:Button as="a" href="{{ path('app_compliance_list') }}" variant="link" class="text-slate-500 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md">
-                <twig:ux:icon name="solar:arrow-left-bold" class="size-4 mr-2" aria-hidden="true" />
-                Retour à la liste
-            </twig:Button>
-        </div>
-
-        <div class="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row gap-6 lg:gap-10">
-
-            {# COLONNE GAUCHE (Contenu Principal) #}
-            <div class="flex-1 min-w-0 space-y-8 lg:space-y-10" data-controller="mercure-reload" data-mercure-reload-topic-value="{{ mercure('folder_' ~ dto.slugId) }}">
-
+            <p class="mt-5 inline-flex items-center gap-2 text-sm text-slate-600" role="status">
                 {% if dto.isArchived %}
-                    <div class="rounded-lg border-l-4 border-slate-500 bg-slate-50 p-4 shadow-sm">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <twig:ux:icon name="tabler:archive" class="size-5 text-slate-500" aria-hidden="true" />
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-sm text-slate-700">
-                                    <strong class="font-bold">Dossier archivé.</strong> Ce dossier est verrouillé en lecture seule pour garantir l'intégrité de la piste d'audit. L'espace de collecte client est désactivé.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    <twig:ux:icon name="tabler:lock" class="size-4 text-slate-400" aria-hidden="true" />
+                    Archivé
+                {% else %}
+                    <span class="size-2 rounded-full bg-amber-500" aria-hidden="true"></span>
+                    {{ dto.statusLabel }}
                 {% endif %}
+            </p>
 
-                {# BANDEAU TOP #}
-                <div class="{% if dto.isArchived %}bg-slate-100 ring-slate-900/10{% else %}bg-indigo-50/50 ring-indigo-900/5{% endif %} rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 ring-1 relative overflow-hidden">
-                    {% if not dto.isArchived %}
-                        <div class="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" aria-hidden="true"></div>
-                    {% endif %}
+            {# Contact et actions secondaires : une seule ligne, discrète. L'action principale est la décision plus bas. #}
+            <div class="mt-8 flex flex-col gap-4 border-y border-slate-200 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <p class="min-w-0 text-sm text-slate-600">
+                    {{ dto.contactName }}
+                    <span aria-hidden="true" class="mx-1.5 text-slate-300">·</span>
+                    <a href="mailto:{{ dto.contactEmail }}" class="break-all rounded-sm text-slate-900 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">{{ dto.contactEmail }}</a>
+                </p>
 
-                    <div class="relative z-10 flex justify-between items-start">
-                        <div>
-                            <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                                <span class="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold bg-white text-slate-700 ring-1 ring-slate-900/5 shadow-sm">
-                                    Dossier <span class="sr-only">référence</span> {{ dto.reference }}
-                                </span>
-
-                                <span class="px-2.5 py-1 rounded-full text-[10px] uppercase font-bold {{ dto.isManual ? 'bg-slate-100 text-slate-600' : 'bg-cyan-100 text-cyan-700' }}">
-                                    <twig:ux:icon name="{{ dto.isManual ? 'tabler:hand-click' : 'tabler:api' }}" class="size-3 inline-block mr-1 -mt-0.5" aria-hidden="true" />
-                                    {{ dto.isManual ? 'Création Manuelle' : 'Création API' }}
-                                </span>
-
-                                <span class="px-2.5 py-1 rounded-full text-[10px] uppercase font-bold {{ dto.isKyb ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-teal-100 text-teal-700' }}">
-                                    <twig:ux:icon name="{{ dto.isKyb ? 'tabler:building' : 'tabler:user' }}" class="size-3 inline-block mr-1 -mt-0.5" aria-hidden="true" />
-                                    {{ dto.isKyb ? 'KYB (Personne Morale)' : 'KYC (Personne Physique)' }}
-                                </span>
-
-                                {# Badge Statut avec condition pour l'archive #}
-                                <span class="text-xs font-semibold {{ dto.isArchived ? 'text-slate-500' : 'text-slate-500' }} flex items-center gap-1.5 ml-0 sm:ml-2 mt-2 sm:mt-0" role="status">
-                                    {% if not dto.isArchived %}
-                                        <span class="relative flex h-2 w-2" aria-hidden="true">
-                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                                        </span>
-                                    {% else %}
-                                        <twig:ux:icon name="tabler:lock" class="size-3.5" aria-hidden="true" />
-                                    {% endif %}
-                                    {{ dto.isArchived ? 'Archivé' : dto.statusLabel }}
-                                </span>
-                            </div>
-
-                            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-4 break-words">
-                                {{ dto.headerTitle }}
-                            </h1>
-                            <p class="text-sm font-medium text-slate-500 mt-2">
-                                {{ dto.headerSubtitle }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {% if not dto.isArchived %}
-                    <twig:ComplianceFolderApprovalComponent folderSlugId="{{ dto.slugId }}" />
-                {% endif %}
-
-                {% if not dto.isKyb %}
-                    <div class="flex justify-end">
-                        <twig:Button as="a" href="{{ path('app_compliance_wealth_profile_edit', {slugId: dto.slugId}) }}" variant="outline" size="sm" class="focus-visible:ring-2 focus-visible:ring-slate-500">
+                <div class="flex flex-wrap items-center gap-2">
+                    {% if not dto.isKyb %}
+                        <twig:Button as="a" href="{{ path('app_compliance_wealth_profile_edit', {slugId: dto.slugId}) }}" variant="outline" size="sm">
                             <twig:ux:icon name="tabler:file-description" class="size-4" aria-hidden="true" />
                             Fiche patrimoniale (EER)
                         </twig:Button>
-                    </div>
-                {% endif %}
-
-                {# Refus encore internes : un seul e-mail au client pour toutes les pièces à refournir. #}
-                {% if can_review_documents and dto.pendingCorrectionCount > 0 %}
-                    <div class="bg-white rounded-2xl ring-1 ring-slate-900/5 border-l-4 border-l-amber-500 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3" role="status">
-                        <div class="flex items-start gap-3">
-                            <twig:ux:icon name="tabler:alert-triangle" class="size-5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
-                            <div>
-                                <p class="text-sm font-semibold text-slate-900">
-                                    {{ dto.pendingCorrectionCount }} pièce{{ dto.pendingCorrectionCount > 1 ? 's refusées' : ' refusée' }}, pas encore signalée{{ dto.pendingCorrectionCount > 1 ? 's' : '' }} au client
-                                </p>
-                                <p class="text-xs text-slate-600 mt-0.5">Le client recevra un seul e-mail listant les pièces à fournir à nouveau et leurs motifs, avec le lien de dépôt.</p>
-                            </div>
-                        </div>
-                        <form method="post" action="{{ path('app_compliance_request_corrections', { slugId: dto.slugId }) }}" class="shrink-0">
-                            <input type="hidden" name="_token" value="{{ csrf_token('request_corrections_' ~ dto.slugId) }}">
-                            <twig:Button type="submit" variant="dark" size="sm">
-                                <twig:ux:icon name="tabler:mail-forward" class="size-4" aria-hidden="true" /> Demander les corrections au client
-                            </twig:Button>
-                        </form>
-                    </div>
-                {% endif %}
-
-                {# POLYMORPHISME GÉRÉ PAR LE DTO #}
-                {% if dto.isKyb %}
-
-                    {# SECTION 1 : SOCIÉTÉ (KYB) #}
-                    <section id="ocr-zone-company" data-ocr-zone aria-labelledby="heading-company-docs">
-                        <div class="flex items-center justify-between mb-4 px-2">
-                            <h2 id="heading-company-docs" class="text-xs font-bold text-slate-500 uppercase tracking-widest">1. Pièces de la société</h2>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 overflow-hidden">
-                            {% if dto.companyDocuments is empty %}
-                                <div class="p-8 sm:p-10 text-center">
-                                    <div class="mx-auto h-12 w-12 bg-slate-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-slate-900/5">
-                                        <twig:ux:icon name="tabler:building-bank" class="size-6 text-slate-400" aria-hidden="true" />
-                                    </div>
-                                    <h3 class="text-sm font-semibold text-slate-900">Aucun document requis</h3>
-                                    <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">La liste des documents de l'entreprise s'affichera ici.</p>
-                                </div>
-                            {% else %}
-                                <ul class="divide-y divide-slate-900/5">
-                                    {% for doc in dto.companyDocuments %}
-                                        <li class="p-4 sm:p-5 hover:bg-slate-50/50 transition-colors {{ doc.isAwaitingClient ? 'bg-violet-50/30' : '' }}">
-                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between group gap-4">
-                                                <div class="flex items-start sm:items-center gap-3 sm:gap-4">
-                                                    <div class="p-2.5 bg-slate-50 rounded-xl text-slate-500 ring-1 ring-slate-900/5 shrink-0">
-                                                        <twig:ux:icon name="tabler:file-description" class="size-5" aria-hidden="true" />
-                                                    </div>
-                                                    <div class="min-w-0">
-                                                        <p class="text-sm font-semibold text-slate-900 truncate">{{ doc.typeLabel }}</p>
-                                                        {% if doc.isAwaitingClient %}
-                                                            <p class="text-xs text-violet-600 mt-0.5 font-medium flex items-center gap-1">
-                                                                <twig:ux:icon name="tabler:clock-hour-4" class="size-3" aria-hidden="true" /> En attente du client
-                                                            </p>
-                                                        {% else %}
-                                                            {{ _self.file_label(doc) }}
-                                                        {% endif %}
-                                                    </div>
-                                                </div>
-
-                                                <div class="flex items-center gap-3 self-start sm:self-auto ml-12 sm:ml-0">
-                                                    {% if doc.ocrData %}
-                                                        <span title="Données extraites par l'IA" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-600/20 uppercase tracking-wider cursor-help">
-                                                            <twig:ux:icon name="tabler:robot" class="size-3" aria-hidden="true" /> OCR
-                                                        </span>
-                                                    {% endif %}
-
-                                                    {{ _self.status_badge(doc.statusValue, doc.isAwaitingClient) }}
-
-                                                    {% if doc.storagePath %}
-                                                        <twig:Button target="_blank" variant="link" as="a" href="{{ doc.storagePath|private_url }}" aria-label="Visualiser le document {{ doc.typeLabel }}" class="focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md !p-1">
-                                                            <twig:ux:icon name="tabler:eye" class="size-5 text-indigo-600 hover:text-indigo-800" aria-hidden="true" />
-                                                        </twig:Button>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-
-                                            {% if doc.statusValue == 'rejected' and doc.rejectionReason %}
-                                                <div class="mt-3 p-3 bg-rose-50 rounded-lg ring-1 ring-inset ring-rose-600/20 text-xs text-rose-700 flex gap-2 items-start" role="alert">
-                                                    <twig:ux:icon name="tabler:alert-triangle" class="size-4 shrink-0 mt-0.5 text-rose-600" aria-hidden="true" />
-                                                    <div>
-                                                        <span class="font-bold">Motif du refus :</span>
-                                                        <p class="mt-0.5 whitespace-pre-line">{{ doc.rejectionReason }}</p>
-                                                    </div>
-                                                </div>
-                                            {% endif %}
-
-                                            {{ _self.ocr_footer(doc, dto.slugId) }}
-                                            {{ _self.render_findings(doc.ocrFindings) }}
-
-                                            {% if doc.ocrData %}
-                                                <details class="mt-4 group/details">
-                                                    <summary class="text-xs font-medium text-indigo-600 cursor-pointer list-none flex items-center gap-1.5 hover:text-indigo-700 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md w-fit pr-2">
-                                                        <twig:ux:icon name="tabler:chevron-right" class="size-3.5 transition-transform group-open/details:rotate-90" aria-hidden="true" />
-                                                        Voir les données extraites
-                                                    </summary>
-                                                    <div class="mt-3 p-4 sm:p-5 bg-white rounded-2xl ring-1 ring-slate-900/5 shadow-sm overflow-x-auto">
-                                                        {{ _self.render_ocr(doc.ocrData) }}
-                                                    </div>
-                                                </details>
-                                            {% endif %}
-                                            {{ _self.review_bar(doc, dto.slugId, can_review_documents) }}
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
-                        </div>
-                    </section>
-
-                    {# SECTION 2 : INTERVENANTS (KYB) #}
-                    <section id="ocr-zone-stakeholders" data-ocr-zone class="mt-8 lg:mt-10" aria-labelledby="heading-stakeholders">
-                        <div class="flex items-center justify-between mb-4 px-2">
-                            <h2 id="heading-stakeholders" class="text-xs font-bold text-slate-500 uppercase tracking-widest">2. Intervenants & Bénéficiaires</h2>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 p-2 space-y-1">
-                            {% for stakeholder in dto.stakeholders %}
-                                <div class="p-3 hover:bg-slate-50 rounded-xl transition-colors group">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <div class="flex items-center gap-3">
-                                            <div class="h-8 w-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px] ring-1 ring-slate-900/5 shrink-0" aria-hidden="true">
-                                                {{ stakeholder.initials|default(stakeholder.fullName|split(' ')|map(n => n|first)|join|upper) }}
-                                            </div>
-                                            <div class="min-w-0">
-                                                <h3 class="text-sm font-bold text-slate-900 truncate">{{ stakeholder.fullName }}</h3>
-                                                <div class="flex flex-wrap items-center gap-2 mt-0.5">
-                                                    <span class="text-[10px] text-slate-500 uppercase font-medium tracking-wide">{{ stakeholder.roleLabel }}</span>
-                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-violet-200 text-slate-700 ring-1 ring-inset ring-slate-300">
-                                                        {{ stakeholder.percentage|default(0) }} %
-                                                    </span>
-                                                    {% if stakeholder.isUbo %}
-                                                        <span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold" title="Bénéficiaire Effectif">UBO</span>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {# 💡 Les documents sont déjà filtrés par le DTO (individualDocuments contient les docs des intervenants) #}
-                                    {% set stakeholderDocs = dto.individualDocuments|filter(d => d.stakeholderSlug == stakeholder.slugId) %}
-                                    <div class="ml-0 sm:ml-11 space-y-2">
-                                        {% for doc in stakeholderDocs %}
-                                            <div class="p-3 bg-white rounded-lg ring-1 ring-slate-900/5 shadow-sm group/doc">
-                                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                                    <div class="flex items-center gap-3">
-                                                        <twig:ux:icon name="tabler:id" class="size-4 text-slate-400 shrink-0" aria-hidden="true" />
-                                                        <span class="text-sm font-medium text-slate-700 truncate">{{ doc.typeLabel }}</span>
-                                                    </div>
-                                                    <div class="flex items-center gap-3 self-start sm:self-auto pl-7 sm:pl-0">
-                                                        {% if doc.ocrData %}
-                                                            <span title="Données extraites par l'IA" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-600/20 uppercase tracking-wider">
-                                                                <twig:ux:icon name="tabler:robot" class="size-3" aria-hidden="true" /> OCR
-                                                            </span>
-                                                        {% endif %}
-                                                        {{ _self.status_badge(doc.statusValue, doc.isAwaitingClient) }}
-                                                        {% if doc.storagePath %}
-                                                            <twig:Button target="_blank" variant="link" as="a" href="{{ doc.storagePath|private_url }}" aria-label="Visualiser le document de {{ stakeholder.fullName }}" class="focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md !p-1">
-                                                                <twig:ux:icon name="tabler:eye" class="size-5 text-indigo-600 hover:text-indigo-800" aria-hidden="true" />
-                                                            </twig:Button>
-                                                        {% endif %}
-                                                    </div>
-                                                </div>
-                                                {{ _self.ocr_footer(doc, dto.slugId) }}
-                                                {{ _self.render_findings(doc.ocrFindings) }}
-
-                                                {% if doc.ocrData %}
-                                                    <details class="mt-3 border-t border-slate-100 pt-3 group/details">
-                                                        <summary class="text-xs font-medium text-indigo-600 cursor-pointer list-none flex items-center gap-1.5 hover:text-indigo-700 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md w-fit pr-2">
-                                                            <twig:ux:icon name="tabler:chevron-right" class="size-3.5 transition-transform group-open/details:rotate-90" aria-hidden="true" />
-                                                            Voir les données extraites
-                                                        </summary>
-                                                        <div class="mt-3 p-3 sm:p-4 bg-slate-50/50 rounded-xl ring-1 ring-slate-900/5 overflow-x-auto">
-                                                            {{ _self.render_ocr(doc.ocrData) }}
-                                                        </div>
-                                                    </details>
-                                                {% endif %}
-                                                {{ _self.review_bar(doc, dto.slugId, can_review_documents) }}
-                                            </div>
-                                        {% else %}
-                                            <p class="text-[11px] text-slate-500 italic pl-0 sm:pl-2">Aucun document requis pour le moment.</p>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            {% else %}
-                                <div class="p-8 sm:p-10 text-center">
-                                    <twig:ux:icon name="tabler:users" class="size-8 text-slate-300 mx-auto mb-3" aria-hidden="true" />
-                                    <h3 class="text-sm font-semibold text-slate-900">Aucun intervenant</h3>
-                                    <p class="text-xs text-slate-500 mt-1">La liste s'affichera après l'étape précédente.</p>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </section>
-
-                {% else %}
-                    {# SECTION 1 : INDIVIDU (KYC) #}
-                    <section id="ocr-zone-individual" data-ocr-zone aria-labelledby="heading-kyc-docs">
-                        <div class="flex items-center justify-between mb-4 px-2">
-                            <h2 id="heading-kyc-docs" class="text-xs font-bold text-slate-500 uppercase tracking-widest">1. Pièces d'identité & Justificatifs</h2>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 overflow-hidden">
-                            <ul class="divide-y divide-slate-900/5">
-                                {% for doc in dto.individualDocuments %}
-                                    <li class="p-4 sm:p-5 hover:bg-slate-50/50 transition-colors {{ doc.isAwaitingClient ? 'bg-violet-50/30' : '' }}">
-                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between group gap-4">
-                                            <div class="flex items-start sm:items-center gap-3 sm:gap-4">
-                                                <div class="p-2.5 bg-slate-50 rounded-xl text-slate-500 ring-1 ring-slate-900/5 shrink-0">
-                                                    <twig:ux:icon name="tabler:id" class="size-5" aria-hidden="true" />
-                                                </div>
-                                                <div class="min-w-0">
-                                                    <p class="text-sm font-semibold text-slate-900 truncate">{{ doc.typeLabel }}</p>
-                                                    {% if doc.isAwaitingClient %}
-                                                        <p class="text-xs text-violet-600 mt-0.5 font-medium flex items-center gap-1">
-                                                            <twig:ux:icon name="tabler:clock-hour-4" class="size-3" aria-hidden="true" /> En attente du client
-                                                        </p>
-                                                    {% else %}
-                                                        {{ _self.file_label(doc) }}
-                                                    {% endif %}
-                                                </div>
-
-                                            </div>
-                                            <div class="flex items-center gap-3 self-start sm:self-auto ml-12 sm:ml-0">
-
-                                                {# Le badge de statut existant #}
-                                                {{ _self.status_badge(doc.statusValue, doc.isAwaitingClient) }}
-
-                                                <div class="flex items-center gap-1">
-                                                    {# Bouton de visualisation existant #}
-                                                    {% if doc.storagePath %}
-                                                        <twig:Button target="_blank" variant="link" as="a" href="{{ doc.storagePath|private_url }}" aria-label="Visualiser le document {{ doc.typeLabel }}" class="focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md !p-1">
-                                                            <twig:ux:icon name="tabler:eye" class="size-5 text-indigo-600 hover:text-indigo-800" aria-hidden="true" />
-                                                        </twig:Button>
-                                                    {% endif %}
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {% if doc.statusValue == 'rejected' and doc.rejectionReason %}
-                                            <div class="mt-3 p-3 bg-rose-50 rounded-lg ring-1 ring-inset ring-rose-600/20 text-xs text-rose-700 flex gap-2 items-start" role="alert">
-                                                <twig:ux:icon name="tabler:alert-triangle" class="size-4 shrink-0 mt-0.5 text-rose-600" aria-hidden="true" />
-                                                <div>
-                                                    <span class="font-bold">Motif du refus :</span>
-                                                    <p class="mt-0.5 whitespace-pre-line">{{ doc.rejectionReason }}</p>
-                                                </div>
-                                            </div>
-                                        {% endif %}
-
-                                        {{ _self.ocr_footer(doc, dto.slugId) }}
-                                        {{ _self.render_findings(doc.ocrFindings) }}
-
-                                        {% if doc.ocrData %}
-                                            <details class="mt-4 group/details">
-                                                <summary class="text-xs font-medium text-indigo-600 cursor-pointer list-none flex items-center gap-1.5 hover:text-indigo-700 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md w-fit pr-2">
-                                                    <twig:ux:icon name="tabler:chevron-right" class="size-3.5 transition-transform group-open/details:rotate-90" aria-hidden="true" />
-                                                    Voir les données extraites
-                                                </summary>
-                                                <div class="mt-3 p-4 sm:p-5 bg-white rounded-2xl ring-1 ring-slate-900/5 shadow-sm overflow-x-auto">
-                                                    {{ _self.render_ocr(doc.ocrData) }}
-                                                </div>
-                                            </details>
-                                        {% endif %}
-                                        {{ _self.review_bar(doc, dto.slugId, can_review_documents) }}
-                                    </li>
-                                {% else %}
-                                    <li class="p-8 sm:p-10 text-center">
-                                        <p class="text-sm text-slate-500">Aucun document requis.</p>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </section>
-
-                {% endif %}
-
-                {# SECTION TRANSVERSES : NOTES ET SCREENING #}
-                <section aria-labelledby="heading-notes">
-                    <h2 id="heading-notes" class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 px-2">3. Notes de conformité (Interne)</h2>
-                    <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 overflow-hidden">
-
-                        {# 🚀 VERROUILLAGE : On cache le formulaire d'ajout si archivé #}
-                        {% if not dto.isArchived %}
-                            <div class="p-4 bg-slate-50/50 border-b border-slate-900/5">
-                                <label for="compliance-note" class="sr-only">Ajouter une note</label>
-                                <textarea id="compliance-note" rows="2" class="w-full border-0 bg-transparent focus:ring-0 text-sm text-slate-900 placeholder-slate-500 resize-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md p-2" placeholder="Ajouter une note pour vos collaborateurs..."></textarea>
-                                <div class="flex justify-end mt-2">
-                                    <twig:Button variant="secondary" size="sm" class="focus-visible:ring-2 focus-visible:ring-slate-500">
-                                        <twig:ux:icon name="tabler:send" class="size-3 mr-2" aria-hidden="true" />
-                                        Enregistrer la note
-                                    </twig:Button>
-                                </div>
-                            </div>
-                        {% endif %}
-
-                        <ul class="divide-y divide-slate-900/5">
-                            <li class="p-4 hover:bg-slate-50/30 transition-colors">
-                                <div class="flex items-center justify-between mb-1.5">
-                                    <span class="text-xs font-bold text-slate-900 flex items-center gap-2">
-                                        <div class="h-5 w-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[9px]" aria-hidden="true">V</div> Vous
-                                    </span>
-                                    <span class="text-[10px] text-slate-500 font-medium">Il y a 2 heures</span>
-                                </div>
-                                <p class="text-sm text-slate-700 ml-7">Le client m'a appelé, il va uploader la nouvelle version.</p>
-                            </li>
-                        </ul>
-                    </div>
-                </section>
-
-                <section aria-labelledby="heading-screening">
-                    <div class="flex items-center justify-between mb-4 px-2">
-                        <h2 id="heading-screening" class="text-xs font-bold text-slate-500 uppercase tracking-widest">4. Analyse de risque (LCB-FT)</h2>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-200/50 px-2 py-0.5 rounded">Auto</span>
-                    </div>
-                    <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 p-4 sm:p-5 flex flex-col sm:flex-row items-start gap-4">
-                        <div class="p-2 bg-emerald-50 rounded-full text-emerald-600 ring-1 ring-emerald-500/20 shrink-0">
-                            <twig:ux:icon name="tabler:shield-check" class="size-6" aria-hidden="true" />
-                        </div>
-                        <div>
-                            <h3 class="text-sm font-bold text-slate-900">Aucun risque détecté</h3>
-                            <p class="text-xs text-slate-600 mt-1">L'entreprise et les intervenants ont été croisés avec les listes de sanctions internationales.</p>
-                            <twig:Button variant="link" class="!px-0 mt-3 text-xs !text-indigo-700 hover:!text-indigo-900 focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-md">
-                                Voir le rapport détaillé
-                            </twig:Button>
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            {# COLONNE DROITE (Sidebar Fixe) #}
-            <div class="w-full lg:w-96 flex-shrink-0 mt-8 lg:mt-0">
-                <div class="lg:sticky lg:top-8 flex flex-col h-auto lg:h-[calc(100vh-4rem)] space-y-6">
-                    {% if not dto.isArchived %}
-                        {# BLOC ACTIONS #}
-                        <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 p-4 sm:p-5 space-y-3">
-                            <twig:Button class="w-full flex justify-center bg-[#0A2540] hover:bg-slate-900 text-white shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900">
-                                <twig:ux:icon name="tabler:check" class="size-4 mr-2 text-emerald-400" aria-hidden="true" />
-                                Valider le dossier
-                            </twig:Button>
-                            <twig:Button variant="outline" class="w-full flex justify-center focus-visible:ring-2 focus-visible:ring-slate-500">
-                                Demander des corrections
-                            </twig:Button>
-
-                            <div class="pt-3 mt-3 border-t border-slate-900/5 grid grid-cols-2 gap-3">
-                                <twig:Button variant="ghost" class="w-full !text-slate-700 hover:!text-indigo-700 hover:!bg-indigo-50 !px-2 !text-xs focus-visible:ring-2 focus-visible:ring-indigo-500">
-                                    <twig:ux:icon name="tabler:mail-forward" class="size-3.5 mr-1.5" aria-hidden="true" /> Relancer
-                                </twig:Button>
-
-                                {# Archivage : visible pour un admin, et pour un collaborateur si le
-                                   cabinet le lui a délégué (Réglages → Rôles & permissions). #}
-                                {% if workspace_can('archive_folder') %}
-                                    <form action="{{ path('app_compliance_archive_folder', { slugId: dto.slugId, type: dto.isKyb ? 'business' : 'individual', method: dto.method }) }}"
-                                          method="POST"
-                                          onsubmit="return confirm('Archiver ce dossier ? Il passera en lecture seule.');"
-                                          class="contents">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('archive_folder_' ~ dto.slugId) }}">
-                                        <twig:Button type="submit" variant="ghost" class="w-full !text-slate-700 hover:!text-slate-900 hover:!bg-slate-100 !px-2 !text-xs focus-visible:ring-2 focus-visible:ring-slate-500">
-                                            <twig:ux:icon name="tabler:archive" class="size-3.5 mr-1.5" aria-hidden="true" /> Archiver
-                                        </twig:Button>
-                                    </form>
-                                {% endif %}
-                            </div>
-
-                            {# ACTION RESTREINDRE L'ACCÈS #}
-                            <div class="pt-3 mt-3 border-t border-slate-900/5">
-                                <form action="" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir bloquer l\'accès au client ?');">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('restrict' ~ dto.id) }}">
-                                    <button type="submit" class="w-full flex items-center justify-center px-4 py-2 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-rose-500 transition-colors">
-                                        <twig:ux:icon name="tabler:lock" class="size-4 mr-2" aria-hidden="true" />
-                                        Restreindre l'accès
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
                     {% endif %}
 
-                    {# BLOC CONTACT #}
-                    <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 p-4 sm:p-5">
-                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Contact</h3>
-                        <div class="space-y-3 text-sm">
-                            <div class="flex justify-between items-center gap-2">
-                                <span class="text-slate-500 shrink-0">Nom</span>
-                                <span class="font-medium text-slate-900 text-right">{{ dto.contactName }}</span>
-                            </div>
-                            <div class="flex justify-between items-center gap-2">
-                                <span class="text-slate-500 shrink-0">Email</span>
-                                <a href="mailto:{{ dto.contactEmail }}" class="font-medium text-indigo-700 hover:text-indigo-900 truncate max-w-[150px] sm:max-w-[200px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-sm">
-                                    {{ dto.contactEmail }}
-                                </a>
-                            </div>
-                        </div>
+                    {# Verrouillage : on ne pousse pas le CGP à envoyer le lien d'upload d'un dossier archivé #}
+                    {% if not dto.isArchived %}
+                        <twig:Button type="button" variant="ghost" size="sm" data-action="clipboard#copy" data-clipboard-text="{{ url('portal_kyc_confirm_token', {token: dto.slugId}) }}">
+                            <twig:ux:icon name="tabler:link" class="size-4" aria-hidden="true" />
+                            Copier le lien d'upload
+                        </twig:Button>
+                    {% endif %}
 
-                        {# 🚀 VERROUILLAGE : On cache le lien d'upload pour éviter d'inciter le CGP à l'envoyer #}
-                        {% if not dto.isArchived %}
-                            <twig:Button variant="secondary" class="mt-4 w-full flex justify-center text-xs focus-visible:ring-2 focus-visible:ring-slate-500" data-action="clipboard#copy" data-clipboard-text="{{ url('portal_kyc_confirm_token', {token: dto.slugId}) }}">
-                                <twig:ux:icon name="tabler:link" class="size-3.5 mr-2" aria-hidden="true" />
-                                Copier le lien d'upload
+                    {# Archivage : visible pour un admin, et pour un collaborateur si le cabinet le lui a délégué (Réglages → Rôles & permissions). #}
+                    {% if not dto.isArchived and workspace_can('archive_folder') %}
+                        <form action="{{ path('app_compliance_archive_folder', { slugId: dto.slugId, type: dto.isKyb ? 'business' : 'individual', method: dto.method }) }}"
+                              method="POST"
+                              onsubmit="return confirm('Archiver ce dossier ? Il passera en lecture seule.');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('archive_folder_' ~ dto.slugId) }}">
+                            <twig:Button type="submit" variant="ghost" size="sm">
+                                <twig:ux:icon name="tabler:archive" class="size-4" aria-hidden="true" />
+                                Archiver
                             </twig:Button>
-                        {% endif %}
-                    </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </header>
 
-                    {# BLOC JOURNAL D'ACTIVITÉ #}
+        <div class="mt-12 space-y-14">
+            {% if dto.isArchived %}
+                <div class="flex gap-3 border-l-2 border-slate-400 pl-4" role="status">
+                    <twig:ux:icon name="tabler:archive" class="mt-0.5 size-5 shrink-0 text-slate-500" aria-hidden="true" />
+                    <p class="text-sm text-slate-600">
+                        <span class="font-medium text-slate-900">Dossier archivé.</span>
+                        Il est verrouillé en lecture seule pour garantir l'intégrité de la piste d'audit. L'espace de collecte client est désactivé.
+                    </p>
+                </div>
+            {% endif %}
+
+            {% if not dto.isArchived %}
+                <twig:ComplianceFolderApprovalComponent folderSlugId="{{ dto.slugId }}" />
+            {% endif %}
+
+            {# Refus encore internes : un seul e-mail au client pour toutes les pièces à refournir. #}
+            {% if can_review_documents and dto.pendingCorrectionCount > 0 %}
+                <div class="flex flex-col gap-5 rounded-2xl border border-slate-200 border-l-2 border-l-amber-400 bg-white p-6 sm:flex-row sm:items-center sm:justify-between" role="status">
                     <div>
-                        <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-900/5 flex flex-col lg:flex-1 lg:min-h-0">
-                            <div class="p-4 sm:p-5 border-b border-slate-900/5 flex-shrink-0">
-                                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Journal d'activité</h3>
-                            </div>
-                            <div class="p-4 sm:p-5 lg:overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-300">
-                                <div class="relative pl-3 border-l-2 border-slate-100 space-y-6">
-                                    {# 💡 Utilisation de l'historique formaté par le DTO #}
-                                    {% for history in dto.history %}
-                                        <div class="relative">
-                                            <div class="absolute -left-[17px] top-1.5 h-2 w-2 rounded-full bg-amber-400 ring-4 ring-white" aria-hidden="true"></div>
-                                            <p class="text-sm font-semibold text-slate-900">{{ history.title }}</p>
-                                            <p class="text-xs text-slate-600 mt-1">{{ history.description }}</p>
-                                            <p class="text-[10px] font-bold text-slate-500 mt-1.5 uppercase tracking-wider">
-                                                <span class="sr-only">Date de l'événement :</span>
-                                                {{ history.date }}
-                                            </p>
-                                        </div>
+                        <p class="text-base font-medium text-slate-900">
+                            {{ dto.pendingCorrectionCount }} pièce{{ dto.pendingCorrectionCount > 1 ? 's refusées' : ' refusée' }}, pas encore signalée{{ dto.pendingCorrectionCount > 1 ? 's' : '' }} au client
+                        </p>
+                        <p class="mt-1 text-sm text-slate-600">Le client recevra un seul e-mail listant les pièces à fournir à nouveau et leurs motifs, avec le lien de dépôt.</p>
+                    </div>
+                    <form method="post" action="{{ path('app_compliance_request_corrections', { slugId: dto.slugId }) }}" class="shrink-0">
+                        <input type="hidden" name="_token" value="{{ csrf_token('request_corrections_' ~ dto.slugId) }}">
+                        <twig:Button type="submit" variant="dark" size="sm">
+                            <twig:ux:icon name="tabler:mail-forward" class="size-4" aria-hidden="true" /> Demander les corrections au client
+                        </twig:Button>
+                    </form>
+                </div>
+            {% endif %}
+
+            {# Les zones `data-ocr-zone` (id stable) sont rafraîchies par Mercure à la fin d'une analyse : mercure_reload_controller.js #}
+            {% if dto.isKyb %}
+
+                {# PIÈCES DE LA SOCIÉTÉ (KYB) #}
+                <section id="ocr-zone-company" data-ocr-zone aria-labelledby="heading-company-docs">
+                    {{ _self.section_heading('heading-company-docs', 'Pièces de la société', dto.companyDocuments) }}
+
+                    {% if dto.companyDocuments is empty %}
+                        <p class="rounded-2xl border border-dashed border-slate-300 px-6 py-12 text-center text-sm text-slate-500">
+                            Aucun document requis. La liste des documents de l'entreprise s'affichera ici.
+                        </p>
+                    {% else %}
+                        <div class="space-y-5">
+                            {% for doc in dto.companyDocuments %}
+                                {{ _self.document_card(doc, dto.slugId, can_review_documents, dto.headerTitle) }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </section>
+
+                {# INTERVENANTS ET BÉNÉFICIAIRES (KYB) #}
+                <section id="ocr-zone-stakeholders" data-ocr-zone aria-labelledby="heading-stakeholders">
+                    {{ _self.section_heading('heading-stakeholders', 'Intervenants et bénéficiaires', []) }}
+
+                    <div class="space-y-12">
+                        {% for stakeholder in dto.stakeholders %}
+                            {# Les documents sont déjà filtrés par le DTO (individualDocuments contient les docs des intervenants) #}
+                            {% set stakeholderDocs = dto.individualDocuments|filter(d => d.stakeholderSlug == stakeholder.slugId) %}
+                            <div>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600" aria-hidden="true">
+                                        {{ stakeholder.initials|default(stakeholder.fullName|split(' ')|map(n => n|first)|join|upper) }}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h3 class="truncate text-base font-medium text-slate-900">{{ stakeholder.fullName }}</h3>
+                                        <p class="text-sm text-slate-500">
+                                            {{ stakeholder.roleLabel }} · {{ stakeholder.percentage|default(0) }} %{% if stakeholder.isUbo %} · Bénéficiaire effectif{% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="mt-5 space-y-5 sm:pl-14">
+                                    {% for doc in stakeholderDocs %}
+                                        {{ _self.document_card(doc, dto.slugId, can_review_documents, stakeholder.fullName) }}
                                     {% else %}
-                                        <p class="text-xs text-slate-500 italic">Aucune activité récente.</p>
+                                        <p class="text-sm italic text-slate-500">Aucun document requis pour le moment.</p>
                                     {% endfor %}
                                 </div>
                             </div>
-                        </div>
+                        {% else %}
+                            <p class="rounded-2xl border border-dashed border-slate-300 px-6 py-12 text-center text-sm text-slate-500">
+                                Aucun intervenant. La liste s'affichera après l'étape précédente.
+                            </p>
+                        {% endfor %}
                     </div>
+                </section>
 
+            {% else %}
 
-                </div>
-            </div>
+                {# PIÈCES D'IDENTITÉ ET JUSTIFICATIFS (KYC) #}
+                <section id="ocr-zone-individual" data-ocr-zone aria-labelledby="heading-kyc-docs">
+                    {{ _self.section_heading('heading-kyc-docs', 'Pièces d\'identité et justificatifs', dto.individualDocuments) }}
+
+                    {% if dto.individualDocuments is empty %}
+                        <p class="rounded-2xl border border-dashed border-slate-300 px-6 py-12 text-center text-sm text-slate-500">Aucun document requis.</p>
+                    {% else %}
+                        <div class="space-y-5">
+                            {% for doc in dto.individualDocuments %}
+                                {{ _self.document_card(doc, dto.slugId, can_review_documents, doc.typeLabel) }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </section>
+
+            {% endif %}
+
+            {# JOURNAL D'ACTIVITÉ : replié, pour ne pas alourdir la lecture #}
+            <section aria-labelledby="heading-journal">
+                <details class="group/journal border-t border-slate-200 pt-6">
+                    <summary class="flex w-fit cursor-pointer list-none select-none items-center gap-2 rounded-md pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+                        <twig:ux:icon name="tabler:chevron-right" class="size-4 text-slate-400 transition-transform group-open/journal:rotate-90" aria-hidden="true" />
+                        <h2 id="heading-journal" class="font-serif text-2xl tracking-tight text-slate-900">Journal d'activité</h2>
+                        <span class="text-sm text-slate-500">{{ dto.history|length }}</span>
+                    </summary>
+
+                    <ol class="mt-8 space-y-7 border-l border-slate-200 pl-6">
+                        {# Historique formaté par le DTO #}
+                        {% for history in dto.history %}
+                            <li class="relative">
+                                <span class="absolute -left-[29px] top-2 size-2 rounded-full bg-slate-300 ring-4 ring-background-sable" aria-hidden="true"></span>
+                                <p class="text-sm font-medium text-slate-900">{{ history.title }}</p>
+                                <p class="mt-1 text-sm text-slate-600">{{ history.description }}</p>
+                                <p class="mt-1 text-xs text-slate-500">
+                                    <span class="sr-only">Date de l'événement :</span>
+                                    {{ history.date }}
+                                </p>
+                            </li>
+                        {% else %}
+                            <li class="text-sm italic text-slate-500">Aucune activité récente.</li>
+                        {% endfor %}
+                    </ol>
+                </details>
+            </section>
         </div>
-
+    </div>
 {% endblock %}

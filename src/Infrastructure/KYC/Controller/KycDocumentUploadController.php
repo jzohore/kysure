@@ -65,6 +65,7 @@ final class KycDocumentUploadController extends AbstractController
         $dto->folderId = $folderId;
         $dto->documentId = $documentId;
         $dto->file = $file;
+        $dto->side = (string) $request->query->get('side', 'front');
 
         // Taille et type MIME bornés (cf. contraintes du DTO).
         $violations = $this->validator->validate($dto);

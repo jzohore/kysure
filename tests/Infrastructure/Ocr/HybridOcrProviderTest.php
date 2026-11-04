@@ -213,4 +213,51 @@ final class HybridOcrProviderTest extends TestCase
 
         return $provider;
     }
+
+    public function testTheBackSideIsHandedToBothEnginesForAnIdCard(): void
+    {
+        $back = 'https://s3.test/tmp/verso.jpg';
+        $textract = $this->createMock(OcrProviderInterface::class);
+        $textract->expects($this->once())->method('extractData')->with(DocumentType::ID_CARD, self::FILE, $back)->willReturn(['last_name' => 'ALOIS']);
+        $local = $this->createMock(OcrProviderInterface::class);
+        $local->expects($this->once())->method('extractData')->with(DocumentType::ID_CARD, self::FILE, $back)->willReturn(['mrz' => self::LOCAL_MRZ]);
+
+        $data = new HybridOcrProvider($local, $textract, new NullLogger())->extractData(DocumentType::ID_CARD, self::FILE, $back);
+
+        self::assertSame(self::LOCAL_MRZ, $data['mrz']);
+    }
+
+    public function testABirthPlaceReadAsFirstNameIsReplacedByTheOneConfirmedByTheMrz(): void
+    {
+        $mrz = ['line_1' => 'IDFRAZOHORE<<<<<<<<<<<<<<<<<<<075058', 'line_2' => '210175M504915JUNIOR<<<<<<<<9608100M8'];
+        $textract = $this->providerReturning(['last_name' => 'ZOHORE', 'first_name' => 'DALOA']);
+        $local = $this->providerReturning(['last_name' => 'ZOHORE', 'first_name' => 'JUNIOR', 'mrz' => $mrz, 'date_of_expiry' => '2036-01-19']);
+
+        $data = new HybridOcrProvider($local, $textract, new NullLogger())->extractData(DocumentType::ID_CARD, self::FILE);
+
+        self::assertSame('JUNIOR', $data['first_name']);
+        // Le champ manquant côté Textract est comblé par le local.
+        self::assertSame('2036-01-19', $data['date_of_expiry']);
+    }
+
+    public function testAFirstNameConfirmedByTheMrzIsNeverOverwritten(): void
+    {
+        $mrz = ['line_1' => 'IDFRAZOHORE<<<<<<<<<<<<<<<<<<<075058', 'line_2' => '210175M504915JUNIOR<<<<<<<<9608100M8'];
+        $textract = $this->providerReturning(['first_name' => 'Junior']);
+        $local = $this->providerReturning(['first_name' => 'JUNIOR PAUL', 'mrz' => $mrz]);
+
+        $data = new HybridOcrProvider($local, $textract, new NullLogger())->extractData(DocumentType::ID_CARD, self::FILE);
+
+        self::assertSame('Junior', $data['first_name']);
+    }
+
+    public function testADisagreementTheMrzCannotArbitrateIsLeftForTheValidator(): void
+    {
+        $textract = $this->providerReturning(['first_name' => 'MARC']);
+        $local = $this->providerReturning(['first_name' => 'JULIEN', 'mrz' => self::LOCAL_MRZ]);
+
+        $data = new HybridOcrProvider($local, $textract, new NullLogger())->extractData(DocumentType::ID_CARD, self::FILE);
+
+        self::assertSame('MARC', $data['first_name']);
+    }
 }

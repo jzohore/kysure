@@ -22,9 +22,15 @@ readonly class AmazonTextractProvider implements OcrProviderInterface
     /**
      * @return array<string, mixed>
      */
-    public function extractData(DocumentType $type, string $filePath): array
+    public function extractData(DocumentType $type, string $filePath, ?string $backFilePath = null): array
     {
         $pagesBytes = $this->extractPagesAsJpeg($filePath);
+
+        // Verso déposé à part : AnalyzeID lit deux pages (recto = index 0, verso = index 1), comme un PDF de deux pages.
+        // Un fichier principal déjà de deux pages (PDF recto + verso) se suffit : le verso déposé avant lui est ignoré.
+        if (null !== $backFilePath && count($pagesBytes) < 2) {
+            $pagesBytes = [$pagesBytes[0], ...array_slice($this->extractPagesAsJpeg($backFilePath), 0, 1)];
+        }
 
         try {
             // ---------------------------------------------------------
@@ -228,8 +234,9 @@ readonly class AmazonTextractProvider implements OcrProviderInterface
     {
         // Expiration
         if (empty($existingData['date_of_expiry'])) {
-            if (preg_match('/jusqu\'au[\s:]*([0-9]{2}[\.\/][0-9]{2}[\.\/][0-9]{4})/i', $fullText, $matches)) {
-                $existingData['date_of_expiry'] = $this->formatAwsDate($matches[1]);
+            // Ancienne CNI : les points entre jour, mois et année sont souvent lus comme des espaces (« 19 01 2036 »).
+            if (preg_match('/jusqu[\'’]\s*au[\s:]*([0-9]{2})[\s\.\/\-]+([0-9]{2})[\s\.\/\-]+([0-9]{4})/iu', $fullText, $matches)) {
+                $existingData['date_of_expiry'] = $this->formatAwsDate(sprintf('%s.%s.%s', $matches[1], $matches[2], $matches[3]));
             } elseif (!empty($queryData['date_of_expiry'])) {
                 $existingData['date_of_expiry'] = $this->formatAwsDate((string) $queryData['date_of_expiry']);
             }
