@@ -1,4 +1,4 @@
-{# components/Compliance/ManualIndividualStepOneComponent.html.twig #}
+{# components/Compliance/GenerateDERComponent.html.twig #}
 
 <div {{ attributes.defaults({
     'data-controller': 'mercure-sync',
@@ -14,28 +14,19 @@
     {% set last_revoked = this.lastRevokedAcknowledgement %}
     {% set compliance_folder_status_value = this.complianceDTO.statusValue %}
     {% if this.isStepDerVisible %}
-        <section class="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8" aria-labelledby="step-der-title">
 
             {# ========================================== #}
             {# 1. HEADER DU COMPOSANT                     #}
             {# ========================================== #}
-            <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center size-8 rounded-lg bg-indigo-50 text-indigo-600 font-bold text-sm ring-1 ring-inset ring-indigo-500/10">
-                        2
-                    </div>
-                    <h3 class="text-lg font-semibold text-slate-900 tracking-tight">
-                        Génération du DER
-                    </h3>
-                </div>
-
-                <div class="relative group inline-block">
-                    <twig:ux:icon name="ph:info-duotone" class="size-5 text-slate-400 hover:text-indigo-600 cursor-help transition-colors" />
-                    <div class="absolute bottom-full right-0 md:left-1/2 md:-translate-x-1/2 mb-2 w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left">
-                        <strong class="text-white block mb-1">Obligation légale (AMF/ACPR) :</strong>
-                        Le Document d'Entrée en Relation est obligatoire avant toute collecte de pièces KYC. Il intègre automatiquement les données réglementaires de votre cabinet.
-                    </div>
-                </div>
+            <header class="mb-8">
+                <p class="text-sm text-slate-500">Étape 2</p>
+                <h3 id="step-der-title" class="mt-1 font-serif text-2xl tracking-tight text-slate-900">Génération du DER</h3>
+                {# Rappel légal affiché en clair : il ne dépend plus d'un survol #}
+                <p class="mt-3 max-w-xl text-sm text-slate-600">
+                    Le Document d'Entrée en Relation est obligatoire (AMF/ACPR) avant toute collecte de pièces KYC.
+                    Il intègre automatiquement les données réglementaires de votre cabinet.
+                </p>
             </header>
 
             {# ========================================== #}
@@ -45,91 +36,81 @@
                (cf. AcknowledgeDerUseCase), le statut du dossier ne vaut donc plus
                "der_signed" au moment où le CGP consulte l'écran. #}
             {% if acknowledgement %}
-                <div class="animate-fade-in overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm mt-4">
-                    <div class="border-b border-slate-100 bg-slate-50/50 px-4 py-3 sm:px-6 flex items-center gap-2">
-                        <twig:ux:icon name="tabler:shield-check-filled" class="size-5 text-emerald-600" />
-                        <h4 class="text-sm font-semibold text-slate-900">Accusé de réception du DER</h4>
-                    </div>
+                <div class="animate-fade-in border-l-2 border-emerald-500 pl-5">
+                    <h4 class="flex items-center gap-2 text-base font-medium text-slate-900">
+                        <twig:ux:icon name="tabler:shield-check-filled" class="size-5 text-emerald-600" aria-hidden="true" />
+                        Accusé de réception du DER
+                    </h4>
 
-                    <div class="px-4 py-4 sm:px-6">
-                        <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
-                            <div class="sm:col-span-1">
-                                <dt class="text-xs font-medium uppercase tracking-wider text-slate-500">Horodatage</dt>
-                                <dd class="mt-1 text-sm font-semibold text-slate-900">
-                                    {{ acknowledgement ? acknowledgement.acknowledgedAt|date('d/m/Y à H:i') : 'En attente' }}
+                    <dl class="mt-5 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+                        <div>
+                            <dt class="text-xs text-slate-500">Horodatage</dt>
+                            <dd class="mt-1 text-sm text-slate-900">{{ acknowledgement.acknowledgedAt|date('d/m/Y à H:i') }}</dd>
+                        </div>
+
+                        <div>
+                            <dt class="text-xs text-slate-500">Accusé par</dt>
+                            <dd class="mt-1 text-sm text-slate-900">{{ acknowledgement.declaredName }}</dd>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <dt class="text-xs text-slate-500">Empreinte du document (SHA-256)</dt>
+                            <dd class="mt-1 flex items-start gap-2" data-controller="copy-to-clipboard">
+                                <span data-copy-to-clipboard-target="source" class="break-all font-mono text-xs text-slate-600">{{ acknowledgement.pdfSha256 }}</span>
+                                <button type="button" data-action="copy-to-clipboard#copy" aria-label="Copier l'empreinte du document"
+                                        class="shrink-0 rounded p-1 text-slate-400 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+                                    <twig:ux:icon name="lucide:copy" data-copy-to-clipboard-target="icon" class="size-3.5" aria-hidden="true" />
+                                </button>
+                            </dd>
+                        </div>
+
+                        {% if acknowledgement.certificateSha256 %}
+                            <div class="sm:col-span-2">
+                                <dt class="text-xs text-slate-500">Empreinte de l'attestation (SHA-256)</dt>
+                                <dd class="mt-1 flex items-start gap-2" data-controller="copy-to-clipboard">
+                                    <span data-copy-to-clipboard-target="source" class="break-all font-mono text-xs text-slate-600">{{ acknowledgement.certificateSha256 }}</span>
+                                    <button type="button" data-action="copy-to-clipboard#copy" aria-label="Copier l'empreinte de l'attestation"
+                                            class="shrink-0 rounded p-1 text-slate-400 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+                                        <twig:ux:icon name="lucide:copy" data-copy-to-clipboard-target="icon" class="size-3.5" aria-hidden="true" />
+                                    </button>
                                 </dd>
                             </div>
+                        {% endif %}
+                    </dl>
 
-                            <div class="sm:col-span-1">
-                                <dt class="text-xs font-medium uppercase tracking-wider text-slate-500">Accusé par</dt>
-                                <dd class="mt-1 text-sm font-medium text-emerald-700">
-                                    {{ acknowledgement ? acknowledgement.declaredName : '—' }}
-                                </dd>
+                    <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5">
+                        {% if this.derPdfPath %}
+                            <twig:Button as="a" href="{{ this.derPdfPath|private_url }}" target="_blank" rel="noopener noreferrer" variant="outline" size="sm">
+                                <twig:ux:icon name="tabler:file-download" class="size-4" aria-hidden="true" />
+                                Télécharger le DER
+                            </twig:Button>
+                        {% endif %}
+
+                        {% if acknowledgement.certificateStoragePath %}
+                            <twig:Button as="a" href="{{ acknowledgement.certificateStoragePath|private_url }}" target="_blank" rel="noopener noreferrer" variant="outline" size="sm">
+                                <twig:ux:icon name="tabler:certificate" class="size-4 text-emerald-600" aria-hidden="true" />
+                                Attestation d'accusé de réception
+                            </twig:Button>
+                        {% endif %}
+
+                        <details class="group ml-auto text-sm">
+                            <summary class="flex cursor-pointer list-none items-center gap-1 rounded text-slate-500 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
+                                <twig:ux:icon name="lucide:chevron-down" class="size-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+                                Révoquer l'accusé
+                            </summary>
+                            <div class="mt-3 w-72 rounded-xl border border-slate-200 bg-white p-4">
+                                <p class="mb-3 text-xs text-slate-600">
+                                    Action irréversible : le dossier repasse en attente et le client devra accuser réception d'un nouveau DER.
+                                </p>
+                                <label for="der-revoke-reason" class="block text-sm font-medium text-slate-900">Motif de révocation (obligatoire)</label>
+                                <textarea id="der-revoke-reason" rows="2" required data-model="revokeReason"
+                                          class="mt-1.5 block w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"></textarea>
+                                <twig:Button type="button" variant="destructive" size="sm" class="mt-3 w-full"
+                                             data-action="live#action" data-live-action-param="revokeAcknowledgement">
+                                    Révoquer et exiger un nouveau DER
+                                </twig:Button>
                             </div>
-
-                            {% if acknowledgement %}
-                                <div class="sm:col-span-2 mt-1">
-                                    <dt class="text-xs font-medium uppercase tracking-wider text-slate-500">Empreinte du document (SHA-256)</dt>
-                                    <dd class="mt-1 flex items-center gap-1.5" data-controller="copy-to-clipboard">
-                                        <span data-copy-to-clipboard-target="source" class="font-mono text-[11px] break-all text-slate-500">{{ acknowledgement.pdfSha256 }}</span>
-                                        <button type="button" data-action="copy-to-clipboard#copy" aria-label="Copier l'empreinte du document"
-                                                class="shrink-0 rounded p-0.5 text-slate-400 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500">
-                                            <twig:ux:icon name="lucide:copy" data-copy-to-clipboard-target="icon" class="size-3" aria-hidden="true" />
-                                        </button>
-                                    </dd>
-                                </div>
-                            {% endif %}
-
-                            {% if acknowledgement and acknowledgement.certificateSha256 %}
-                                <div class="sm:col-span-2">
-                                    <dt class="text-xs font-medium uppercase tracking-wider text-slate-500">Empreinte de l'attestation (SHA-256)</dt>
-                                    <dd class="mt-1 flex items-center gap-1.5" data-controller="copy-to-clipboard">
-                                        <span data-copy-to-clipboard-target="source" class="font-mono text-[11px] break-all text-slate-500">{{ acknowledgement.certificateSha256 }}</span>
-                                        <button type="button" data-action="copy-to-clipboard#copy" aria-label="Copier l'empreinte de l'attestation"
-                                                class="shrink-0 rounded p-0.5 text-slate-400 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500">
-                                            <twig:ux:icon name="lucide:copy" data-copy-to-clipboard-target="icon" class="size-3" aria-hidden="true" />
-                                        </button>
-                                    </dd>
-                                </div>
-                            {% endif %}
-
-                            <div class="sm:col-span-2 mt-2 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
-                                {% if this.derPdfPath %}
-                                    <twig:Button as="a" href="{{ this.derPdfPath|private_url }}" target="_blank" rel="noopener noreferrer" variant="outline" size="sm">
-                                        <twig:ux:icon name="tabler:file-download" />
-                                        Télécharger le DER
-                                    </twig:Button>
-                                {% endif %}
-
-                                {% if acknowledgement and acknowledgement.certificateStoragePath %}
-                                    <twig:Button as="a" href="{{ acknowledgement.certificateStoragePath|private_url }}" target="_blank" rel="noopener noreferrer" variant="secondary" size="sm">
-                                        <twig:ux:icon name="tabler:certificate" class="text-emerald-600" />
-                                        Attestation d'accusé de réception
-                                    </twig:Button>
-                                {% endif %}
-
-                                {% if acknowledgement %}
-                                    <details class="group ml-auto text-sm">
-                                        <summary class="flex cursor-pointer items-center gap-1 text-slate-400 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500 rounded">
-                                            <twig:ux:icon name="lucide:chevron-down" class="size-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
-                                            Révoquer l'accusé
-                                        </summary>
-                                        <div class="mt-2 w-72 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-                                            <p class="text-xs text-slate-500 mb-2">
-                                                Action irréversible : le dossier repasse en attente et le client devra accuser réception d'un nouveau DER.
-                                            </p>
-                                            <label for="der-revoke-reason" class="block text-xs font-medium text-slate-600">Motif de révocation (obligatoire)</label>
-                                            <textarea id="der-revoke-reason" rows="2" required data-model="revokeReason"
-                                                      class="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-red-500 focus:outline-none"></textarea>
-                                            <twig:Button type="button" variant="destructive" size="sm" class="mt-2 w-full"
-                                                         data-action="live#action" data-live-action-param="revokeAcknowledgement">
-                                                Révoquer et exiger un nouveau DER
-                                            </twig:Button>
-                                        </div>
-                                    </details>
-                                {% endif %}
-                            </div>
-                        </dl>
+                        </details>
                     </div>
                 </div>
 
@@ -139,57 +120,54 @@
             {% elseif compliance_folder_status_value == 'der_rejected' %}
                 {% set der_document = this.derDocument %}
                 {% set is_revocation = last_revoked and not (der_document and der_document.derDeclinedAt) %}
-                <div class="animate-fade-in overflow-hidden rounded-lg border border-red-200 bg-white shadow-sm mt-4">
-                    <div class="border-b border-red-100 bg-red-50/50 px-4 py-3 sm:px-6 flex items-center gap-2">
-                        <twig:ux:icon name="tabler:shield-x" class="size-5 text-red-600" />
-                        <h4 class="text-sm font-semibold text-red-900">
-                            {{ is_revocation ? 'Accusé de réception révoqué' : 'DER refusé par le client' }}
-                        </h4>
-                    </div>
-                    <div class="px-4 py-4 sm:px-6">
-                        {% if is_revocation %}
-                            {# Preuve archivée : consultable même après révocation, jamais supprimée. #}
-                            <p class="text-sm text-slate-700">
-                                Vous avez révoqué l'accusé de réception signé par
-                                <strong>{{ last_revoked.declaredName }}</strong>
-                                le {{ last_revoked.revokedAt|date('d/m/Y à H:i') }}.
-                            </p>
-                            <p class="mt-2 text-sm font-semibold text-red-700">Motif : {{ last_revoked.revokeReason }}</p>
-                            <dl class="mt-3 grid grid-cols-1 gap-y-2 rounded-md bg-slate-50 border border-slate-200 p-3 sm:grid-cols-2 sm:gap-x-4">
-                                <div>
-                                    <dt class="text-[11px] font-medium uppercase tracking-wider text-slate-500">Accusé archivé le</dt>
-                                    <dd class="text-xs text-slate-700">{{ last_revoked.acknowledgedAt|date('d/m/Y à H:i') }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-[11px] font-medium uppercase tracking-wider text-slate-500">Révoqué par</dt>
-                                    <dd class="text-xs text-slate-700">{{ last_revoked.revokedByName }}</dd>
-                                </div>
-                                <div class="sm:col-span-2">
-                                    <dt class="text-[11px] font-medium uppercase tracking-wider text-slate-500">Empreinte du document archivé (SHA-256)</dt>
-                                    <dd class="font-mono text-[11px] break-all text-slate-500">{{ last_revoked.pdfSha256 }}</dd>
-                                </div>
-                            </dl>
-                        {% else %}
-                            <p class="text-sm text-slate-700">
-                                Le client a déclaré ne pas reconnaître le document
-                                {% if der_document and der_document.derDeclinedAt %}
-                                    le {{ der_document.derDeclinedAt|date('d/m/Y à H:i') }}
-                                {% endif %}.
-                                Le processus d'entrée en relation est suspendu.
-                            </p>
-                            {% if der_document and der_document.derDeclineReason %}
-                                <p class="mt-2 text-sm font-semibold text-red-700">Motif : {{ der_document.derDeclineReason }}</p>
-                            {% endif %}
+                <div class="animate-fade-in border-l-2 border-rose-500 pl-5" role="alert">
+                    <h4 class="flex items-center gap-2 text-base font-medium text-slate-900">
+                        <twig:ux:icon name="tabler:shield-x" class="size-5 text-rose-600" aria-hidden="true" />
+                        {{ is_revocation ? 'Accusé de réception révoqué' : 'DER refusé par le client' }}
+                    </h4>
+
+                    {% if is_revocation %}
+                        {# Preuve archivée : consultable même après révocation, jamais supprimée. #}
+                        <p class="mt-3 text-sm text-slate-700">
+                            Vous avez révoqué l'accusé de réception signé par
+                            <strong class="font-medium text-slate-900">{{ last_revoked.declaredName }}</strong>
+                            le {{ last_revoked.revokedAt|date('d/m/Y à H:i') }}.
+                        </p>
+                        <p class="mt-2 text-sm text-slate-700"><span class="font-medium text-slate-900">Motif :</span> {{ last_revoked.revokeReason }}</p>
+                        <dl class="mt-5 grid grid-cols-1 gap-x-8 gap-y-4 rounded-xl bg-slate-50 p-5 sm:grid-cols-2">
+                            <div>
+                                <dt class="text-xs text-slate-500">Accusé archivé le</dt>
+                                <dd class="mt-1 text-sm text-slate-900">{{ last_revoked.acknowledgedAt|date('d/m/Y à H:i') }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-slate-500">Révoqué par</dt>
+                                <dd class="mt-1 text-sm text-slate-900">{{ last_revoked.revokedByName }}</dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <dt class="text-xs text-slate-500">Empreinte du document archivé (SHA-256)</dt>
+                                <dd class="mt-1 break-all font-mono text-xs text-slate-600">{{ last_revoked.pdfSha256 }}</dd>
+                            </div>
+                        </dl>
+                    {% else %}
+                        <p class="mt-3 text-sm text-slate-700">
+                            Le client a déclaré ne pas reconnaître le document
+                            {% if der_document and der_document.derDeclinedAt %}
+                                le {{ der_document.derDeclinedAt|date('d/m/Y à H:i') }}
+                            {% endif %}.
+                            Le processus d'entrée en relation est suspendu.
+                        </p>
+                        {% if der_document and der_document.derDeclineReason %}
+                            <p class="mt-2 text-sm text-slate-700"><span class="font-medium text-slate-900">Motif :</span> {{ der_document.derDeclineReason }}</p>
                         {% endif %}
-                        <div class="mt-4 border-t border-slate-100 pt-4">
-                            <twig:Button type="button" variant="outline" size="sm"
-                                         data-action="live#action" data-live-action-param="generateDer"
-                                         data-loading="action(generateDer)|addAttribute(disabled)">
-                                <twig:ux:icon name="tabler:refresh" data-loading="action(generateDer)|hide" />
-                                <span data-loading="action(generateDer)|hide">Générer un nouveau DER</span>
-                                <span data-loading="action(generateDer)|show" class="hidden text-indigo-500">Génération…</span>
-                            </twig:Button>
-                        </div>
+                    {% endif %}
+                    <div class="mt-6 border-t border-slate-100 pt-5">
+                        <twig:Button type="button" variant="outline" size="sm"
+                                     data-action="live#action" data-live-action-param="generateDer"
+                                     data-loading="action(generateDer)|addAttribute(disabled)">
+                            <twig:ux:icon name="tabler:refresh" class="size-4" data-loading="action(generateDer)|hide" aria-hidden="true" />
+                            <span data-loading="action(generateDer)|hide">Générer un nouveau DER</span>
+                            <span data-loading="action(generateDer)|show" class="hidden text-slate-500">Génération…</span>
+                        </twig:Button>
                     </div>
                 </div>
 
@@ -197,15 +175,14 @@
                 {# 3.6 ÉTAT : PROFIL INCOMPLET (BLOQUANT)     #}
                 {# ========================================== #}
             {% elseif not this.profileValid %}
-                <div class="rounded-lg bg-amber-50 ring-1 ring-inset ring-amber-200 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left animate-fade-in">
-                    <div class="flex items-center gap-3 text-amber-800">
-                        <twig:ux:icon name="tabler:alert-triangle-filled" class="size-5 text-amber-500 shrink-0" />
-                        <span class="text-sm font-medium">Les informations réglementaires de votre cabinet (ex: ORIAS) sont incomplètes.</span>
+                <div class="animate-fade-in flex flex-col justify-between gap-4 border-l-2 border-amber-400 pl-5 sm:flex-row sm:items-center" role="status">
+                    <div class="flex items-start gap-3">
+                        <twig:ux:icon name="tabler:alert-triangle-filled" class="mt-0.5 size-5 shrink-0 text-amber-500" aria-hidden="true" />
+                        <p class="text-sm text-slate-700">Les informations réglementaires de votre cabinet (ex : ORIAS) sont incomplètes.</p>
                     </div>
 
-                    {# Utilisation de ton variant="warning" #}
-                    <twig:Button as="a" href="{{ path('app_settings_regulatory_profile') }}" target="_blank" variant="warning" size="sm">
-                        <twig:ux:icon name="tabler:external-link" class="size-3.5 mr-1" />
+                    <twig:Button as="a" href="{{ path('app_settings_regulatory_profile') }}" target="_blank" variant="outline" size="sm" class="shrink-0">
+                        <twig:ux:icon name="tabler:external-link" class="size-4" aria-hidden="true" />
                         Compléter mon profil
                     </twig:Button>
                 </div>
@@ -216,34 +193,33 @@
             {% else %}
                 {% set der_document = this.derDocument %}
                 {% if der_document and der_document.derLinkSentAt %}
-                    <div class="mb-4 rounded-lg border-l-4 border-l-amber-400 bg-amber-50 px-4 py-3 flex items-start gap-2.5">
-                        <twig:ux:icon name="tabler:mail-forward" class="size-4 text-amber-600 mt-0.5 shrink-0" />
+                    <div class="mb-6 flex items-start gap-3 border-l-2 border-amber-400 pl-4" role="status">
+                        <twig:ux:icon name="tabler:mail-forward" class="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden="true" />
                         <div>
-                            <h5 class="text-xs font-semibold text-amber-900">Lien envoyé au client</h5>
-                            <p class="text-[11px] text-amber-700 mt-0.5">
+                            <h5 class="text-sm font-medium text-slate-900">Lien envoyé au client</h5>
+                            <p class="mt-0.5 text-sm text-slate-600">
                                 Transmis le {{ der_document.derLinkSentAt|date('d/m/Y à H:i') }}. En attente de son accusé de réception.
                             </p>
                         </div>
                     </div>
                 {% endif %}
-                <div class="max-w-lg mx-auto animate-fade-in mt-2">
+                <div class="animate-fade-in">
 
-                    {# Encart Métadonnées Cabinet #}
-                    <div class="rounded-lg bg-slate-50 ring-1 ring-inset ring-slate-200 p-4 mb-6 flex items-center justify-between group transition-colors hover:ring-indigo-200">
+                    {# Données du cabinet reprises dans le document #}
+                    <div class="group mb-6 flex items-center justify-between gap-4 rounded-xl bg-slate-50 p-5">
                         <div class="flex items-center gap-3">
-                            <div class="bg-white border border-slate-200 p-1.5 rounded-md text-slate-400 shadow-sm">
-                                <twig:ux:icon name="tabler:building-bank" class="size-4" />
-                            </div>
+                            <twig:ux:icon name="tabler:building-bank" class="size-5 shrink-0 text-slate-400" aria-hidden="true" />
                             <div>
-                                <span class="block text-xs font-semibold text-slate-900 mb-0.5">Données du cabinet</span>
-                                <div class="text-[11px] text-slate-500 flex items-center gap-2">
+                                <span class="block text-sm font-medium text-slate-900">Données du cabinet</span>
+                                <div class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
                                     <span>ORIAS : {{ workspace_info.workspaceInfo.oriasNumber|default('N/A') }}</span>
-                                    <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                    <span class="size-1 rounded-full bg-slate-300" aria-hidden="true"></span>
                                     <span>RC Pro : {{ workspace_info.workspaceInfo.rcProInsurer|default('N/A') }}</span>
                                 </div>
                             </div>
                         </div>
-                        <a href="{{ path('app_settings_regulatory_profile') }}" target="_blank" class="text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 py-1.5 px-2.5 rounded-md transition-colors opacity-0 group-hover:opacity-100">
+                        <a href="{{ path('app_settings_regulatory_profile') }}" target="_blank" rel="noopener"
+                           class="shrink-0 rounded-md text-sm text-slate-600 underline-offset-4 hover:text-slate-900 hover:underline focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                             Modifier
                         </a>
                     </div>
@@ -253,18 +229,16 @@
                         {% if this.derPdfPath %}
                             <div data-loading="action(generateDer)|hide" class="space-y-3">
 
-                                {# Utilisation de ton variant="outline" pour les actions secondaires #}
-                                <twig:Button as="a" href="{{ this.derPdfPath|private_url }}" target="_blank" variant="outline" class="w-full">
-                                    <twig:ux:icon name="tabler:eye" class="text-slate-400" />
+                                <twig:Button as="a" href="{{ this.derPdfPath|private_url }}" target="_blank" rel="noopener noreferrer" variant="outline" class="w-full">
+                                    <twig:ux:icon name="tabler:eye" class="text-slate-400" aria-hidden="true" />
                                     Aperçu de la version de travail
                                 </twig:Button>
 
-                                <div class="grid grid-cols-2 gap-3">
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <twig:SendDerActionComponent folder="{{ this.complianceFolder }}"></twig:SendDerActionComponent>
 
-                                    {# Remplacé par ton composant Button variant="outline" #}
                                     <twig:Button type="button" variant="outline" data-action="click->actions-panel#toggleMonitoring" class="w-full">
-                                        <twig:ux:icon name="tabler:help-circle" class="text-slate-400" />
+                                        <twig:ux:icon name="tabler:help-circle" class="text-slate-400" aria-hidden="true" />
                                         Besoin d'aide ?
                                     </twig:Button>
                                 </div>
@@ -272,36 +246,34 @@
                                 <div data-actions-panel-target="sendForm" class="hidden"></div>
                                 <div data-actions-panel-target="monitoringForm" class="hidden"></div>
 
-                                <div class="pt-3 mt-3 border-t border-slate-100">
-                                    {# Utilisation de ton variant="ghost" pour l'action discrète #}
+                                <div class="mt-3 border-t border-slate-100 pt-3">
                                     <twig:Button type="button" variant="ghost" size="sm" class="w-full" data-action="live#action" data-live-action-param="generateDer" data-loading="action(generateDer)|addAttribute(disabled)">
-                                        <twig:ux:icon name="tabler:refresh" data-loading="action(generateDer)|hide" />
-                                        <twig:ux:icon name="tabler:loader" data-loading="action(generateDer)|show" class="hidden animate-spin text-indigo-500" />
+                                        <twig:ux:icon name="tabler:refresh" data-loading="action(generateDer)|hide" aria-hidden="true" />
+                                        <twig:ux:icon name="tabler:loader" data-loading="action(generateDer)|show" class="hidden animate-spin" aria-hidden="true" />
                                         <span data-loading="action(generateDer)|hide">Regénérer avec les nouvelles données</span>
-                                        <span data-loading="action(generateDer)|show" class="hidden text-indigo-500">Mise à jour du document...</span>
+                                        <span data-loading="action(generateDer)|show" class="hidden">Mise à jour du document…</span>
                                     </twig:Button>
                                 </div>
                             </div>
 
                         {% elseif this.isGenerating %}
-                            {# Utilisation de ton variant="secondary" pour l'état d'attente #}
                             <twig:Button disabled variant="secondary" class="w-full">
-                                <twig:ux:icon name="tabler:loader" class="animate-spin text-indigo-500" />
-                                Génération du DER en cours...
+                                <twig:ux:icon name="tabler:loader" class="animate-spin" aria-hidden="true" />
+                                Génération du DER en cours…
                             </twig:Button>
 
                         {% else %}
-                            {# Utilisation de ton variant="dark" pour l'action principale #}
+                            {# Action principale de l'étape #}
                             <twig:Button type="button"
                                          variant="dark"
                                          class="w-full py-3"
                                          data-action="live#action"
                                          data-live-action-param="generateDer"
                                          data-loading="action(generateDer)|addAttribute(disabled)">
-                                <twig:ux:icon name="tabler:file-invoice" data-loading="action(generateDer)|hide" class="text-slate-300" />
+                                <twig:ux:icon name="tabler:file-invoice" data-loading="action(generateDer)|hide" class="text-slate-300" aria-hidden="true" />
                                 <span data-loading="action(generateDer)|hide">Générer le DER</span>
-                                <twig:ux:icon name="tabler:loader" data-loading="action(generateDer)|show" class="hidden animate-spin text-slate-300" />
-                                <span data-loading="action(generateDer)|show" class="hidden">Lancement du processus...</span>
+                                <twig:ux:icon name="tabler:loader" data-loading="action(generateDer)|show" class="hidden animate-spin text-slate-300" aria-hidden="true" />
+                                <span data-loading="action(generateDer)|show" class="hidden">Lancement du processus…</span>
                             </twig:Button>
                         {% endif %}
                     </div>
@@ -311,14 +283,9 @@
         </section>
     {% else %}
 
-        <div class="bg-slate-50 border border-slate-200 border-l-4 border-l-slate-400 rounded-xl p-4 flex items-center gap-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all">
-            <div class="text-slate-400 shrink-0">
-                {{ ux_icon('lucide:info', { class: 'size-5' }) }}
-            </div>
-            <p class="text-sm text-slate-600 font-medium">
-                Validez les informations du client pour débloquer la génération du DER.
-            </p>
-        </div>
+        <p class="border-l-2 border-slate-300 py-1 pl-4 text-sm text-slate-600">
+            Validez les informations du client pour débloquer la génération du DER.
+        </p>
 
     {% endif %}
 </div>

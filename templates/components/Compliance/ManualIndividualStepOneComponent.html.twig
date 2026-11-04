@@ -1,17 +1,16 @@
 <div {{ attributes }}>
 
-    <section class="bg-white rounded-md border border-slate-200 p-6 sm:p-8 shadow-sm">
+    <section class="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8" aria-labelledby="step-one-title">
         {# En-tête de l'étape #}
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-bold text-slate-900 flex items-center gap-3">
-                <span class="size-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-black">1</span>
-                Qui est le client ?
-            </h3>
+        <div class="mb-8 flex items-start justify-between gap-4">
+            <div>
+                <p class="text-sm text-slate-500">Étape 1</p>
+                <h3 id="step-one-title" class="mt-1 font-serif text-2xl tracking-tight text-slate-900">Qui est le client ?</h3>
+            </div>
 
-            {# Petit badge de statut (Optionnel mais joli) #}
             {% if not this.isEditing and this.complianceDTO.contactFirstName is not empty %}
-                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                    <twig:ux:icon name="tabler:check" class="size-3" />
+                <span class="inline-flex shrink-0 items-center gap-2 text-sm text-slate-600" role="status">
+                    <span class="size-2 rounded-full bg-emerald-500" aria-hidden="true"></span>
                     Complété
                 </span>
             {% endif %}
@@ -31,7 +30,7 @@
             }) }}
 
             <div class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>{{ form_row(form.firstName) }}</div>
                     <div>{{ form_row(form.lastName) }}</div>
                 </div>
@@ -48,19 +47,19 @@
                             autocomplete: 'off',
                         } }) }}
                         <div data-address-autocomplete-target="results" hidden
-                             class="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg"></div>
+                             class="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"></div>
                     </div>
                     {{ form_help(form.address) }}
                     {{ form_errors(form.address) }}
                 </div>
             </div>
 
-            <div class="flex items-center justify-end mt-8 pt-4 border-t border-slate-100">
+            <div class="mt-8 flex items-center justify-end border-t border-slate-100 pt-6">
 
                 {# Variable pour savoir si c'est une création ou une update #}
                 {% set isUpdate =  this.complianceDTO.contactFirstName is not empty %}
 
-                <twig:Button as="button" type="submit" variant="dark" class="w-full sm:w-auto px-8">
+                <twig:Button as="button" type="submit" variant="dark" class="w-full px-8 sm:w-auto">
                     {# État normal #}
                     <span data-loading="action(save)|hide">
                         {{ isUpdate ? 'Mettre à jour' : 'Enregistrer et continuer' }}
@@ -68,8 +67,8 @@
 
                     {# État de chargement (loading) #}
                     <span data-loading="action(save)|show" class="hidden items-center gap-2">
-                        <twig:ux:icon name="tabler:loader" class="size-4 animate-spin" />
-                        {{ isUpdate ? 'Mise à jour...' : 'Enregistrement...' }}
+                        <twig:ux:icon name="tabler:loader" class="size-4 animate-spin" aria-hidden="true" />
+                        {{ isUpdate ? 'Mise à jour…' : 'Enregistrement…' }}
                     </span>
                 </twig:Button>
             </div>
@@ -81,27 +80,27 @@
             {# --------------------------------------------- #}
         {% else %}
 
-            <div class="bg-slate-50 rounded-xl p-5 ring-1 ring-slate-900/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
 
                 <div class="flex items-center gap-4">
                     {# Avatar généré avec les initiales #}
-                    <div class="h-10 w-10 rounded-full bg-white text-indigo-600 flex items-center justify-center font-bold text-xs ring-1 ring-slate-900/10 shadow-sm shrink-0">
+                    <div class="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-medium text-slate-600" aria-hidden="true">
                         {{ this.complianceDTO.contactFirstName|first|upper }}{{ this.complianceDTO.contactLastName|first|upper }}
                     </div>
 
-                    <div>
-                        <p class="text-sm font-bold text-slate-900">
+                    <div class="min-w-0">
+                        <p class="truncate text-base font-medium text-slate-900">
                             {{ this.complianceDTO.contactFirstName }} {{ this.complianceDTO.contactLastName }}
                         </p>
-                        <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
-                            <twig:ux:icon name="tabler:mail" class="size-3.5" />
-                            {{ this.complianceDTO.contactEmail }}
+                        <p class="mt-0.5 flex items-center gap-1.5 text-sm text-slate-600">
+                            <twig:ux:icon name="tabler:mail" class="size-4 shrink-0 text-slate-400" aria-hidden="true" />
+                            <span class="truncate">{{ this.complianceDTO.contactEmail }}</span>
                         </p>
                     </div>
                 </div>
 
                 <twig:Button variant="outline" size="sm" data-action="live#action" data-live-action-param="activateEditing" class="w-full sm:w-auto">
-                    <twig:ux:icon name="tabler:edit" class="size-4 mr-1.5" />
+                    <twig:ux:icon name="tabler:edit" class="size-4" aria-hidden="true" />
                     Modifier les informations
                 </twig:Button>
 

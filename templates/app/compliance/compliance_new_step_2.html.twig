@@ -1,149 +1,126 @@
 {% extends '@app/billing/base_billing.html.twig' %}
 {% block title %}{{ page_title }}{% endblock %}
 
-{% set container_width = 'max-w-6xl' %}
+{% set container_width = 'max-w-3xl' %}
+{# Fond sable uni, comme le reste de l'application : pas de grille « tech » sur cette page #}
+{% set surface_class = 'bg-background-sable' %}
+{% set plain_surface = true %}
 {% set isResume = dto.postMeetingReport is not empty %}
 {% set isQuotaExhausted = dto.workspaceRemainingMinutes <= 0 %}
 {% block header %}
-    <header class="bg-white/80 backdrop-blur-xl border-b border-slate-200 px-4 sm:px-6 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sticky top-0 z-40 shadow-sm">
-        <div class="flex items-center gap-4">
-            <a href="javascript:history.back()" class="p-2 hover:bg-slate-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400" title="Retour à l'étape précédente">
-                {{ ux_icon('lucide:arrow-left', { class: 'size-5 text-slate-600' }) }}
+    <header class="sticky top-0 z-40 flex flex-col items-start justify-between gap-4 border-b border-slate-200 bg-background-sable/90 px-4 py-3 backdrop-blur-xl sm:flex-row sm:items-center sm:px-6">
+        <div class="flex items-center gap-3">
+            <a href="javascript:history.back()" class="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" title="Retour à l'étape précédente" aria-label="Retour à l'étape précédente">
+                {{ ux_icon('lucide:arrow-left', { class: 'size-5', 'aria-hidden': 'true' }) }}
             </a>
             <div>
-                <h1 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                    Dossier {{ dto.reference }}
-                </h1>
+                <h1 class="text-sm font-medium text-slate-900">Dossier {{ dto.reference }}</h1>
                 <p class="text-xs text-slate-500">
                     {{ type == 'individual' ? 'Personne physique' : 'Personne morale' }}
                 </p>
             </div>
         </div>
 
-        <div class="flex items-center gap-3 w-full sm:w-auto">
-            {# ACTION DESTRUCTIVE #}
-            <div class="flex items-center gap-2 pr-4"
+        <div class="flex w-full items-center justify-end gap-2 sm:w-auto">
+            {# ENREGISTREMENT DE L'ENTRETIEN : minuteur et commandes pilotés par le contrôleur Stimulus #}
+            <div class="flex items-center gap-2"
                 {{ stimulus_controller('meeting-recorder', {
                     chunkUrl: path('app_api_meeting_chunk', { slugId: dto.slugId }),
                     stopUrl: path('app_api_meeting_stop', { slugId: dto.slugId }),
                     maxMinutes: dto.workspaceRemainingMinutes
                 }) }}>
 
-                <div class="flex flex-col text-right">
-    <span data-meeting-recorder-target="timer" class="text-xs font-mono font-bold text-slate-400">
-        {{ isQuotaExhausted ? '00:00' : (dto.workspaceRemainingMinutes ~ ':00') }}
-    </span>
-                </div>
-                {% if dto.isAcceptedRecording %}
-                <div class="relative group">
-                    {% if isQuotaExhausted %}
-                        <button type="button" disabled class="p-2 text-slate-400 bg-slate-100 rounded-xl cursor-not-allowed">
-                            {{ ux_icon('tabler:microphone-off', { class: 'size-5' }) }}
+                <span data-meeting-recorder-target="timer" class="font-mono text-xs tabular-nums text-slate-500">
+                    {{ isQuotaExhausted ? '00:00' : (dto.workspaceRemainingMinutes ~ ':00') }}
+                </span>
+
+                {% if dto.isAcceptedRecording and not isQuotaExhausted %}
+                    <div class="flex items-center gap-1">
+                        <button type="button" data-action="click->meeting-recorder#start" data-meeting-recorder-target="startBtn"
+                                class="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" title="Enregistrer" aria-label="Démarrer l'enregistrement">
+                            {{ ux_icon('tabler:microphone', { class: 'size-5', 'aria-hidden': 'true' }) }}
                         </button>
-                    {% else %}
-                        <div class="flex items-center gap-1">
-                            <button type="button" data-action="click->meeting-recorder#start" data-meeting-recorder-target="startBtn"
-                                    class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Enregistrer">
-                                {{ ux_icon('tabler:microphone', { class: 'size-5' }) }}
-                            </button>
-                            <button type="button" data-action="click->meeting-recorder#pause" data-meeting-recorder-target="pauseBtn"
-                                    class="hidden p-2 text-amber-600 bg-amber-50 rounded-xl transition-all">
-                                {{ ux_icon('tabler:player-pause', { class: 'size-5' }) }}
-                            </button>
-                            <button type="button" data-action="click->meeting-recorder#resume" data-meeting-recorder-target="resumeBtn"
-                                    class="hidden p-2 text-emerald-600 bg-emerald-50 rounded-xl transition-all">
-                                {{ ux_icon('tabler:player-play', { class: 'size-5' }) }}
-                            </button>
-                            <button type="button" data-action="click->meeting-recorder#stop" data-meeting-recorder-target="stopBtn"
-                                    class="hidden p-2 text-rose-600 bg-rose-50 rounded-xl transition-all animate-pulse">
-                                {{ ux_icon('tabler:square-rounded', { class: 'size-5' }) }}
-                            </button>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
+                        <button type="button" data-action="click->meeting-recorder#pause" data-meeting-recorder-target="pauseBtn"
+                                class="hidden rounded-lg p-2 text-amber-700 transition-colors hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" title="Mettre en pause" aria-label="Mettre l'enregistrement en pause">
+                            {{ ux_icon('tabler:player-pause', { class: 'size-5', 'aria-hidden': 'true' }) }}
+                        </button>
+                        <button type="button" data-action="click->meeting-recorder#resume" data-meeting-recorder-target="resumeBtn"
+                                class="hidden rounded-lg p-2 text-emerald-700 transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" title="Reprendre" aria-label="Reprendre l'enregistrement">
+                            {{ ux_icon('tabler:player-play', { class: 'size-5', 'aria-hidden': 'true' }) }}
+                        </button>
+                        <button type="button" data-action="click->meeting-recorder#stop" data-meeting-recorder-target="stopBtn"
+                                class="hidden animate-pulse rounded-lg p-2 text-rose-600 transition-colors hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" title="Terminer" aria-label="Terminer l'enregistrement">
+                            {{ ux_icon('tabler:square-rounded', { class: 'size-5', 'aria-hidden': 'true' }) }}
+                        </button>
+                    </div>
                 {% else %}
-                    <button type="button" disabled class="p-2 text-slate-400 bg-slate-100 rounded-xl cursor-not-allowed">
-                        {{ ux_icon('tabler:microphone-off', { class: 'size-5' }) }}
+                    <button type="button" disabled class="cursor-not-allowed rounded-lg p-2 text-slate-300" title="{{ isQuotaExhausted ? 'Quota de minutes épuisé' : 'Enregistrement non autorisé' }}" aria-label="{{ isQuotaExhausted ? 'Quota de minutes épuisé' : 'Enregistrement non autorisé' }}">
+                        {{ ux_icon('tabler:microphone-off', { class: 'size-5', 'aria-hidden': 'true' }) }}
                     </button>
                 {% endif %}
+            </div>
 
             {% if is_granted('DELETE', folder) or is_granted('MAKE_CONFIDENTIAL', folder) or workspace_can('archive_folder') %}
-                <div class="relative group inline-block">
+                <div class="group relative inline-block">
                     <button type="button"
                             aria-haspopup="menu"
-                            class="flex items-center justify-center size-8 sm:size-7 rounded-md text-white shadow-sm hover:bg-violet-300 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-1">
-                        {{ ux_icon('lsicon:setting-outline', { class: 'size-4 text-indigo-600' }) }}
+                            aria-label="Actions sur le dossier"
+                            class="flex size-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+                        {{ ux_icon('lsicon:setting-outline', { class: 'size-5', 'aria-hidden': 'true' }) }}
                     </button>
 
-                    {# MENU DÉROULANT (+) : Architecture ultra-dense #}
+                    {# Menu d'actions : ouvert au survol et au focus clavier #}
                     <div role="menu"
-                         class="absolute right-0 mt-1.5 w-56 bg-white rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200/80 opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 focus-within:opacity-100 focus-within:visible focus-within:translate-y-0 transition-all duration-150 z-50">
+                         class="invisible absolute right-0 z-50 mt-1.5 w-56 translate-y-1 rounded-xl border border-slate-200 bg-white opacity-0 shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-150 focus-within:visible focus-within:translate-y-0 focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
 
                         <div class="p-1">
 
                             {% if is_granted('MAKE_CONFIDENTIAL', folder) %}
-                            {# ACTION 1 : Le fameux "Zéro Friction" (Déclenche le Modal) #}
-                            <button
-                               type="submit"
-                               role="menuitem"
-                               form="confidential-form"
-                               class="flex items-center gap-2.5 px-2 py-1.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-md transition-colors text-left cursor-pointer outline-none focus:bg-slate-50 w-full">
-                                {% if folder.isConfidential %}
-                                    {{ ux_icon('iconamoon:lock-fill', { class: 'size-3.5 text-indigo-600' }) }}
-                                    Dévérouiller
-                                {% else %}
-                                    {{ ux_icon('iconamoon:lock-off-fill', { class: 'size-3.5' }) }}
-                                    Vérouiller le dossier
-                                {% endif %}
-                            </button>
-
-                            <div class="h-px bg-slate-100 my-1 mx-2"></div>
+                                <button
+                                    type="submit"
+                                    role="menuitem"
+                                    form="confidential-form"
+                                    class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-slate-700 outline-none transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:bg-slate-50">
+                                    {% if folder.isConfidential %}
+                                        {{ ux_icon('iconamoon:lock-fill', { class: 'size-4 text-slate-500', 'aria-hidden': 'true' }) }}
+                                        Déverrouiller le dossier
+                                    {% else %}
+                                        {{ ux_icon('iconamoon:lock-off-fill', { class: 'size-4 text-slate-500', 'aria-hidden': 'true' }) }}
+                                        Verrouiller le dossier
+                                    {% endif %}
+                                </button>
                             {% endif %}
 
                             {% if workspace_can('archive_folder') %}
                             <twig:Dialog id="archive_compliance_folder">
                                 <twig:Dialog:Trigger>
-
                                     <twig:Button
-                                        class="inline-flex items-start justify-start gap-2.5 px-2 py-1.5 text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-md transition-colors text-left cursor-pointer outline-none focus:bg-slate-50 w-full"
-
+                                        class="inline-flex w-full cursor-pointer items-center justify-start gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-normal text-slate-700 outline-none transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:bg-slate-50"
                                         {{ ...dialog_trigger_attrs }}>
-                                        <span class="flex items-center gap-1.5">
-                                           {{ ux_icon('lucide:trash-2', { class: 'size-3.5' }) }}
+                                        {{ ux_icon('tabler:archive', { class: 'size-4 text-slate-500', 'aria-hidden': 'true' }) }}
                                         Archiver
-                                        </span>
-
                                     </twig:Button>
-
                                 </twig:Dialog:Trigger>
                                 <twig:Dialog:Content>
                                     <twig:Dialog:Header>
                                         <twig:Dialog:Title class="text-slate-900">Archiver le dossier client</twig:Dialog:Title>
-                                        <twig:Dialog:Description class="text-slate-600 mt-5">
+                                        <twig:Dialog:Description class="mt-5 text-slate-600">
                                             Cette action va clôturer ce dossier de conformité. Il ne sera plus modifiable, mais restera accessible en lecture seule dans vos archives pour répondre aux obligations de l'AMF.
                                         </twig:Dialog:Description>
                                     </twig:Dialog:Header>
 
-                                    {# Bloc d'avertissement B2B (Style Linear/Stripe) - Scannable et sans fioritures #}
-                                    <div class="my-4 border-l-4 border-amber-500 bg-slate-50 p-4 rounded-r-md">
-                                        <div class="flex gap-3">
-                                            <div class="space-y-2">
-                                                <p class="text-sm font-semibold text-slate-900">
-                                                    Conséquences immédiates :
-                                                </p>
-                                                <ul class="text-sm text-slate-600 space-y-1 list-disc ml-4 marker:text-slate-400">
-                                                    <li>L'espace de collecte du client sera définitivement désactivé.</li>
-                                                    <li>La piste d'audit et les documents signés seront scellés.</li>
-                                                    <li>Les relances automatiques par email seront interrompues.</li>
-                                                </ul>
-                                            </div>
-                                        </div>
+                                    <div class="my-4 border-l-2 border-amber-400 pl-4">
+                                        <p class="text-sm font-medium text-slate-900">Conséquences immédiates</p>
+                                        <ul class="mt-2 ml-4 list-disc space-y-1 text-sm text-slate-600 marker:text-slate-400">
+                                            <li>L'espace de collecte du client sera définitivement désactivé.</li>
+                                            <li>La piste d'audit et les documents signés seront scellés.</li>
+                                            <li>Les relances automatiques par email seront interrompues.</li>
+                                        </ul>
                                     </div>
 
                                     <twig:Dialog:Footer>
                                         <twig:Dialog:Close>
-                                            <twig:Button variant="outline" {{ ...dialog_close_attrs }} class="text-slate-700 border-slate-200 hover:bg-slate-100">
+                                            <twig:Button variant="outline" {{ ...dialog_close_attrs }}>
                                                 Annuler
                                             </twig:Button>
                                         </twig:Dialog:Close>
@@ -163,50 +140,37 @@
                             {% endif %}
 
                             {% if is_granted('DELETE', folder) %}
-                            <div class="h-px bg-slate-100 my-1 mx-2"></div>
+                            <div class="mx-2 my-1 h-px bg-slate-100"></div>
 
                             <twig:Dialog id="delete_compliance_folder">
                                 <twig:Dialog:Trigger>
-
                                     <twig:Button
-                                        class="inline-flex items-start justify-start gap-2.5 px-2 py-1.5 text-[13px] font-medium text-red-600 hover:bg-slate-50 hover:text-red-900 rounded-md transition-colors text-left cursor-pointer outline-none focus:bg-slate-50 w-full"
-
+                                        class="inline-flex w-full cursor-pointer items-center justify-start gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-normal text-rose-700 outline-none transition-colors hover:bg-rose-50 hover:text-rose-800 focus-visible:bg-rose-50"
                                         {{ ...dialog_trigger_attrs }}>
-                                        <span class="flex items-center gap-1.5">
-                                            {{ ux_icon('lucide:trash-2', { class: 'size-3.5' }) }}
+                                        {{ ux_icon('lucide:trash-2', { class: 'size-4', 'aria-hidden': 'true' }) }}
                                         Supprimer
-                                        </span>
-
                                     </twig:Button>
-
                                 </twig:Dialog:Trigger>
                                 <twig:Dialog:Content>
                                     <twig:Dialog:Header>
-                                        <twig:Dialog:Title class="text-slate-900">Archiver le dossier client</twig:Dialog:Title>
-                                        <twig:Dialog:Description class="text-red-800 mt-5 font-bold">
+                                        <twig:Dialog:Title class="text-slate-900">Supprimer le dossier client</twig:Dialog:Title>
+                                        <twig:Dialog:Description class="mt-5 font-medium text-rose-800">
                                             Cette action va supprimer ce dossier de conformité.
                                         </twig:Dialog:Description>
                                     </twig:Dialog:Header>
 
-                                    {# Bloc d'avertissement B2B (Style Linear/Stripe) - Scannable et sans fioritures #}
-                                    <div class="my-4 border-l-4 border-red-500 bg-slate-50 p-4 rounded-r-md">
-                                        <div class="flex gap-3">
-                                            <div class="space-y-2">
-                                                <p class="text-sm font-semibold text-slate-900">
-                                                    Conséquences immédiates :
-                                                </p>
-                                                <ul class="text-sm text-slate-600 space-y-1 list-disc ml-4 marker:text-slate-400">
-                                                    <li>L'espace de collecte du client sera définitivement désactivé.</li>
-                                                    <li>La piste d'audit et les documents signés seront scellés.</li>
-                                                    <li>Les relances automatiques par email seront interrompues.</li>
-                                                </ul>
-                                            </div>
-                                        </div>
+                                    <div class="my-4 border-l-2 border-rose-400 pl-4">
+                                        <p class="text-sm font-medium text-slate-900">Conséquences immédiates</p>
+                                        <ul class="mt-2 ml-4 list-disc space-y-1 text-sm text-slate-600 marker:text-slate-400">
+                                            <li>L'espace de collecte du client sera définitivement désactivé.</li>
+                                            <li>La piste d'audit et les documents signés seront scellés.</li>
+                                            <li>Les relances automatiques par email seront interrompues.</li>
+                                        </ul>
                                     </div>
 
                                     <twig:Dialog:Footer>
                                         <twig:Dialog:Close>
-                                            <twig:Button variant="outline" {{ ...dialog_close_attrs }} class="text-slate-700 border-slate-200 hover:bg-slate-100">
+                                            <twig:Button variant="outline" {{ ...dialog_close_attrs }}>
                                                 Annuler
                                             </twig:Button>
                                         </twig:Dialog:Close>
@@ -227,124 +191,12 @@
                         </div>
                     </div>
                 </div>
-{#                <div data-controller="inline-confirm"#}
-{#                     data-action="click@window->inline-confirm#clickOutside"#}
-{#                     class="inline-block">#}
-{#                    <twig:Button#}
-{#                        class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-red-500"#}
-{#                        title="Supprimer le brouillon"#}
-{#                        data-action="inline-confirm#toggle"#}
-{#                        title="Révoquer"#}
-{#                    >#}
-{#                        {{ ux_icon('lucide:trash-2', { class: 'size-5' }) }}#}
-{#                    </twig:Button>#}
-
-{#                    <div data-inline-confirm-target="popover"#}
-{#                         class="hidden z-[100] w-64 bg-white border border-slate-200 rounded-md shadow-xl p-3 animate-in fade-in zoom-in-95 duration-200">#}
-
-{#                        <p class="text-sm text-slate-700 font-medium mb-3 text-center">#}
-{#                            Êtes-vous sûr de vouloir supprimer ce dossier ?#}
-{#                        </p>#}
-
-{#                        <div class="flex gap-2">#}
-{#                            <twig:Button variant="secondary"#}
-{#                                         data-action="live#action inline-confirm#close"#}
-{#                                         size="sm"#}
-{#                            >#}
-{#                                Annuler#}
-{#                            </twig:Button>#}
-{#                            <div>#}
-{#                                <twig:Button#}
-{#                                    type="submit"#}
-{#                                    form="delete-form"#}
-{#                                    variant="destructive"#}
-{#                                >#}
-{#                                    <twig:ux:icon name="lucide:user-x" class="w-4 h-4 mr-2" />#}
-{#                                    Supprimer#}
-{#                                </twig:Button>#}
-{#                            </div>#}
-
-{#                        </div>#}
-{#                    </div>#}
-{#                </div>#}
             {% endif %}
-
-            {% if is_granted('MAKE_CONFIDENTIAL', folder) %}
-{#                <div data-controller="inline-confirm"#}
-{#                     data-action="click@window->inline-confirm#clickOutside"#}
-{#                     class="inline-block">#}
-{#                    <twig:Button#}
-{#                        class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"#}
-{#                        title="Rendre ce dossier confidentiel"#}
-{#                        data-action="inline-confirm#toggle"#}
-{#                        title="Confidentiel"#}
-{#                    >#}
-{#                        {% if folder.isConfidential %}#}
-{#                            {{ ux_icon('iconamoon:lock-fill', { class: 'size-5 text-indigo-600' }) }}#}
-{#                        {% else %}#}
-{#                            {{ ux_icon('iconamoon:lock-off-fill', { class: 'size-5' }) }}#}
-{#                        {% endif %}#}
-{#                    </twig:Button>#}
-
-{#                    <div data-inline-confirm-target="popover"#}
-{#                         class="hidden z-[100] w-64 bg-white border border-slate-200 rounded-md shadow-xl p-3 animate-in fade-in zoom-in-95 duration-200">#}
-{#                        {% if folder.isConfidential %}#}
-{#                            <p class="text-sm text-slate-700 font-medium mb-3 text-center">#}
-{#                                Voulez-vous rendre ce dossier accessible ?#}
-{#                            </p>#}
-
-{#                            <div class="flex flex-col gap-2">#}
-{#                                <twig:Button variant="secondary"#}
-{#                                             data-action="live#action inline-confirm#close"#}
-{#                                             size="sm"#}
-{#                                >#}
-{#                                    Non#}
-{#                                </twig:Button>#}
-{#                                <twig:Button#}
-{#                                    type="submit"#}
-{#                                    form="make-accessible-form"#}
-{#                                    variant="primary"#}
-{#                                >#}
-{#                                    Oui#}
-{#                                </twig:Button>#}
-
-{#                            </div>#}
-{#                        {% else %}#}
-{#                            <p class="text-sm text-slate-700 font-medium mb-3 text-center">#}
-{#                                Voulez-vous rendre ce dossier confidentiel ?#}
-{#                            </p>#}
-
-{#                            <div class="flex flex-col gap-2">#}
-{#                                <twig:Button variant="secondary"#}
-{#                                             data-action="live#action inline-confirm#close"#}
-{#                                             size="sm"#}
-{#                                >#}
-{#                                    Non#}
-{#                                </twig:Button>#}
-{#                                <twig:Button#}
-{#                                    type="submit"#}
-{#                                    form="confidential-form"#}
-{#                                    variant="primary"#}
-{#                                >#}
-{#                                    Oui#}
-{#                                </twig:Button>#}
-
-{#                            </div>#}
-{#                        {% endif %}#}
-
-{#                    </div>#}
-{#                </div>#}
-            {% endif %}
-
-
-{#            <button type="submit" form="setup-form" class="flex-1 sm:flex-none bg-green-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">#}
-{#                {{ method == 'request' ? 'Envoyer la demande' : 'Valider & Importer' }}#}
-{#            </button>#}
         </div>
     </header>
 {% endblock %}
 {% block portal_content %}
-    {# Formulaire caché pour la suppression du brouillon #}
+    {# Formulaires cachés : soumission pour relecture et verrouillage / déverrouillage du dossier #}
     <form id="setup-form" method="POST" action="{{ path('app_compliance_submit_for_review', {slugId: folder.slugId}) }}">
         <input type="hidden" name="_token" value="{{ csrf_token('submit-for-review-compliance') }}">
     </form>
@@ -361,66 +213,49 @@
         <input type="hidden" name="_token" value="{{ csrf_token('make-confidential-compliance') }}">
     </form>
 
+    <div class="pb-24 pt-4 sm:pt-8">
+        {# EN-TÊTE #}
+        <div>
+            <p class="text-sm text-slate-500">Nouveau dossier</p>
+            <h2 class="mt-2 font-serif text-3xl tracking-tight text-slate-900 sm:text-4xl">
+                {{ type == 'individual' ? 'Personne physique' : 'Personne morale' }}
+            </h2>
+            <p class="mt-3 text-base text-slate-600">
+                Renseignez le client, puis générez le document d'entrée en relation (DER) à lui faire accuser.
+            </p>
+        </div>
 
-    <div class="py-6 sm:py-10">
-        <div class="bg-slate-50/50 pb-24 rounded-3xl relative">
-            <div class="mx-auto px-2 sm:px-6 max-w-3xl">
-
-                <div class="space-y-8">
-
-                    {# EN-TÊTE #}
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-2xl font-bold text-slate-900">
-                            {{ type == 'individual' ? 'Personne physique' : 'Personne morale' }}
-                        </h2>
+        {% if folder.isConfidential %}
+            <div class="mt-8 flex flex-col gap-4 border-l-2 border-slate-400 pl-4 sm:flex-row sm:items-center sm:justify-between" role="status">
+                <div class="flex items-start gap-3">
+                    <twig:ux:icon name="iconamoon:lock-fill" class="mt-0.5 size-5 shrink-0 text-slate-500" aria-hidden="true" />
+                    <div>
+                        <h3 class="text-sm font-medium text-slate-900">Dossier à accès restreint</h3>
+                        <p class="mt-0.5 text-sm text-slate-600">Seules les personnes ci-contre peuvent consulter ce dossier.</p>
                     </div>
-                    {% if folder.isConfidential %}
-                        <div class="bg-indigo-50/80 border border-indigo-200 rounded-xl p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shadow-sm animate-fade-in">
-
-                            {# Icone et texte explicatif #}
-                            <div class="flex items-center gap-3">
-                                <div class="p-2.5 bg-indigo-100 text-indigo-700 rounded-lg shadow-inner">
-                                    <twig:ux:icon name="iconamoon:lock-fill" class="size-5" />
-                                </div>
-                                <div>
-                                    <h3 class="text-sm font-bold text-indigo-950">Dossier à accès restreint</h3>
-                                    <p class="text-xs text-indigo-700 mt-0.5">Seules les personnes ci-contre peuvent consulter ce dossier.</p>
-                                </div>
-                            </div>
-
-                            {# Liste des utilisateurs autorisés sous forme de "Pills" (Badges) #}
-                            <div class="flex flex-wrap items-center gap-2">
-                                {% for allowedUser in folder.restrictedUsers %}
-                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-indigo-100 text-xs font-medium text-slate-700 shadow-sm transition-transform hover:scale-105 cursor-default">
-
-                                        {# Petit cercle avec les initiales #}
-                                        <span class="size-5 rounded-full bg-indigo-600 flex items-center justify-center text-[9px] font-bold text-white tracking-wider">
-                                        {{ allowedUser.firstName|first|upper }}{{ allowedUser.lastName|first|upper }}
-                                    </span>
-
-                                        {{ allowedUser.fullName }}
-                                    </div>
-                                {% endfor %}
-
-                                {# 💡 Optionnel : Le fameux bouton pour modifier les accès qu'on a créé tout à l'heure ! #}
-
-                            </div>
-
-                        </div>
-                    {% endif %}
-
-                    {# LES COMPOSANTS MÉTIER #}
-                    <twig:ManualIndividualStepOneComponent complianceFolder="{{ folder }}" method="{{ method }}" type="{{ type }}"></twig:ManualIndividualStepOneComponent>
-                    {% if not dto.postMeetingReport %}
-                        <twig:AcceptRecordingTwigComponent complianceFolder="{{ folder }}" method="{{ method }}" type="{{ type }}"></twig:AcceptRecordingTwigComponent>
-
-                    {% endif %}
-
-                    <twig:GenerateDERComponent complianceFolder="{{ folder }}"></twig:GenerateDERComponent>
-{#                    <twig:ManualIndividualStepTwoComponent folder="{{ folder }}"></twig:ManualIndividualStepTwoComponent>#}
                 </div>
 
+                <ul class="flex flex-wrap items-center gap-2">
+                    {% for allowedUser in folder.restrictedUsers %}
+                        <li class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-3 text-xs text-slate-700">
+                            <span class="flex size-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-medium text-slate-600" aria-hidden="true">
+                                {{ allowedUser.firstName|first|upper }}{{ allowedUser.lastName|first|upper }}
+                            </span>
+                            {{ allowedUser.fullName }}
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
+        {% endif %}
+
+        {# LES COMPOSANTS MÉTIER : étapes séparées par un vrai espace, pas de cadres imbriqués #}
+        <div class="mt-10 space-y-6">
+            <twig:ManualIndividualStepOneComponent complianceFolder="{{ folder }}" method="{{ method }}" type="{{ type }}"></twig:ManualIndividualStepOneComponent>
+            {% if not dto.postMeetingReport %}
+                <twig:AcceptRecordingTwigComponent complianceFolder="{{ folder }}" method="{{ method }}" type="{{ type }}"></twig:AcceptRecordingTwigComponent>
+            {% endif %}
+
+            <twig:GenerateDERComponent complianceFolder="{{ folder }}"></twig:GenerateDERComponent>
         </div>
     </div>
 {% endblock %}
