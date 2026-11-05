@@ -41,4 +41,7 @@ class FinancialProductRequest
      */
     #[Assert\Count(min: 1, minMessage: 'Sélectionnez au moins un profil investisseur cible.')]
     public array $targetInvestorProfiles = [];
+
+    /** Valeur de {@see \App\Domain\ProductCatalogue\Enum\SfdrClassification}, `null` = non renseignée. */
+    public ?string $sfdrClassification = null;
 }

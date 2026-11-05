@@ -550,6 +550,9 @@
                     {% endif %}
                 </section>
 
+                {# ADÉQUATION PRODUIT (lot 3) : vérification d'un produit du catalogue face au profil et à l'EER #}
+                <twig:ProductAdequacyCheckComponent folderSlugId="{{ dto.slugId }}" />
+
             {% endif %}
 
             {# JOURNAL D'ACTIVITÉ : replié, pour ne pas alourdir la lecture #}

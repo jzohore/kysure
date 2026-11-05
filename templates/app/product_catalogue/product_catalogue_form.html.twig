@@ -28,6 +28,9 @@
                 <div class="mt-4">
                     {{ form_row(product_form.targetInvestorProfiles) }}
                 </div>
+                <div class="mt-4">
+                    {{ form_row(product_form.sfdrClassification) }}
+                </div>
 
                 <div class="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-slate-100">
                     <twig:Button as="a" href="{{ path('app_products_list') }}" variant="ghost">Annuler</twig:Button>

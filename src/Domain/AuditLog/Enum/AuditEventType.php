@@ -109,6 +109,10 @@ enum AuditEventType: string
     case SUITABILITY_PROFILE_REVOKED = 'suitability.profile_revoked';
     case SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING = 'suitability.high_risk_low_capacity_warning';
 
+    // --- ADÉQUATION PRODUIT (RAPPORT D'ADÉQUATION) ---
+    case ADEQUACY_CHECK_RECORDED = 'adequacy.check_recorded';
+    case ADEQUACY_BLOCKING_FINDING_JUSTIFIED = 'adequacy.blocking_finding_justified';
+
     // --- FACTURATION & ABONNEMENT STRIPE ---
     case SUBSCRIPTION_ACTIVATED = 'billing.subscription_activated';
     case SUBSCRIPTION_CANCELED = 'billing.subscription_canceled';
@@ -254,6 +258,8 @@ enum AuditEventType: string
             self::SUITABILITY_ASSESSMENT_SUBMITTED => 'Soumission du questionnaire profil investisseur',
             self::SUITABILITY_PROFILE_VALIDATED => 'Validation du profil investisseur',
             self::SUITABILITY_PROFILE_REVOKED => 'Révocation du profil investisseur',
+            self::ADEQUACY_CHECK_RECORDED => 'Vérification d\'adéquation d\'un produit',
+            self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED => 'Poursuite malgré un point bloquant d\'adéquation (justification écrite)',
             self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'Mise en garde : appétence au risque élevée malgré une capacité à subir des pertes très faible',
 
             // Facturation
@@ -320,6 +326,9 @@ enum AuditEventType: string
             self::SUITABILITY_PROFILE_VALIDATED,
             self::SUITABILITY_PROFILE_REVOKED,
             self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'Profil investisseur',
+
+            self::ADEQUACY_CHECK_RECORDED,
+            self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED => 'Adéquation produit',
 
             self::KYC_FOLDER_INITIATED,
             self::KYC_PORTAL_ACCESSED,
@@ -430,11 +439,13 @@ enum AuditEventType: string
             self::KYC_DOCUMENT_OCR_UNAVAILABLE,
             self::KYC_DOCUMENT_REVIEW_CANCELLED,
             self::KYC_DOCUMENT_CORRECTIONS_REQUESTED,
+            self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED,
             self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'bg-amber-50 text-amber-700 border-amber-200',
 
             self::KYC_DOCUMENT_OCR_PROCESSED,
             self::SCREENING_PERFORMED,
             self::ADVISORY_REPORT_GENERATED,
+            self::ADEQUACY_CHECK_RECORDED,
             self::SUITABILITY_ASSESSMENT_SUBMITTED => 'bg-indigo-50 text-indigo-700 border-indigo-200',
 
             default => 'bg-slate-100 text-slate-700 border-slate-200',
@@ -458,6 +469,7 @@ enum AuditEventType: string
             self::DER_DECLINED,
             self::SUITABILITY_PROFILE_REVOKED,
             self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING,
+            self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED,
             self::KYC_LEGAL_HOLD_PLACED,
             self::CLIENT_ACCOUNT_DELETED,
             self::ADMIN_IMPERSONATION_START,

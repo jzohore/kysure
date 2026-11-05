@@ -6,6 +6,7 @@ namespace App\Application\ProductCatalogue\UseCase;
 
 use App\Application\ProductCatalogue\DTO\Request\FinancialProductRequest;
 use App\Domain\ProductCatalogue\Entity\FinancialProduct;
+use App\Domain\ProductCatalogue\Enum\SfdrClassification;
 use App\Domain\ProductCatalogue\Repository\FinancialProductRepositoryInterface;
 use App\Domain\Suitability\Enum\ProductFamily;
 use Webmozart\Assert\Assert;
@@ -35,6 +36,7 @@ readonly class UpdateFinancialProductUseCase
             minimumHorizonYears: $request->minimumHorizonYears,
             annualFeesBasisPoints: (int) round($request->annualFeesPercent * self::PERCENT_TO_BASIS_POINTS),
             targetInvestorProfiles: $request->targetInvestorProfiles,
+            sfdrClassification: null !== $request->sfdrClassification ? SfdrClassification::from($request->sfdrClassification) : null,
         );
 
         $this->financialProductRepository->save($product);

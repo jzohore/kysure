@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\ProductCatalogue\Form;
 
 use App\Application\ProductCatalogue\DTO\Request\FinancialProductRequest;
+use App\Domain\ProductCatalogue\Enum\SfdrClassification;
 use App\Domain\Suitability\Enum\InvestorProfileLevel;
 use App\Domain\Suitability\Enum\ProductFamily;
 use Symfony\Component\Form\AbstractType;
@@ -52,6 +53,13 @@ class FinancialProductType extends AbstractType
                 'choices' => $this->choicesFor(InvestorProfileLevel::cases()),
                 'multiple' => true,
                 'expanded' => true,
+            ])
+            ->add('sfdrClassification', ChoiceType::class, [
+                'label' => 'Classification SFDR',
+                'required' => false,
+                'placeholder' => 'Non renseignée',
+                'choices' => $this->choicesFor(SfdrClassification::cases()),
+                'help' => 'Indiquée dans la documentation précontractuelle du produit. Sert à vérifier la préférence de durabilité du client.',
             ]);
     }
 
@@ -61,7 +69,7 @@ class FinancialProductType extends AbstractType
     }
 
     /**
-     * @param list<ProductFamily|InvestorProfileLevel> $cases
+     * @param list<ProductFamily|InvestorProfileLevel|SfdrClassification> $cases
      *
      * @return array<string, int|string>
      */

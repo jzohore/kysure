@@ -22,4 +22,28 @@ enum InvestmentHorizon: string
             self::OVER_10_YEARS => 'Plus de 10 ans',
         };
     }
+
+    /** Borne basse de la tranche, en années (durée minimale certaine de l'objectif). */
+    public function minYears(): int
+    {
+        return match ($this) {
+            self::UNDER_3_YEARS => 0,
+            self::FROM_3_TO_5_YEARS => 3,
+            self::FROM_5_TO_8_YEARS => 5,
+            self::FROM_8_TO_10_YEARS => 8,
+            self::OVER_10_YEARS => 10,
+        };
+    }
+
+    /** Borne haute de la tranche, en années — `null` pour une tranche ouverte (plus de 10 ans). */
+    public function maxYears(): ?int
+    {
+        return match ($this) {
+            self::UNDER_3_YEARS => 3,
+            self::FROM_3_TO_5_YEARS => 5,
+            self::FROM_5_TO_8_YEARS => 8,
+            self::FROM_8_TO_10_YEARS => 10,
+            self::OVER_10_YEARS => null,
+        };
+    }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\ProductCatalogue\Entity;
 
+use App\Domain\ProductCatalogue\Enum\SfdrClassification;
 use App\Domain\Suitability\Enum\InvestorProfileLevel;
 use App\Domain\Suitability\Enum\ProductFamily;
 use App\Domain\Workspace\Entity\Workspace;
@@ -66,6 +67,14 @@ class FinancialProduct
     #[ORM\Column(type: Types::JSON)]
     public private(set) array $targetInvestorProfiles;
 
+    /**
+     * Classification SFDR (article 6/8/9). `null` = non renseignée par le cabinet : le moteur
+     * d'adéquation le signale alors comme point d'attention face à un client intéressé par la
+     * durabilité, plutôt que de supposer une classification.
+     */
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true, enumType: SfdrClassification::class)]
+    public private(set) ?SfdrClassification $sfdrClassification = null;
+
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public private(set) ?\DateTimeImmutable $archivedAt = null;
 
@@ -97,9 +106,10 @@ class FinancialProduct
         int $minimumHorizonYears,
         int $annualFeesBasisPoints,
         array $targetInvestorProfiles,
+        ?SfdrClassification $sfdrClassification = null,
     ): self {
         $product = new self($workspace);
-        $product->update($name, $isin, $family, $sriLevel, $minimumHorizonYears, $annualFeesBasisPoints, $targetInvestorProfiles);
+        $product->update($name, $isin, $family, $sriLevel, $minimumHorizonYears, $annualFeesBasisPoints, $targetInvestorProfiles, $sfdrClassification);
 
         return $product;
     }
@@ -115,6 +125,7 @@ class FinancialProduct
         int $minimumHorizonYears,
         int $annualFeesBasisPoints,
         array $targetInvestorProfiles,
+        ?SfdrClassification $sfdrClassification = null,
     ): void {
         Assert::notWhitespaceOnly($name, 'Le nom du produit est obligatoire.');
         Assert::true(null === $isin || 1 === preg_match('/^[A-Z0-9]{12}$/', $isin), 'ISIN invalide (12 caractères alphanumériques en majuscules).');
@@ -133,6 +144,7 @@ class FinancialProduct
         $this->minimumHorizonYears = $minimumHorizonYears;
         $this->annualFeesBasisPoints = $annualFeesBasisPoints;
         $this->targetInvestorProfiles = $targetInvestorProfiles;
+        $this->sfdrClassification = $sfdrClassification;
         $this->updatedAt = now();
     }
 

@@ -74,6 +74,7 @@ final class EditFinancialProductController extends AbstractController
         $dto->minimumHorizonYears = $product->minimumHorizonYears;
         $dto->annualFeesPercent = $product->annualFeesBasisPoints / 100;
         $dto->targetInvestorProfiles = $product->targetInvestorProfiles;
+        $dto->sfdrClassification = $product->sfdrClassification?->value;
 
         return $dto;
     }
