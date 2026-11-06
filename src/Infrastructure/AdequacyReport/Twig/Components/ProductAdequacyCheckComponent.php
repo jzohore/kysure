@@ -146,7 +146,7 @@ class ProductAdequacyCheckComponent extends AbstractController
 
         $labels = [];
         foreach ($clientFile->investmentObjectives() as $index => $objective) {
-            $labels[$index] = sprintf('%s — %s (priorité %s)', $objective->type->getLabel(), mb_strtolower($objective->horizon->getLabel()), mb_strtolower($objective->priority->getLabel()));
+            $labels[$index] = sprintf('%s — %s · %s', $objective->type->getLabel(), mb_strtolower($objective->horizon->getLabel()), mb_strtolower($objective->priority->getLabel()));
         }
 
         return $labels;
