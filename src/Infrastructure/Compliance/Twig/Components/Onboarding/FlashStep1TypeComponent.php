@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Compliance\Twig\Components\Onboarding;
 
-use App\Application\Compliance\UseCase\ComplianceFolder\DeleteComplianceFolderUseCase;
+use App\Application\Compliance\UseCase\ComplianceFolder\DiscardFlashDraftUseCase;
 use App\Domain\Compliance\Enum\FolderType;
 use App\Domain\Compliance\Factory\ComplianceFolderFactory;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
@@ -40,7 +40,7 @@ final class FlashStep1TypeComponent extends AbstractController
         private readonly RequestStack $requestStack,
         private readonly ComplianceFolderRepositoryInterface $repository,
         private readonly LoggerInterface $logger,
-        private readonly DeleteComplianceFolderUseCase $deleteFolderUseCase,
+        private readonly DiscardFlashDraftUseCase $discardFlashDraftUseCase,
         private readonly ComplianceFolderFactory $folderFactory,
         private readonly DocumentRequirementEngine $requirementEngine,
         private readonly LiveResponder $responder,
@@ -92,14 +92,37 @@ final class FlashStep1TypeComponent extends AbstractController
 
     /**
      * 🪄 Écoute le bouton "Retour au choix" de l'Étape 2.
+     *
+     * Page publique : aucun utilisateur connecté. L'id lu en session peut être
+     * absent, périmé (dossier purgé) ou ne plus être un brouillon vierge — dans
+     * tous les cas on libère la session et on réaffiche le choix : le pire est
+     * de laisser intact un dossier qu'on n'avait pas le droit de supprimer.
      */
     #[LiveListener('resetToStep1')]
     public function onReset(): void
     {
-        $complianceFolderId = $this->requestStack->getSession()->get('flash_draft_folder_id');
-        $folder = $this->repository->findById($complianceFolderId);
-        ($this->deleteFolderUseCase)($folder);
-        $this->requestStack->getSession()->remove('flash_draft_folder_id');
+        $session = $this->requestStack->getSession();
+        $draftId = $session->get('flash_draft_folder_id');
+
+        if (is_string($draftId) || is_int($draftId)) {
+            try {
+                ($this->discardFlashDraftUseCase)((string) $draftId, $this->workspace);
+            } catch (\DomainException $e) {
+                // Garde métier (autre cabinet, autre canal, dossier engagé) : on conserve le dossier.
+                $this->logger->warning('Flash : brouillon non abandonné', [
+                    'folder_id' => (string) $draftId,
+                    'workspace' => $this->workspace->slugId,
+                    'reason' => $e->getMessage(),
+                ]);
+            } catch (\Throwable $e) {
+                $this->logger->error('Flash : échec de l\'abandon du brouillon', [
+                    'folder_id' => (string) $draftId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $session->remove('flash_draft_folder_id');
         $this->isVisible = true;
     }
 }
