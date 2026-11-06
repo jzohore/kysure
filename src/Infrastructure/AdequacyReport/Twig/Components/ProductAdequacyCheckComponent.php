@@ -168,7 +168,31 @@ class ProductAdequacyCheckComponent extends AbstractController
 
     public function isComplete(): bool
     {
-        return '' !== $this->productSlugId && '' !== $this->objectiveIndex && null !== $this->amountEuros && $this->amountEuros > 0;
+        return [] === $this->getMissingFields();
+    }
+
+    /**
+     * Champs encore vides parmi produit, objectif et montant : consigne affichée tant que la
+     * vérification ne peut pas être calculée.
+     *
+     * @return list<string>
+     */
+    public function getMissingFields(): array
+    {
+        $missing = [];
+        if ('' === $this->productSlugId) {
+            $missing[] = 'le produit';
+        }
+
+        if ('' === $this->objectiveIndex) {
+            $missing[] = 'l\'objectif du client';
+        }
+
+        if (null === $this->amountEuros || $this->amountEuros <= 0) {
+            $missing[] = 'le montant investi';
+        }
+
+        return $missing;
     }
 
     /**

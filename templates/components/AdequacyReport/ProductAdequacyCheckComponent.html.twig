@@ -82,8 +82,13 @@
                 </div>
             </div>
 
-            {# Rémunération du CIF (lot 4) : MIF2 impose qu'elle soit explicite, KYSURE ne la connaît pas. #}
-            <fieldset class="mt-6">
+            {# Rémunération du CIF (lot 4) : MIF2 impose qu'elle soit explicite, KYSURE ne la connaît pas.
+               Affichée une fois produit, objectif et montant choisis : avant, rien ne peut être calculé,
+               et des champs visibles laissent croire qu'ils suffisent à lancer la vérification. #}
+            {% set missing_fields = this.missingFields %}
+            {% if missing_fields is empty %}
+            <div class="mt-6 border-t border-slate-100 pt-6">
+            <fieldset>
                 <legend class="text-sm font-medium text-slate-900">Votre rémunération</legend>
                 <p class="mt-1 text-sm text-slate-600">Laissez vide ce que vous ne percevez pas. Les rétrocessions sont la part des frais annuels du produit qui vous est reversée.</p>
                 <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -104,6 +109,8 @@
                     </div>
                 </div>
             </fieldset>
+            </div>
+            {% endif %}
 
             {% set preview = this.preview %}
             {% set evaluation = preview ? preview.evaluation : null %}
@@ -166,7 +173,10 @@
             {% elseif this.evaluationError %}
                 <p class="mt-4 text-sm text-rose-700" role="alert">{{ this.evaluationError }}</p>
             {% else %}
-                <p class="mt-4 text-sm text-slate-500">Les constats et les frais s'affichent dès que le produit, l'objectif et le montant sont renseignés.</p>
+                <p class="mt-4 text-sm text-slate-600" role="status" aria-live="polite">
+                    Il reste à renseigner : <span class="font-medium text-slate-900">{{ missing_fields|join(', ', ' et ') }}</span>.
+                    Votre rémunération, les constats et les frais s'afficheront ensuite.
+                </p>
             {% endif %}
         </div>
     {% endif %}
