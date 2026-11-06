@@ -181,6 +181,16 @@ final class SuitabilityMatchEvaluatorTest extends TestCase
         self::assertSame(1, $evaluation->countBySeverity(MatchSeverity::ATTENTION));
     }
 
+    public function testEveryCriterionHasARuleDescriptionQuotingTheAppliedThresholds(): void
+    {
+        $descriptions = SuitabilityMatchEvaluator::ruleDescriptions();
+
+        self::assertSame(array_map(static fn (MatchCriterion $c): string => $c->value, MatchCriterion::cases()), array_keys($descriptions));
+        self::assertStringContainsString('25 %', $descriptions[MatchCriterion::CONCENTRATION->value]);
+        self::assertStringContainsString('50 %', $descriptions[MatchCriterion::CONCENTRATION->value]);
+        self::assertStringContainsString('6 mois', $descriptions[MatchCriterion::LIQUIDITY->value]);
+    }
+
     private function finding(AdequacyCheckInput $input, MatchCriterion $criterion): MatchFinding
     {
         foreach ($this->evaluator->evaluate($input)->findings as $finding) {

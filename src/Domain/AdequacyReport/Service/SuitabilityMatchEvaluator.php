@@ -43,6 +43,27 @@ final class SuitabilityMatchEvaluator
     /** Familles difficiles à revendre rapidement (délais de cession, fenêtres de sortie). */
     private const array ILLIQUID_FAMILIES = [ProductFamily::IMMOBILIER_SCPI, ProductFamily::PRODUITS_COMPLEXES];
 
+    /**
+     * Règle appliquée par chaque contrôle, en clair pour le CGP (bulle d'aide de l'écran).
+     * Construite à partir des mêmes constantes que le calcul : l'explication ne peut pas
+     * diverger des seuils réellement appliqués.
+     *
+     * @return array<string, string> clé = MatchCriterion::value
+     */
+    public static function ruleDescriptions(): array
+    {
+        return [
+            MatchCriterion::RISK_LEVEL->value => 'SRI du produit comparé au profil retenu (1 à 7) : un cran au-dessus = attention, deux crans ou plus = bloquant.',
+            MatchCriterion::TARGET_MARKET->value => 'Profil du client hors des profils cibles définis au catalogue = attention.',
+            MatchCriterion::HORIZON->value => 'Horizon minimum du produit comparé à la tranche de l\'objectif : dans la tranche = attention, au-delà = bloquant.',
+            MatchCriterion::KNOWLEDGE_EXPERIENCE->value => 'Produit complexe avec une connaissance limitée ou nulle = bloquant, jamais détenu = attention. Autres familles : ni connue ni détenue = attention.',
+            MatchCriterion::INVESTMENT_CAPACITY->value => 'Montant supérieur à la capacité d\'investissement saisie dans la fiche patrimoniale = bloquant.',
+            MatchCriterion::CONCENTRATION->value => sprintf('Part du patrimoine net : plus de %d %% = attention, plus de %d %% = bloquant.', self::CONCENTRATION_ATTENTION_PERCENT, self::CONCENTRATION_BLOCKING_PERCENT),
+            MatchCriterion::LIQUIDITY->value => sprintf('Épargne disponible (liquidités et livrets) restante après investissement, comparée à %d mois de charges : en dessous = attention, bloquant pour un produit difficile à revendre (SCPI, produits complexes).', self::PRECAUTION_RESERVE_MONTHS),
+            MatchCriterion::SUSTAINABILITY->value => 'Client intéressé par la durabilité et produit article 6 ou sans classification SFDR = attention.',
+        ];
+    }
+
     public function evaluate(AdequacyCheckInput $input): AdequacyEvaluation
     {
         return new AdequacyEvaluation([

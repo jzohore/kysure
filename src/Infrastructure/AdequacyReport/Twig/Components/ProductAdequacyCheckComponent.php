@@ -7,8 +7,10 @@ namespace App\Infrastructure\AdequacyReport\Twig\Components;
 use App\Application\AdequacyReport\UseCase\EvaluateProductAdequacyUseCase;
 use App\Application\AdequacyReport\UseCase\RecordProductAdequacyCheckUseCase;
 use App\Domain\AdequacyReport\Entity\ProductAdequacyCheck;
+use App\Domain\AdequacyReport\Enum\MatchCriterion;
 use App\Domain\AdequacyReport\Enum\MatchSeverity;
 use App\Domain\AdequacyReport\Repository\ProductAdequacyCheckRepositoryInterface;
+use App\Domain\AdequacyReport\Service\SuitabilityMatchEvaluator;
 use App\Domain\AdequacyReport\ValueObject\AdequacyEvaluation;
 use App\Domain\ClientFile\Entity\ClientFile;
 use App\Domain\ClientFile\Repository\ClientFileRepositoryInterface;
@@ -186,6 +188,21 @@ class ProductAdequacyCheckComponent extends AbstractController
     public function getChecks(): array
     {
         return $this->checkRepository->findByFolder($this->getFolder());
+    }
+
+    /**
+     * Règles des contrôles, dans l'ordre d'affichage des constats (bulle d'aide).
+     *
+     * @return list<array{label: string, rule: string}>
+     */
+    public function getRules(): array
+    {
+        $descriptions = SuitabilityMatchEvaluator::ruleDescriptions();
+
+        return array_map(
+            static fn (MatchCriterion $criterion): array => ['label' => $criterion->getLabel(), 'rule' => $descriptions[$criterion->value]],
+            MatchCriterion::cases(),
+        );
     }
 
     public function minJustificationLength(): int

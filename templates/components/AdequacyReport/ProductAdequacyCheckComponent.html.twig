@@ -4,7 +4,32 @@
         type: this.actionMessageType|default('error')
     } %}
 
-    <h2 id="heading-adequacy" class="font-serif text-2xl tracking-tight text-slate-900">Adéquation produit</h2>
+    {# Bulle « comment c'est calculé » : ancrée au titre (HoverCard en `static`) pour rester
+       dans la largeur de la section sur mobile. Règles précalculées : dans un slot, `this`
+       désigne le composant HoverCard, pas ce LiveComponent. #}
+    {% set rules = this.rules %}
+    <div class="relative flex items-center gap-1.5">
+        <h2 id="heading-adequacy" class="font-serif text-2xl tracking-tight text-slate-900">Adéquation produit</h2>
+        <twig:HoverCard class="static" openDelay="100" closeDelay="150">
+            <twig:HoverCard:Trigger>
+                <twig:Button type="button" variant="ghost" size="icon-sm" aria-label="Comment l'adéquation est-elle calculée ?" {{ ...hover_card_trigger_attrs }}>
+                    <twig:ux:icon name="tabler:info-circle" class="size-4 text-slate-400" aria-hidden="true" />
+                </twig:Button>
+            </twig:HoverCard:Trigger>
+            <twig:HoverCard:Content class="left-0 w-full max-w-md translate-x-0 p-4">
+                <p class="font-medium text-slate-900">Comment c'est calculé</p>
+                <p class="mt-1 text-slate-600">8 contrôles comparent le produit au profil investisseur validé et à la fiche patrimoniale. Chacun ressort conforme, point d'attention ou bloquant ; le résultat global est le plus sévère.</p>
+                <dl class="mt-3 space-y-2">
+                    {% for rule in rules %}
+                        <div>
+                            <dt class="font-medium text-slate-900">{{ rule.label }}</dt>
+                            <dd class="text-slate-600">{{ rule.rule }}</dd>
+                        </div>
+                    {% endfor %}
+                </dl>
+            </twig:HoverCard:Content>
+        </twig:HoverCard>
+    </div>
     <p class="mt-2 max-w-2xl text-sm text-slate-600">
         Vérifiez qu'un produit que vous envisagez correspond au profil, à la situation et à l'objectif du client.
         KYSURE contrôle la cohérence ; le choix du produit reste le vôtre. Un point bloquant n'empêche pas de poursuivre,
