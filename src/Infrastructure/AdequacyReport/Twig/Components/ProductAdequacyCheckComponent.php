@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\AdequacyReport\Twig\Components;
 
+use App\Application\AdequacyReport\DTO\AdequacyCheckPreview;
 use App\Application\AdequacyReport\UseCase\EvaluateProductAdequacyUseCase;
 use App\Application\AdequacyReport\UseCase\RecordProductAdequacyCheckUseCase;
 use App\Domain\AdequacyReport\Entity\ProductAdequacyCheck;
 use App\Domain\AdequacyReport\Enum\MatchCriterion;
 use App\Domain\AdequacyReport\Enum\MatchSeverity;
 use App\Domain\AdequacyReport\Repository\ProductAdequacyCheckRepositoryInterface;
+use App\Domain\AdequacyReport\Service\CostBreakdownCalculator;
 use App\Domain\AdequacyReport\Service\SuitabilityMatchEvaluator;
-use App\Domain\AdequacyReport\ValueObject\AdequacyEvaluation;
+use App\Domain\AdequacyReport\ValueObject\CifRemuneration;
 use App\Domain\ClientFile\Entity\ClientFile;
 use App\Domain\ClientFile\Repository\ClientFileRepositoryInterface;
 use App\Domain\ClientFile\ValueObject\NetWorthStatement;
@@ -34,9 +36,9 @@ use Webmozart\Assert\Assert;
 
 /**
  * Vérification d'adéquation d'un produit (lot 3, issue #30), sur la page dossier. Le CGP choisit
- * produit, objectif et montant : les constats du moteur s'affichent en direct (lecture seule),
- * puis il enregistre la vérification — figée et tracée en audit. Un point bloquant exige une
- * justification écrite avant l'enregistrement.
+ * produit, objectif et montant (et sa rémunération) : les constats du moteur et les frais
+ * (lot 4) s'affichent en direct (lecture seule), puis il enregistre la vérification — figée et
+ * tracée en audit. Un point bloquant exige une justification écrite avant l'enregistrement.
  */
 #[AsLiveComponent(
     name: 'ProductAdequacyCheckComponent',
@@ -60,6 +62,16 @@ class ProductAdequacyCheckComponent extends AbstractController
 
     #[LiveProp(writable: true)]
     public ?int $amountEuros = null;
+
+    /** Rémunération du CIF (lot 4) : pourcentages saisis en texte, convertis en points de base. */
+    #[LiveProp(writable: true)]
+    public string $entryFeePercent = '';
+
+    #[LiveProp(writable: true)]
+    public ?int $advisoryFeeEuros = null;
+
+    #[LiveProp(writable: true)]
+    public string $retrocessionPercent = '';
 
     #[LiveProp(writable: true)]
     public string $justification = '';
@@ -160,16 +172,17 @@ class ProductAdequacyCheckComponent extends AbstractController
     }
 
     /**
-     * Aperçu des constats, recalculé à chaque changement de saisie. Rien n'est enregistré ici.
+     * Aperçu des constats et des frais, recalculé à chaque changement de saisie. Rien n'est
+     * enregistré ici.
      */
-    public function getEvaluation(): ?AdequacyEvaluation
+    public function getPreview(): ?AdequacyCheckPreview
     {
         if (!$this->isComplete()) {
             return null;
         }
 
         try {
-            return ($this->evaluateUseCase)($this->getFolder(), $this->productSlugId, (int) $this->objectiveIndex, $this->amountInCents());
+            return ($this->evaluateUseCase)($this->getFolder(), $this->productSlugId, (int) $this->objectiveIndex, $this->amountInCents(), $this->remuneration());
         } catch (\DomainException $e) {
             $this->evaluationError = $e->getMessage();
 
@@ -203,6 +216,23 @@ class ProductAdequacyCheckComponent extends AbstractController
             static fn (MatchCriterion $criterion): array => ['label' => $criterion->getLabel(), 'rule' => $descriptions[$criterion->value]],
             MatchCriterion::cases(),
         );
+    }
+
+    public function costsRule(): string
+    {
+        return CostBreakdownCalculator::ruleDescription();
+    }
+
+    /** Centimes → « 1 234,56 € », sans flottant. */
+    public function euros(int $cents): string
+    {
+        return sprintf('%s,%02d €', number_format(intdiv($cents, 100), 0, ',', ' '), $cents % 100);
+    }
+
+    /** Points de base → « 1,25 % », sans flottant. */
+    public function percent(int $basisPoints): string
+    {
+        return sprintf('%d,%02d %%', intdiv($basisPoints, 100), $basisPoints % 100);
     }
 
     public function minJustificationLength(): int
@@ -255,11 +285,15 @@ class ProductAdequacyCheckComponent extends AbstractController
                 $this->productSlugId,
                 (int) $this->objectiveIndex,
                 $this->amountInCents(),
+                $this->remuneration(),
                 $this->justification,
             );
             $this->productSlugId = '';
             $this->objectiveIndex = '';
             $this->amountEuros = null;
+            $this->entryFeePercent = '';
+            $this->advisoryFeeEuros = null;
+            $this->retrocessionPercent = '';
             $this->justification = '';
             $this->addLiveFlash('success', 'Vérification d\'adéquation enregistrée.');
         } catch (\DomainException $e) {
@@ -273,5 +307,22 @@ class ProductAdequacyCheckComponent extends AbstractController
     private function amountInCents(): int
     {
         return (int) $this->amountEuros * self::EUROS_TO_CENTS;
+    }
+
+    /**
+     * @throws \DomainException si un pourcentage saisi est invalide ou les honoraires négatifs
+     */
+    private function remuneration(): CifRemuneration
+    {
+        $advisoryFeeEuros = $this->advisoryFeeEuros ?? 0;
+        if ($advisoryFeeEuros < 0) {
+            throw new \DomainException('Les honoraires de conseil ne peuvent pas être négatifs.');
+        }
+
+        return new CifRemuneration(
+            entryFeeBasisPoints: CifRemuneration::percentToBasisPoints($this->entryFeePercent),
+            advisoryFeeInCents: $advisoryFeeEuros * self::EUROS_TO_CENTS,
+            annualRetrocessionBasisPoints: CifRemuneration::percentToBasisPoints($this->retrocessionPercent),
+        );
     }
 }

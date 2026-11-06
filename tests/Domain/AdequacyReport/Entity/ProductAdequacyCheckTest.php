@@ -6,8 +6,11 @@ namespace App\Tests\Domain\AdequacyReport\Entity;
 
 use App\Domain\AdequacyReport\Entity\ProductAdequacyCheck;
 use App\Domain\AdequacyReport\Enum\MatchSeverity;
+use App\Domain\AdequacyReport\Service\CostBreakdownCalculator;
 use App\Domain\AdequacyReport\Service\SuitabilityMatchEvaluator;
 use App\Domain\AdequacyReport\ValueObject\AdequacyCheckInput;
+use App\Domain\AdequacyReport\ValueObject\CifRemuneration;
+use App\Domain\AdequacyReport\ValueObject\CostBreakdown;
 use App\Domain\Compliance\Entity\ComplianceFolder;
 use App\Domain\Compliance\Entity\IndividualFolder;
 use App\Domain\ProductCatalogue\Entity\FinancialProduct;
@@ -100,11 +103,54 @@ final class ProductAdequacyCheckTest extends TestCase
         self::assertFalse($check->matchesStoredHash());
     }
 
+    public function testCostsAreFrozenWithTheCheckAndSealedByTheHash(): void
+    {
+        $input = AdequacyCheckInputFactory::create();
+
+        $check = $this->record($input, justification: null, remuneration: new CifRemuneration(200, 50_000, 10));
+
+        $costs = $check->costs();
+        self::assertInstanceOf(CostBreakdown::class, $costs);
+        self::assertSame(CostBreakdownCalculator::VERSION, $costs->calculatorVersion);
+        self::assertSame(200, $costs->cifRemuneration->entryFeeBasisPoints);
+        self::assertSame(50_000, $costs->cifRemuneration->advisoryFeeInCents);
+        self::assertSame(119_400, $costs->totalCostsInCents);
+
+        $content = $check->content;
+        $content['costs']['totalCostsInCents'] = 1;
+        new \ReflectionProperty(ProductAdequacyCheck::class, 'content')->setValue($check, $content);
+
+        self::assertFalse($check->matchesStoredHash(), 'Altérer les frais figés doit casser l\'empreinte.');
+    }
+
+    public function testCheckRecordedBeforeCostsWereFrozenIsStillReadable(): void
+    {
+        $check = $this->record(AdequacyCheckInputFactory::create(), justification: null);
+        $content = $check->content;
+        unset($content['costs']);
+        new \ReflectionProperty(ProductAdequacyCheck::class, 'content')->setValue($check, $content);
+
+        self::assertNull($check->costs());
+        self::assertCount(8, $check->evaluation()->findings);
+    }
+
+    public function testCostsComputedOnAnotherAmountAreRejected(): void
+    {
+        $input = AdequacyCheckInputFactory::create();
+        $costs = new CostBreakdownCalculator()->calculate($input->product, $input->amountInCents + 100, CifRemuneration::none());
+
+        $this->expectException(\DomainException::class);
+
+        $this->record($input, justification: null, costs: $costs);
+    }
+
     private function record(
         AdequacyCheckInput $input,
         ?string $justification,
         ?ValidatedInvestorProfile $profile = null,
         ?FinancialProduct $product = null,
+        ?CifRemuneration $remuneration = null,
+        ?CostBreakdown $costs = null,
     ): ProductAdequacyCheck {
         return ProductAdequacyCheck::record(
             complianceFolder: $this->folder,
@@ -113,6 +159,7 @@ final class ProductAdequacyCheckTest extends TestCase
             checkedBy: $this->cgp,
             input: $input,
             evaluation: new SuitabilityMatchEvaluator()->evaluate($input),
+            costs: $costs ?? new CostBreakdownCalculator()->calculate($input->product, $input->amountInCents, $remuneration ?? CifRemuneration::none()),
             justification: $justification,
         );
     }

@@ -8,6 +8,7 @@
        dans la largeur de la section sur mobile. Règles précalculées : dans un slot, `this`
        désigne le composant HoverCard, pas ce LiveComponent. #}
     {% set rules = this.rules %}
+    {% set costs_rule = this.costsRule %}
     <div class="relative flex items-center gap-1.5">
         <h2 id="heading-adequacy" class="font-serif text-2xl tracking-tight text-slate-900">Adéquation produit</h2>
         <twig:HoverCard class="static" openDelay="100" closeDelay="150">
@@ -27,6 +28,8 @@
                         </div>
                     {% endfor %}
                 </dl>
+                <p class="mt-3 border-t border-slate-100 pt-3 font-medium text-slate-900">Frais</p>
+                <p class="mt-1 text-slate-600">{{ costs_rule }}</p>
             </twig:HoverCard:Content>
         </twig:HoverCard>
     </div>
@@ -79,7 +82,31 @@
                 </div>
             </div>
 
-            {% set evaluation = this.evaluation %}
+            {# Rémunération du CIF (lot 4) : MIF2 impose qu'elle soit explicite, KYSURE ne la connaît pas. #}
+            <fieldset class="mt-6">
+                <legend class="text-sm font-medium text-slate-900">Votre rémunération</legend>
+                <p class="mt-1 text-sm text-slate-600">Laissez vide ce que vous ne percevez pas. Les rétrocessions sont la part des frais annuels du produit qui vous est reversée.</p>
+                <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div class="space-y-2">
+                        <twig:Label for="adequacy_entry_fee">Droits d'entrée (%)</twig:Label>
+                        <twig:Input id="adequacy_entry_fee" type="text" inputmode="decimal" placeholder="0"
+                                    data-model="entryFeePercent" class="tabular-nums" value="{{ entryFeePercent }}" />
+                    </div>
+                    <div class="space-y-2">
+                        <twig:Label for="adequacy_advisory_fee">Honoraires de conseil (€)</twig:Label>
+                        <twig:Input id="adequacy_advisory_fee" type="number" min="0" step="1" inputmode="numeric" placeholder="0"
+                                    data-model="advisoryFeeEuros" class="tabular-nums" value="{{ advisoryFeeEuros }}" />
+                    </div>
+                    <div class="space-y-2">
+                        <twig:Label for="adequacy_retrocession">Rétrocessions (% par an)</twig:Label>
+                        <twig:Input id="adequacy_retrocession" type="text" inputmode="decimal" placeholder="0"
+                                    data-model="retrocessionPercent" class="tabular-nums" value="{{ retrocessionPercent }}" />
+                    </div>
+                </div>
+            </fieldset>
+
+            {% set preview = this.preview %}
+            {% set evaluation = preview ? preview.evaluation : null %}
             {% if evaluation %}
                 <div class="mt-6 border-t border-slate-100 pt-6">
                     <p class="text-sm text-slate-600" role="status" aria-live="polite">
@@ -104,6 +131,13 @@
                             </li>
                         {% endfor %}
                     </ul>
+
+                    <div class="mt-6">
+                        <h3 class="text-sm font-medium text-slate-900">Frais et rémunération</h3>
+                        <div class="mt-3">
+                            {% include 'components/AdequacyReport/_cost_breakdown.html.twig' with {costs: preview.costs} %}
+                        </div>
+                    </div>
 
                     {% set min_justification_length = this.minJustificationLength %}
                     <div class="mt-6 space-y-2">
@@ -132,7 +166,7 @@
             {% elseif this.evaluationError %}
                 <p class="mt-4 text-sm text-rose-700" role="alert">{{ this.evaluationError }}</p>
             {% else %}
-                <p class="mt-4 text-sm text-slate-500">Les constats s'affichent dès que le produit, l'objectif et le montant sont renseignés.</p>
+                <p class="mt-4 text-sm text-slate-500">Les constats et les frais s'affichent dès que le produit, l'objectif et le montant sont renseignés.</p>
             {% endif %}
         </div>
     {% endif %}
@@ -163,6 +197,17 @@
                                     </li>
                                 {% endfor %}
                             </ul>
+                            {% set check_costs = check.costs %}
+                            <div class="mt-4 sm:pl-7">
+                                <p class="text-sm font-medium text-slate-900">Frais et rémunération</p>
+                                {% if check_costs %}
+                                    <div class="mt-2">
+                                        {% include 'components/AdequacyReport/_cost_breakdown.html.twig' with {costs: check_costs} %}
+                                    </div>
+                                {% else %}
+                                    <p class="mt-1 text-sm text-slate-500">Non figés : vérification enregistrée avant le calcul des frais.</p>
+                                {% endif %}
+                            </div>
                             {% if check.justification %}
                                 <p class="mt-4 border-l-2 border-slate-300 pl-3 text-sm text-slate-600 sm:ml-7">
                                     <span class="font-medium text-slate-900">Justification :</span> {{ check.justification }}

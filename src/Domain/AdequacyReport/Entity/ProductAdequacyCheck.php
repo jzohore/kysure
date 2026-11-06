@@ -8,6 +8,7 @@ use App\Domain\AdequacyReport\Enum\MatchSeverity;
 use App\Domain\AdequacyReport\Service\SuitabilityMatchEvaluator;
 use App\Domain\AdequacyReport\ValueObject\AdequacyCheckInput;
 use App\Domain\AdequacyReport\ValueObject\AdequacyEvaluation;
+use App\Domain\AdequacyReport\ValueObject\CostBreakdown;
 use App\Domain\Compliance\Entity\ComplianceFolder;
 use App\Domain\ProductCatalogue\Entity\FinancialProduct;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
@@ -33,6 +34,10 @@ use Symfony\Component\Uid\Uuid;
  * moteur évoluent ensuite. Le rapport d'adéquation (lot 5) citera ces vérifications.
  *
  * Un constat bloquant n'empêche pas l'enregistrement, mais exige une justification écrite.
+ *
+ * Depuis le lot 4 (issue #31), le contenu fige aussi la décomposition des frais (`costs`),
+ * couverte par la même empreinte. Les vérifications antérieures n'en ont pas : `costs()`
+ * renvoie alors `null` (lecture tolérante, rien n'est recalculé après coup).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'adequacy_product_checks')]
@@ -68,7 +73,7 @@ class ProductAdequacyCheck
     public private(set) \DateTimeImmutable $checkedAt;
 
     /**
-     * @param array{engineVersion: string, input: array<string, mixed>, findings: list<array{criterion: string, severity: string, message: string}>} $content
+     * @param array{engineVersion: string, input: array<string, mixed>, findings: list<array{criterion: string, severity: string, message: string}>, costs?: array<string, mixed>} $content
      */
     private function __construct(
         #[ORM\ManyToOne(targetEntity: Workspace::class)]
@@ -108,6 +113,7 @@ class ProductAdequacyCheck
         User $checkedBy,
         AdequacyCheckInput $input,
         AdequacyEvaluation $evaluation,
+        CostBreakdown $costs,
         ?string $justification,
     ): self {
         if (!$investorProfile->isInForce()) {
@@ -116,6 +122,10 @@ class ProductAdequacyCheck
 
         if ($investorProfile->workspace !== $complianceFolder->workspace || $product->workspace !== $complianceFolder->workspace) {
             throw new \DomainException('Le profil investisseur et le produit doivent appartenir au cabinet du dossier.');
+        }
+
+        if ($costs->amountInCents !== $input->amountInCents) {
+            throw new \DomainException('Les frais doivent être calculés sur le montant de la vérification.');
         }
 
         $justification = null !== $justification && '' !== trim($justification) ? trim($justification) : null;
@@ -135,6 +145,7 @@ class ProductAdequacyCheck
                 'engineVersion' => SuitabilityMatchEvaluator::VERSION,
                 'input' => $input->toArray(),
                 'findings' => $evaluation->toArray(),
+                'costs' => $costs->toArray(),
             ],
             justification: $justification,
         );
@@ -143,6 +154,14 @@ class ProductAdequacyCheck
     public function evaluation(): AdequacyEvaluation
     {
         return AdequacyEvaluation::fromArray($this->content['findings']);
+    }
+
+    /** Frais figés avec la vérification — `null` pour une vérification antérieure au lot 4. */
+    public function costs(): ?CostBreakdown
+    {
+        $costs = $this->content['costs'] ?? null;
+
+        return \is_array($costs) ? CostBreakdown::fromArray($costs) : null;
     }
 
     public function hasBlockingFinding(): bool

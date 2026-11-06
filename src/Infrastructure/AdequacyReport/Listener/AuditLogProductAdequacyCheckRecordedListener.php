@@ -40,6 +40,8 @@ readonly class AuditLogProductAdequacyCheckRecordedListener
             'product_name' => $event->productName,
             'amount_in_cents' => $event->amountInCents,
             'worst_severity' => $event->worstSeverity,
+            // Frais figés (lot 4) : coût total et rémunération du CIF, donnée légale MIF2.
+            'costs' => $check->costs()?->toArray(),
             'content_hash' => $event->contentHash,
             'actor_name' => $event->checkedByName,
             'actor_type' => 'cgp',

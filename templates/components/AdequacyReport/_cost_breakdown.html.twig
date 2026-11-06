@@ -1,0 +1,63 @@
+{# Décomposition des frais (lot 4) — partagée par l'aperçu en direct et l'historique déplié.
+   Attend `costs` (CostBreakdown) ; `this` est le LiveComponent (include, pas un slot). #}
+{% set years = costs.horizonYears %}
+{% set years_label = years ~ (years > 1 ? ' ans' : ' an') %}
+{% set remuneration = costs.cifRemuneration %}
+<div class="overflow-x-auto">
+    <table class="w-full min-w-[28rem] text-sm">
+        <caption class="sr-only">Frais et rémunération du CIF sur {{ years_label }}</caption>
+        <thead>
+            <tr class="text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                <th scope="col" class="py-2 pr-4 font-medium">Poste</th>
+                <th scope="col" class="py-2 pr-4 text-right font-medium">Taux</th>
+                <th scope="col" class="py-2 text-right font-medium">Montant</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 tabular-nums text-slate-600">
+            <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Frais annuels du produit</th>
+                <td class="py-2 pr-4 text-right">{{ this.percent(costs.annualFeesBasisPoints) }} / an</td>
+                <td class="py-2 text-right">{{ this.euros(costs.annualFeesInCents) }} / an</td>
+            </tr>
+            <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Effet cumulé sur {{ years_label }}</th>
+                <td class="py-2 pr-4 text-right">{{ this.percent(costs.annualFeesBasisPoints * years) }}</td>
+                <td class="py-2 text-right">{{ this.euros(costs.cumulativeAnnualFeesInCents) }}</td>
+            </tr>
+            <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Droits d'entrée <span class="text-slate-500">· rémunération du CIF</span></th>
+                <td class="py-2 pr-4 text-right">{{ this.percent(remuneration.entryFeeBasisPoints) }}</td>
+                <td class="py-2 text-right">{{ this.euros(costs.entryFeeInCents) }}</td>
+            </tr>
+            <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Honoraires de conseil <span class="text-slate-500">· rémunération du CIF</span></th>
+                <td class="py-2 pr-4 text-right text-slate-400"><span aria-hidden="true">—</span><span class="sr-only">sans objet</span></td>
+                <td class="py-2 text-right">{{ this.euros(remuneration.advisoryFeeInCents) }}</td>
+            </tr>
+            <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">
+                    Rétrocessions <span class="text-slate-500">· rémunération du CIF, comprises dans les frais du produit</span>
+                </th>
+                <td class="py-2 pr-4 text-right">{{ this.percent(remuneration.annualRetrocessionBasisPoints) }} / an</td>
+                <td class="py-2 text-right">{{ this.euros(costs.annualRetrocessionInCents) }} / an</td>
+            </tr>
+        </tbody>
+        <tfoot class="tabular-nums">
+            <tr class="border-t border-slate-200">
+                <th scope="row" class="pt-3 pr-4 text-left font-medium text-slate-900">Coût total sur {{ years_label }}</th>
+                <td class="pt-3 pr-4 text-right font-medium text-slate-900">{{ this.percent(costs.totalCostsBasisPoints) }}</td>
+                <td class="pt-3 text-right font-medium text-slate-900">{{ this.euros(costs.totalCostsInCents) }}</td>
+            </tr>
+            <tr>
+                <th scope="row" class="pt-1 pr-4 text-left font-normal text-slate-600">dont rémunération du CIF sur {{ years_label }}</th>
+                <td class="pt-1 pr-4"></td>
+                <td class="pt-1 text-right text-slate-600">{{ this.euros(costs.cifRemunerationOverHorizonInCents) }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+<p class="mt-3 text-xs text-slate-500">
+    Sur {{ years_label }} (horizon minimum du produit), sur le montant investi net des droits d'entrée
+    ({{ this.euros(costs.netInvestedInCents) }}), à capital constant : aucune hypothèse de performance.
+    Taux total rapporté au montant investi ({{ this.euros(costs.amountInCents) }}).
+</p>

@@ -7,7 +7,9 @@ namespace App\Application\AdequacyReport\UseCase;
 use App\Domain\AdequacyReport\Entity\ProductAdequacyCheck;
 use App\Domain\AdequacyReport\Event\ProductAdequacyCheckRecordedEvent;
 use App\Domain\AdequacyReport\Repository\ProductAdequacyCheckRepositoryInterface;
+use App\Domain\AdequacyReport\Service\CostBreakdownCalculator;
 use App\Domain\AdequacyReport\Service\SuitabilityMatchEvaluator;
+use App\Domain\AdequacyReport\ValueObject\CifRemuneration;
 use App\Domain\Compliance\Entity\ComplianceFolder;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
 use App\Domain\Database\TransactionManagerInterface;
@@ -15,9 +17,10 @@ use App\Domain\Workspace\Service\CurrentUserProvider;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Enregistre une vérification d'adéquation figée. Le moteur est rejoué côté serveur au moment
- * de l'enregistrement (jamais de constats reçus du navigateur) : ce qui est scellé est ce que
- * le moteur produit sur les données en base à cet instant.
+ * Enregistre une vérification d'adéquation figée. Le moteur et le calcul des frais sont rejoués
+ * côté serveur au moment de l'enregistrement (jamais de constats ni de montants calculés reçus
+ * du navigateur) : ce qui est scellé est ce qu'ils produisent sur les données en base à cet
+ * instant. Seule la rémunération du CIF est une saisie du CGP.
  *
  * L'autorisation (membre du cabinet + dossier visible + droit d'édition) relève du voter,
  * vérifié par l'appelant.
@@ -27,6 +30,7 @@ final readonly class RecordProductAdequacyCheckUseCase
     public function __construct(
         private PrepareProductAdequacyCheckUseCase $prepare,
         private SuitabilityMatchEvaluator $evaluator,
+        private CostBreakdownCalculator $costCalculator,
         private ProductAdequacyCheckRepositoryInterface $checkRepository,
         private ComplianceFolderRepositoryInterface $folderRepository,
         private TransactionManagerInterface $transactionManager,
@@ -40,6 +44,7 @@ final readonly class RecordProductAdequacyCheckUseCase
         string $productSlugId,
         int $objectiveIndex,
         int $amountInCents,
+        CifRemuneration $remuneration,
         ?string $justification,
     ): string {
         if ($folder->isArchived()) {
@@ -48,6 +53,7 @@ final readonly class RecordProductAdequacyCheckUseCase
 
         $prepared = ($this->prepare)($folder, $productSlugId, $objectiveIndex, $amountInCents);
         $evaluation = $this->evaluator->evaluate($prepared->input);
+        $costs = $this->costCalculator->calculate($prepared->input->product, $prepared->input->amountInCents, $remuneration);
 
         $check = ProductAdequacyCheck::record(
             complianceFolder: $folder,
@@ -56,6 +62,7 @@ final readonly class RecordProductAdequacyCheckUseCase
             checkedBy: $this->userProvider->getUser(),
             input: $prepared->input,
             evaluation: $evaluation,
+            costs: $costs,
             justification: $justification,
         );
 
