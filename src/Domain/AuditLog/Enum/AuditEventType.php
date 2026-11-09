@@ -112,6 +112,10 @@ enum AuditEventType: string
     // --- ADÉQUATION PRODUIT (RAPPORT D'ADÉQUATION) ---
     case ADEQUACY_CHECK_RECORDED = 'adequacy.check_recorded';
     case ADEQUACY_BLOCKING_FINDING_JUSTIFIED = 'adequacy.blocking_finding_justified';
+    case ADEQUACY_REPORT_VALIDATED = 'adequacy.report_validated';
+    case ADEQUACY_REPORT_REVOKED = 'adequacy.report_revoked';
+    case ADEQUACY_REPORT_PROFILE_REVOKED = 'adequacy.report_profile_revoked';
+    case ADEQUACY_REPORT_OPENED_BY_CLIENT = 'adequacy.report_opened_by_client';
 
     // --- FACTURATION & ABONNEMENT STRIPE ---
     case SUBSCRIPTION_ACTIVATED = 'billing.subscription_activated';
@@ -260,6 +264,10 @@ enum AuditEventType: string
             self::SUITABILITY_PROFILE_REVOKED => 'Révocation du profil investisseur',
             self::ADEQUACY_CHECK_RECORDED => 'Vérification d\'adéquation d\'un produit',
             self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED => 'Poursuite malgré un point bloquant d\'adéquation (justification écrite)',
+            self::ADEQUACY_REPORT_VALIDATED => 'Validation du rapport d\'adéquation',
+            self::ADEQUACY_REPORT_REVOKED => 'Révocation du rapport d\'adéquation',
+            self::ADEQUACY_REPORT_PROFILE_REVOKED => 'Rapport d\'adéquation fondé sur un profil investisseur révoqué',
+            self::ADEQUACY_REPORT_OPENED_BY_CLIENT => 'Consultation du rapport d\'adéquation par le client',
             self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'Mise en garde : appétence au risque élevée malgré une capacité à subir des pertes très faible',
 
             // Facturation
@@ -328,7 +336,11 @@ enum AuditEventType: string
             self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'Profil investisseur',
 
             self::ADEQUACY_CHECK_RECORDED,
-            self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED => 'Adéquation produit',
+            self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED,
+            self::ADEQUACY_REPORT_VALIDATED,
+            self::ADEQUACY_REPORT_REVOKED,
+            self::ADEQUACY_REPORT_PROFILE_REVOKED,
+            self::ADEQUACY_REPORT_OPENED_BY_CLIENT => 'Adéquation produit',
 
             self::KYC_FOLDER_INITIATED,
             self::KYC_PORTAL_ACCESSED,
@@ -413,6 +425,7 @@ enum AuditEventType: string
             self::DER_ACKNOWLEDGED,
             self::MEETING_REPORT_VALIDATED,
             self::SUITABILITY_PROFILE_VALIDATED,
+            self::ADEQUACY_REPORT_VALIDATED,
             self::ORIAS_CHECK_SUCCESS,
             self::SIRET_CHECK_SUCCESS,
             self::WORKSPACE_INVITATION_ACCEPTED,
@@ -431,6 +444,7 @@ enum AuditEventType: string
             self::DER_DECLINED,
             self::WORKSPACE_INVITATION_REVOKED,
             self::SUITABILITY_PROFILE_REVOKED,
+            self::ADEQUACY_REPORT_REVOKED,
             self::SUBSCRIPTION_CANCELED => 'bg-rose-50 text-rose-700 border-rose-200',
 
             self::ADMIN_IMPERSONATION_START,
@@ -440,12 +454,14 @@ enum AuditEventType: string
             self::KYC_DOCUMENT_REVIEW_CANCELLED,
             self::KYC_DOCUMENT_CORRECTIONS_REQUESTED,
             self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED,
+            self::ADEQUACY_REPORT_PROFILE_REVOKED,
             self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING => 'bg-amber-50 text-amber-700 border-amber-200',
 
             self::KYC_DOCUMENT_OCR_PROCESSED,
             self::SCREENING_PERFORMED,
             self::ADVISORY_REPORT_GENERATED,
             self::ADEQUACY_CHECK_RECORDED,
+            self::ADEQUACY_REPORT_OPENED_BY_CLIENT,
             self::SUITABILITY_ASSESSMENT_SUBMITTED => 'bg-indigo-50 text-indigo-700 border-indigo-200',
 
             default => 'bg-slate-100 text-slate-700 border-slate-200',
@@ -470,6 +486,8 @@ enum AuditEventType: string
             self::SUITABILITY_PROFILE_REVOKED,
             self::SUITABILITY_HIGH_RISK_LOW_CAPACITY_WARNING,
             self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED,
+            self::ADEQUACY_REPORT_REVOKED,
+            self::ADEQUACY_REPORT_PROFILE_REVOKED,
             self::KYC_LEGAL_HOLD_PLACED,
             self::CLIENT_ACCOUNT_DELETED,
             self::ADMIN_IMPERSONATION_START,

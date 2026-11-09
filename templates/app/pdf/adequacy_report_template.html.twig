@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport d'adéquation{% if report %} - {{ report.clientFullName }}{% endif %}</title>
+    <style>
+        /* =========================================================================
+           Rapport d'adéquation figé — lot 5 (issue #32). Gabarit repris de la maquette
+           validée au lot 0 (adequacy_report_mockup_template.html.twig), sans projections :
+           KYSURE ne calcule jamais de rendement. Toutes les données viennent du contenu
+           figé du rapport (AdequacyReportDocumentAssembler), jamais d'une entité vivante.
+           Partagé par le PDF (is_pdf) et l'aperçu du brouillon.
+           ========================================================================= */
+
+        * { box-sizing: border-box; }
+
+        @page {
+            size: A4 portrait;
+            margin: 14mm 16mm 15mm;
+        }
+
+        html {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10.5px;
+            line-height: 1.5;
+            color: #0f172a;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .draft-banner {
+            margin-bottom: 14px;
+            padding: 8px 12px;
+            background: #fffbeb;
+            border: 1px solid #fbbf24;
+            border-left: 3px solid #d97706;
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #92400e;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 24px;
+            padding-bottom: 10px;
+            margin-bottom: 18px;
+            border-bottom: 2px solid #0f172a;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .header .logo {
+            display: block;
+            max-height: 46px;
+            max-width: 150px;
+        }
+        .header .firm-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .doc-meta {
+            flex-shrink: 0;
+            text-align: right;
+        }
+        .doc-meta .kicker {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #0f172a;
+        }
+        .doc-meta table {
+            margin-left: auto;
+            border-collapse: collapse;
+        }
+        .doc-meta td {
+            padding: 1px 0;
+            font-size: 8.5px;
+        }
+        .doc-meta td.k {
+            padding-right: 8px;
+            text-align: right;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #475569;
+        }
+        .doc-meta td.v {
+            text-align: right;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .info-grid {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 16px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .info-box {
+            flex: 1;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #94a3b8;
+            padding: 10px 12px;
+        }
+        .info-box .label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #475569;
+        }
+        .info-box .body {
+            font-size: 9.5px;
+            line-height: 1.5;
+            color: #0f172a;
+        }
+
+        h1 {
+            margin: 16px 0 7px;
+            padding-bottom: 4px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #0f172a;
+            border-bottom: 1.5px solid #0f172a;
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+        .sec {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        p {
+            margin: 5px 0 9px;
+        }
+        strong {
+            color: #0f172a;
+        }
+
+        .fine-print {
+            font-size: 8.5px;
+            line-height: 1.45;
+            color: #475569;
+        }
+
+        .profile-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #0f172a;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .profile-box .level {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        table.lines {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        table.lines tr {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        table.lines td {
+            padding: 4px 4px;
+            font-size: 9px;
+            vertical-align: top;
+        }
+        table.lines td.q {
+            width: 55%;
+            color: #475569;
+        }
+        table.lines td.a {
+            width: 25%;
+            font-weight: 600;
+            color: #0f172a;
+            text-align: right;
+        }
+        table.lines td.note {
+            width: 20%;
+            font-size: 8px;
+            color: #64748b;
+            text-align: right;
+        }
+
+        .totals-row td {
+            font-weight: 700;
+            border-top: 1.5px solid #0f172a;
+            border-bottom: none;
+        }
+
+        .product-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #0f172a;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .product-box .name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+
+        .doc-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 16px;
+            padding-top: 8px;
+            font-size: 8px;
+            color: #475569;
+            border-top: 1px solid #e2e8f0;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .preview-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+        .preview-toolbar a {
+            display: inline-block;
+            padding: 7px 14px;
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 9.5px;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .revoked-banner {
+            margin-bottom: 14px;
+            padding: 8px 12px;
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            border-left: 3px solid #be123c;
+            font-size: 9.5px;
+            color: #881337;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .findings { list-style: none; margin: 6px 0 8px; padding: 0; }
+        .findings li {
+            padding: 4px 8px;
+            margin-bottom: 3px;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #94a3b8;
+            font-size: 9px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .findings li.conforme { border-left-color: #059669; }
+        .findings li.attention { border-left-color: #d97706; }
+        .findings li.bloquant { border-left-color: #e11d48; }
+        .findings .criterion { font-weight: 700; color: #0f172a; }
+        .findings .severity { color: #475569; }
+        .justification {
+            margin: 6px 0 8px;
+            padding: 6px 10px;
+            border-left: 2px solid #94a3b8;
+            font-size: 9px;
+            color: #334155;
+        }
+        h2 {
+            margin: 10px 0 4px;
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .rationale {
+            white-space: pre-line;
+        }
+        .seal {
+            margin-top: 16px;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #0f172a;
+            background: #f8fafc;
+            font-size: 8.5px;
+            color: #334155;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .seal .hash { font-family: "Courier New", monospace; font-size: 8px; word-break: break-all; color: #0f172a; }
+        .error-box {
+            margin: 40px auto;
+            max-width: 520px;
+            padding: 14px 16px;
+            border: 1px solid #fecdd3;
+            border-left: 3px solid #be123c;
+            font-size: 11px;
+        }
+
+    </style>
+</head>
+<body>
+
+{% if report is null %}
+    <div class="error-box">
+        <strong>Aperçu impossible.</strong><br>
+        {{ draft_error }}
+    </div>
+{% else %}
+
+{% if report.isDraft %}
+    <div class="draft-banner">
+        Brouillon — aperçu non validé. Rien n'est encore figé ni remis au client : ce document deviendra le rapport
+        d'adéquation une fois validé par le conseiller.
+    </div>
+{% elseif report.revokedAt %}
+    <div class="revoked-banner">
+        <strong>Version révoquée le {{ report.revokedAt|date('d/m/Y') }}</strong> — ce rapport n'est plus en vigueur
+        ({{ report.revokeReason }}). Il est conservé à titre d'archive.
+    </div>
+{% endif %}
+
+<div class="header">
+    <div class="brand">
+        {% if report.cabinetLogoStoragePath %}
+            <img src="{{ report.cabinetLogoStoragePath|private_url }}" class="logo" alt="Logo du cabinet">
+        {% else %}
+            <div class="firm-name">{{ report.cabinetName }}</div>
+        {% endif %}
+    </div>
+    <div class="doc-meta">
+        <span class="kicker">Rapport d'adéquation</span>
+        <table>
+            {% if report.version %}<tr><td class="k">Version</td><td class="v">{{ report.version }}</td></tr>{% endif %}
+            <tr><td class="k">{{ report.isDraft ? 'Aperçu du' : 'Validé le' }}</td><td class="v">{{ (report.validatedAt ?? 'now')|date('d/m/Y') }}</td></tr>
+            {% if report.folderReference %}<tr><td class="k">Dossier</td><td class="v">{{ report.folderReference }}</td></tr>{% endif %}
+        </table>
+    </div>
+</div>
+
+<div class="info-grid">
+    <div class="info-box">
+        <span class="label">Le cabinet</span>
+        <div class="body">
+            {{ report.cabinetLegalName ?: report.cabinetName }}<br>
+            {% if report.cabinetAddress %}{{ report.cabinetAddress }}<br>{% endif %}
+            {% if report.cabinetSiret %}SIRET : {{ report.cabinetSiret }}<br>{% endif %}
+            {% if report.cabinetOriasNumber %}ORIAS : {{ report.cabinetOriasNumber }}{% endif %}
+        </div>
+    </div>
+    <div class="info-box">
+        <span class="label">Le client</span>
+        <div class="body">
+            <strong>{{ report.clientFullName }}</strong><br>
+            {% for line in report.clientSituation %}
+                {{ line.label }} : {{ line.value }}{% if not loop.last %}<br>{% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<p class="fine-print">
+    Ce rapport vous est remis avant toute souscription. Il explique en quoi le conseil fourni correspond à vos objectifs,
+    à votre situation financière, à vos connaissances et à votre expérience, et à votre profil investisseur.
+</p>
+
+<section class="sec">
+    <h1>1. Vos objectifs d'investissement</h1>
+    {% if report.objectives is empty %}
+        <p class="fine-print">Aucun objectif renseigné dans la fiche patrimoniale.</p>
+    {% else %}
+        <table class="lines">
+            {% for objective in report.objectives %}
+                <tr>
+                    <td class="q">{{ objective.label }} <span class="fine-print">({{ objective.priority|lower }})</span></td>
+                    <td class="a">{{ objective.amount }}</td>
+                    <td class="note">{{ objective.horizon }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+</section>
+
+<section class="sec">
+    <h1>2. Votre profil investisseur</h1>
+    <div class="profile-box">
+        <div class="level">{{ report.profileLevel }}/7 — {{ report.profileLabel }}</div>
+    </div>
+    <p class="fine-print">
+        Profil issu du questionnaire d'évaluation, validé par votre conseiller le {{ report.profileValidatedAt|date('d/m/Y') }}
+        (version {{ report.profileVersion }}){{ report.profileOverridden ? ', après correction motivée du profil calculé' }}.
+        Il fait l'objet d'une déclaration distincte.
+    </p>
+</section>
+
+<section class="sec">
+    <h1>3. Votre situation patrimoniale</h1>
+    {% if report.netWorthTotals is null %}
+        <p class="fine-print">Situation patrimoniale non renseignée.</p>
+    {% else %}
+        <table class="lines">
+            {% for line in report.netWorthLines %}
+                <tr><td class="q">{{ line.label }}</td><td class="a" colspan="2">{{ line.amount }}</td></tr>
+            {% endfor %}
+            <tr><td class="q">Patrimoine brut</td><td class="a" colspan="2">{{ report.netWorthTotals.gross }}</td></tr>
+            <tr><td class="q">Encours de crédits</td><td class="a" colspan="2">{{ report.netWorthTotals.debt }}</td></tr>
+            <tr class="totals-row"><td class="q">Patrimoine net</td><td class="a" colspan="2">{{ report.netWorthTotals.net }}</td></tr>
+            <tr><td class="q">Revenus annuels</td><td class="a" colspan="2">{{ report.netWorthTotals.income }}</td></tr>
+            <tr><td class="q">Charges annuelles</td><td class="a" colspan="2">{{ report.netWorthTotals.expenses }}</td></tr>
+            <tr class="totals-row"><td class="q">Capacité d'investissement disponible</td><td class="a" colspan="2">{{ report.netWorthTotals.capacity }}</td></tr>
+        </table>
+    {% endif %}
+</section>
+
+<h1>4. {{ report.products|length > 1 ? 'Les produits recommandés' : 'Le produit recommandé' }}</h1>
+{% for product in report.products %}
+    <div class="product-box">
+        <div class="name">{{ product.productName }}</div>
+        <table class="lines">
+            <tr><td class="q">Montant investi</td><td class="a" colspan="2">{{ product.amount }}</td></tr>
+            <tr><td class="q">Objectif visé</td><td class="a" colspan="2">{{ product.objective }}</td></tr>
+            {% for characteristic in product.characteristics %}
+                <tr><td class="q">{{ characteristic.label }}</td><td class="a" colspan="2">{{ characteristic.value }}</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <h2>Vérification d'adéquation — {{ product.worstSeverityLabel|lower }}</h2>
+    <ul class="findings">
+        {% for finding in product.findings %}
+            <li class="{{ finding.severity }}">
+                <span class="criterion">{{ finding.criterion }}</span> <span class="severity">· {{ finding.severityLabel }}</span><br>
+                {{ finding.message }}
+            </li>
+        {% endfor %}
+    </ul>
+    {% if product.justification %}
+        <div class="justification"><strong>Justification du conseiller :</strong> {{ product.justification }}</div>
+    {% endif %}
+
+    <div class="sec">
+        <h2>Coûts, frais et rémunération du conseiller</h2>
+        {% if product.costLines %}
+            <table class="lines">
+                {% for line in product.costLines %}
+                    <tr><td class="q">{{ line.label }}</td><td class="note">{{ line.rate }}</td><td class="a">{{ line.amount }}</td></tr>
+                {% endfor %}
+                <tr class="totals-row"><td class="q">{{ product.costTotal.label }}</td><td class="note">{{ product.costTotal.rate }}</td><td class="a">{{ product.costTotal.amount }}</td></tr>
+                <tr><td class="q">dont rémunération du conseiller sur la même durée</td><td class="note"></td><td class="a">{{ product.cifRemunerationOverHorizon }}</td></tr>
+            </table>
+            <p class="fine-print">{{ product.costsFootnote }}</p>
+        {% else %}
+            <p class="fine-print">
+                Les frais de ce produit n'ont pas été figés lors de sa vérification (vérification antérieure au calcul des frais) :
+                reportez-vous au document d'informations clés (DIC) du produit et à la convention de rémunération de votre conseiller.
+            </p>
+        {% endif %}
+    </div>
+    <p class="fine-print">Vérification réalisée par {{ product.checkedByName }} le {{ product.checkedAt|date('d/m/Y à H:i') }}.</p>
+{% endfor %}
+
+<section class="sec">
+    <h1>5. Pourquoi ce conseil vous correspond</h1>
+    {% if report.advisorRationale %}
+        <p class="rationale">{{ report.advisorRationale }}</p>
+    {% else %}
+        <p class="fine-print">La justification du conseil n'est pas encore rédigée.</p>
+    {% endif %}
+</section>
+
+<section class="sec">
+    <h1>6. Informations importantes</h1>
+    <p class="fine-print">
+        Les performances et les scénarios de rendement d'un produit figurent dans son document d'informations clés (DIC),
+        établi par le producteur : ce rapport n'en calcule aucun. Les performances passées ne préjugent pas des performances
+        futures ; sauf mention contraire, le capital investi n'est pas garanti. Les frais indiqués sont estimés à capital constant,
+        sans hypothèse de performance.
+    </p>
+</section>
+
+<div class="seal">
+    {% if report.isDraft %}
+        <strong>Document non validé.</strong> L'empreinte d'intégrité sera calculée à la validation par le conseiller.
+    {% else %}
+        <strong>Rapport validé par {{ report.validatedByName }}</strong> le {{ report.validatedAt|date('d/m/Y à H:i') }} (version {{ report.version }}).<br>
+        Empreinte d'intégrité (SHA-256) du contenu validé :<br>
+        <span class="hash">{{ report.contentHash }}</span>
+    {% endif %}
+</div>
+
+<div class="doc-footer">
+    <span>{{ report.cabinetLegalName ?: report.cabinetName }}{% if report.cabinetSiret %} &mdash; SIRET {{ report.cabinetSiret }}{% endif %}</span>
+    <span>Rapport d'adéquation{% if report.version %} &middot; version {{ report.version }}{% endif %}</span>
+</div>
+
+{% endif %}
+
+</body>
+</html>

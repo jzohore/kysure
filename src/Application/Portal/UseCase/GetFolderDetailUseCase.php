@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Application\Portal\UseCase;
 
+use App\Application\Portal\DTO\AdequacyReportSummaryDto;
 use App\Application\Portal\DTO\DerSummaryDto;
 use App\Application\Portal\DTO\DocumentItemDto;
 use App\Application\Portal\DTO\FolderDetailDto;
+use App\Domain\AdequacyReport\Entity\AdequacyReport;
+use App\Domain\AdequacyReport\Repository\AdequacyReportRepositoryInterface;
 use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Entity\DerAcknowledgement;
 use App\Domain\Compliance\Exception\ComplianceFolderNotFoundException;
@@ -21,6 +24,7 @@ readonly class GetFolderDetailUseCase
     public function __construct(
         private ComplianceFolderRepositoryInterface $folderRepository,
         private ComplianceDocumentRepositoryInterface $documentRepository,
+        private AdequacyReportRepositoryInterface $adequacyReportRepository,
     ) {
     }
 
@@ -63,7 +67,23 @@ readonly class GetFolderDetailUseCase
             }
         }
 
-        // 5. Assemblage final
+        // 5. Rapports d'adéquation remis (lot 5) : seulement ceux dont le PDF est prêt, et
+        //    seulement ceux destinés à CE client (le dossier lui appartient déjà, garde redondante).
+        $adequacyReports = array_values(array_map(
+            static fn (AdequacyReport $report): AdequacyReportSummaryDto => new AdequacyReportSummaryDto(
+                slugId: $report->slugId,
+                version: $report->version,
+                validatedAt: $report->validatedAt,
+                contentHash: $report->contentHash,
+                inForce: $report->isInForce(),
+            ),
+            array_filter(
+                $this->adequacyReportRepository->findByFolder($folder),
+                static fn (AdequacyReport $report): bool => $report->isPdfAvailable() && $report->client === $client,
+            ),
+        ));
+
+        // 6. Assemblage final
         return new FolderDetailDto(
             id: $folder->slugId,
             title: $folder->title ?? 'Dossier de conformité',
@@ -72,6 +92,7 @@ readonly class GetFolderDetailUseCase
             status: ClientPortalStatus::resolve($folder->status, $this->documentRepository->countPendingForFolder($folder)),
             documents: $documentDtos,
             der: $der,
+            adequacyReports: $adequacyReports,
         );
     }
 }

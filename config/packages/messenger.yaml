@@ -83,6 +83,8 @@ framework:
             'App\Infrastructure\Compliance\Message\GenerateDerPdfMessage': async_heavy
             # Génération du PDF de synthèse (déclaration d'adéquation) du profil investisseur.
             'App\Infrastructure\Suitability\Message\GenerateInvestorProfilePdfMessage': async_heavy
+            # Génération du PDF du rapport d'adéquation figé (lot 5).
+            'App\Infrastructure\AdequacyReport\Message\GenerateAdequacyReportPdfMessage': async_heavy
             # Recollage des chunks S3 + ffmpeg (CPU et durée imprévisibles) : JAMAIS dans un thread web.
             'App\Infrastructure\Compliance\Message\FinalizeMeetingAudioMessage': async_heavy
 

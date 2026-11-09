@@ -1,0 +1,175 @@
+{% set in_force = this.inForceReport %}
+{# Le PDF est généré en asynchrone juste après la validation : on rafraîchit jusqu'à ce qu'il soit prêt. #}
+<section {{ attributes.defaults(in_force and not in_force.pdfAvailable ? {'data-poll': 'delay(4000)|$render'} : {}) }} aria-labelledby="heading-adequacy-report">
+    {% include 'components/partials/_live_alerts.html.twig' with {
+        message: this.actionMessage|default(null),
+        type: this.actionMessageType|default('error')
+    } %}
+
+    <h2 id="heading-adequacy-report" class="font-serif text-2xl tracking-tight text-slate-900">Rapport d'adéquation</h2>
+    <p class="mt-2 max-w-2xl text-sm text-slate-600">
+        Le document remis au client avant la souscription. Choisissez les vérifications à citer, expliquez votre conseil,
+        relisez l'aperçu puis validez : le rapport est figé (empreinte SHA-256), versionné et mis à disposition dans l'espace du client.
+    </p>
+
+    {% if in_force %}
+        {% set flagged = in_force.basedOnRevokedProfile %}
+        <div class="mt-6 rounded-2xl border border-slate-200 border-l-2 {{ flagged ? 'border-l-amber-400' : 'border-l-emerald-500' }} bg-white p-6">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div class="flex min-w-0 gap-3">
+                    <twig:ux:icon name="{{ flagged ? 'tabler:alert-triangle' : 'tabler:file-certificate' }}" class="mt-0.5 size-5 shrink-0 {{ flagged ? 'text-amber-600' : 'text-emerald-600' }}" aria-hidden="true" />
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-slate-900">
+                            Version {{ in_force.version }} en vigueur
+                            <span class="font-normal text-slate-600">· {{ in_force.checkCount }} produit{{ in_force.checkCount > 1 ? 's' }} cité{{ in_force.checkCount > 1 ? 's' }}</span>
+                        </p>
+                        <p class="mt-0.5 text-sm text-slate-600">Validée par {{ in_force.validatedByName }} le {{ in_force.validatedAt|date('d/m/Y à H:i') }}</p>
+                        <p class="mt-1 truncate font-mono text-xs text-slate-500" title="{{ in_force.contentHash }}">Empreinte : {{ in_force.contentHash }}</p>
+                        {% if in_force.pdfAvailable %}
+                            <p class="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
+                                <twig:ux:icon name="tabler:user-check" class="size-4 text-slate-400" aria-hidden="true" />
+                                Disponible dans l'espace du client.
+                            </p>
+                        {% else %}
+                            <p class="mt-2 flex items-center gap-1.5 text-sm text-slate-600" role="status" aria-live="polite">
+                                <twig:ux:icon name="tabler:loader-2" class="size-4 animate-spin text-slate-400" aria-hidden="true" />
+                                Génération du PDF en cours…
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if in_force.pdfAvailable %}
+                    <twig:Button as="a" href="{{ path('app_adequacy_report_pdf', {slugId: in_force.slugId}) }}" target="_blank" rel="noopener" variant="outline" size="sm" class="shrink-0">
+                        <twig:ux:icon name="tabler:download" class="size-4" aria-hidden="true" />
+                        Télécharger le PDF
+                    </twig:Button>
+                {% endif %}
+            </div>
+
+            {% if flagged %}
+                <p class="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600" role="alert">
+                    <span class="font-medium text-slate-900">Profil investisseur révoqué depuis la validation.</span>
+                    Ce rapport cite une version du profil qui n'est plus en vigueur. Il reste archivé tel quel ;
+                    révoquez-le puis émettez une nouvelle version fondée sur le profil actuel.
+                </p>
+            {% endif %}
+
+            {% if this.canRevoke(in_force) %}
+                <div class="mt-4 border-t border-slate-100 pt-4">
+                    {% if isRevoking %}
+                        <div class="space-y-2">
+                            <twig:Label for="adequacy_report_revoke_reason">Motif de révocation <span class="font-normal text-slate-600">— obligatoire</span></twig:Label>
+                            <textarea id="adequacy_report_revoke_reason" rows="2" data-model="norender|revokeReason" required aria-required="true"
+                                      class="flex w-full min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+                                      placeholder="Ex. : nouveau profil investisseur, changement de situation, autre produit retenu…">{{ revokeReason }}</textarea>
+                            <div class="flex items-center justify-end gap-2">
+                                <twig:Button type="button" variant="ghost" size="sm" data-action="live#action" data-live-action-param="toggleRevoke">Annuler</twig:Button>
+                                <twig:Button type="button" variant="destructive" size="sm" data-action="live#action" data-live-action-param="revoke">Révoquer le rapport</twig:Button>
+                            </div>
+                        </div>
+                    {% else %}
+                        <twig:Button type="button" variant="ghost" size="sm" data-action="live#action" data-live-action-param="toggleRevoke">
+                            Révoquer pour émettre une nouvelle version
+                        </twig:Button>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    {% elseif this.canDraft %}
+        {% set checks = this.eligibleChecks %}
+        {% if checks is empty %}
+            <div class="mt-6 flex gap-3 rounded-2xl border border-slate-200 border-l-2 border-l-amber-400 bg-white p-6" role="status">
+                <twig:ux:icon name="tabler:alert-triangle" class="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden="true" />
+                <p class="text-sm text-slate-600">
+                    Enregistrez d'abord au moins une vérification d'adéquation sur le profil investisseur en vigueur :
+                    le rapport cite les vérifications, il ne les refait pas.
+                </p>
+            </div>
+        {% else %}
+            {% set min_length = this.minRationaleLength %}
+            {# Aperçu en POST dans un nouvel onglet, hors Turbo : la justification ne transite jamais dans l'URL. #}
+            <form method="post" action="{{ path('app_adequacy_report_draft_preview', {slugId: folderSlugId}) }}" target="_blank" data-turbo="false"
+                  class="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+                <input type="hidden" name="_token" value="{{ csrf_token(this.previewCsrfTokenId) }}">
+                <fieldset>
+                    <legend class="text-sm font-medium text-slate-900">Vérifications citées</legend>
+                    <p class="mt-1 text-sm text-slate-600">Leurs constats et leurs frais sont repris tels qu'ils ont été figés.</p>
+                    <ul class="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200">
+                        {% for check in checks %}
+                            <li>
+                                <label for="adequacy_report_check_{{ check.slugId }}" class="flex cursor-pointer items-start gap-3 px-4 py-3 hover:bg-slate-50">
+                                    <input type="checkbox" id="adequacy_report_check_{{ check.slugId }}" name="checks[]" value="{{ check.slugId }}"
+                                           data-model="selectedCheckSlugIds[]" {{ check.slugId in selectedCheckSlugIds ? 'checked' }}
+                                           class="mt-0.5 size-4 rounded border-slate-300 text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-900">
+                                    <span class="min-w-0">
+                                        <span class="flex items-center gap-1.5 text-sm font-medium text-slate-900">
+                                            <twig:ux:icon name="{{ this.severityIcon(check.worstSeverity.value) }}" class="size-4 shrink-0 {{ this.severityIconColor(check.worstSeverity.value) }}" aria-hidden="true" />
+                                            <span class="truncate">{{ check.productNameAtCheck }} · <span class="tabular-nums">{{ this.euros(check.amountInCents) }}</span></span>
+                                        </span>
+                                        <span class="block text-sm text-slate-600">
+                                            {{ check.worstSeverity.label }} · {{ check.checkedByName }}, le {{ check.checkedAt|date('d/m/Y') }}
+                                            {% if check.costs is null %}<span class="text-slate-500">· frais non figés</span>{% endif %}
+                                        </span>
+                                    </span>
+                                </label>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </fieldset>
+
+                <div class="mt-6 space-y-2">
+                    <twig:Label for="adequacy_report_rationale">
+                        Justification du conseil <span class="font-normal text-slate-600">— obligatoire ({{ min_length }} caractères minimum)</span>
+                    </twig:Label>
+                    <p id="adequacy_report_rationale_help" class="text-sm text-slate-600">
+                        En quoi la recommandation répond aux objectifs, à la situation et au profil du client. Ce texte figure tel quel dans le rapport remis.
+                    </p>
+                    <textarea id="adequacy_report_rationale" name="rationale" rows="5" data-model="norender|rationale" required aria-required="true"
+                              aria-describedby="adequacy_report_rationale_help" minlength="{{ min_length }}"
+                              class="flex w-full min-h-[120px] rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+                              placeholder="Ex. : le contrat répond à l'objectif de préparation de la retraite à 10 ans ; son niveau de risque est cohérent avec le profil équilibré…">{{ rationale }}</textarea>
+                </div>
+
+                <div class="mt-6 flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-sm text-slate-600">Une fois validé, le rapport ne se modifie plus : il se révoque et se remplace.</p>
+                    <div class="flex items-center justify-end gap-2">
+                        <twig:Button type="submit" variant="outline" size="sm">
+                            <twig:ux:icon name="tabler:eye" class="size-4" aria-hidden="true" />
+                            Aperçu
+                        </twig:Button>
+                        <twig:Button type="button" variant="dark" size="sm" data-action="live#action" data-live-action-param="validate">
+                            <twig:ux:icon name="tabler:check" class="size-4" aria-hidden="true" />
+                            Valider le rapport
+                        </twig:Button>
+                    </div>
+                </div>
+            </form>
+        {% endif %}
+    {% endif %}
+
+    {% set archived = this.reports|filter(r => r.revoked) %}
+    {% if archived is not empty %}
+        <div class="mt-8">
+            <h3 class="text-sm font-medium text-slate-900">Versions révoquées</h3>
+            <ul class="mt-3 divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white">
+                {% for report in archived %}
+                    <li class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div class="flex min-w-0 gap-3">
+                            <twig:ux:icon name="tabler:archive" class="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden="true" />
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-slate-900">Version {{ report.version }} · validée le {{ report.validatedAt|date('d/m/Y') }} par {{ report.validatedByName }}</p>
+                                <p class="text-sm text-slate-600">Révoquée le {{ report.revokedAt|date('d/m/Y') }} par {{ report.revokedByName }} — {{ report.revokeReason }}</p>
+                            </div>
+                        </div>
+                        {% if report.pdfAvailable %}
+                            <twig:Button as="a" href="{{ path('app_adequacy_report_pdf', {slugId: report.slugId}) }}" target="_blank" rel="noopener" variant="ghost" size="sm" class="shrink-0">
+                                <twig:ux:icon name="tabler:download" class="size-4" aria-hidden="true" />
+                                PDF
+                            </twig:Button>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</section>

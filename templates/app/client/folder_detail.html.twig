@@ -67,6 +67,41 @@
     {% endif %}
 
     {# ============================================================= #}
+    {# RAPPORTS D'ADÉQUATION REMIS PAR LE CONSEILLER (lot 5)         #}
+    {# ============================================================= #}
+    {% if folder.adequacyReports is not empty %}
+        <section class="mb-8" aria-labelledby="heading-adequacy-reports">
+            <h2 id="heading-adequacy-reports" class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <twig:ux:icon name="tabler:file-certificate" class="size-4 text-slate-500" aria-hidden="true" />
+                Vos rapports d'adéquation
+            </h2>
+
+            <ul class="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100">
+                {% for report in folder.adequacyReports %}
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="min-w-0">
+                            <h3 class="text-base font-semibold {{ report.inForce ? 'text-slate-900' : 'text-slate-600' }}">
+                                Rapport d'adéquation — version {{ report.version }}
+                                {% if not report.inForce %}<span class="ml-1 text-sm font-normal text-slate-500">(remplacé)</span>{% endif %}
+                            </h3>
+                            <p class="text-sm text-slate-500 mt-0.5">
+                                Remis le {{ report.validatedAt|date('d/m/Y') }} :
+                                {{ report.inForce ? 'il explique en quoi le conseil de votre conseiller correspond à votre situation.' : 'cette version a été remplacée, elle reste disponible pour vos archives.' }}
+                            </p>
+                            <p class="text-[11px] text-slate-400 font-mono mt-1 truncate" title="{{ report.contentHash }}">Empreinte : {{ report.contentHash }}</p>
+                        </div>
+                        <a href="{{ path('portal_adequacy_report_pdf', {slugId: report.slugId}) }}" target="_blank" rel="noopener noreferrer"
+                           class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 px-3 py-2 rounded-lg transition-colors shadow-sm shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300">
+                            <twig:ux:icon name="tabler:download" class="size-4 text-slate-400" aria-hidden="true" />
+                            Télécharger
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {# ============================================================= #}
     {# CE QU'IL VOUS RESTE À FAIRE (liste des pièces + soumission)   #}
     {# ============================================================= #}
     <section>

@@ -18,6 +18,8 @@ readonly class FolderDetailDto
         public array $documents,
         /** Accusé de réception du DER, une fois signé par le client. Null sinon. */
         public ?DerSummaryDto $der = null,
+        /** @var list<AdequacyReportSummaryDto> Rapports d'adéquation remis, du plus récent au plus ancien. */
+        public array $adequacyReports = [],
     ) {
     }
 }

@@ -31,6 +31,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Webmozart\Assert\Assert;
 
@@ -46,6 +47,7 @@ use Webmozart\Assert\Assert;
 )]
 class ProductAdequacyCheckComponent extends AbstractController
 {
+    use ComponentToolsTrait;
     use DefaultActionTrait;
     use LiveFlashTrait;
 
@@ -320,6 +322,8 @@ class ProductAdequacyCheckComponent extends AbstractController
             $this->retrocessionPercent = '';
             $this->justification = '';
             $this->addLiveFlash('success', 'Vérification d\'adéquation enregistrée.');
+            // Le rapport d'adéquation (lot 5) peut désormais citer cette vérification.
+            $this->emit('adequacyCheck:recorded');
         } catch (\DomainException $e) {
             $this->addLiveFlash('error', $e->getMessage());
         } catch (\Throwable $e) {
