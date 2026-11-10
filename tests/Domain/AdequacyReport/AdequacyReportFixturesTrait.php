@@ -11,6 +11,7 @@ use App\Domain\AdequacyReport\Service\SuitabilityMatchEvaluator;
 use App\Domain\AdequacyReport\ValueObject\CifRemuneration;
 use App\Domain\Compliance\Entity\ComplianceFolder;
 use App\Domain\Compliance\Entity\IndividualFolder;
+use App\Domain\Firm\Entity\RegulatoryProfile;
 use App\Domain\ProductCatalogue\Entity\FinancialProduct;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 use App\Domain\User\Entity\Client;
@@ -36,6 +37,8 @@ trait AdequacyReportFixturesTrait
     private function setUpAdequacyFixtures(): void
     {
         $this->workspace = $this->createEntityState(Workspace::class, ['id' => Uuid::v7(), 'slugId' => 'wrk_1', 'name' => 'Cabinet Horizon', 'siret' => '12345678900011']);
+        $this->workspace->legalName = 'Horizon Patrimoine SAS';
+        new \ReflectionProperty(Workspace::class, 'regulatoryProfile')->setValue($this->workspace, $this->createEntityState(RegulatoryProfile::class, ['workspace' => $this->workspace, 'oriasNumber' => '12345678']));
         $this->client = $this->createEntityState(Client::class, ['id' => Uuid::v7(), 'slugId' => 'cli_1', 'email' => 'jean@example.com', 'firstName' => 'Jean', 'lastName' => 'Dupont']);
         $this->folder = $this->createEntityState(IndividualFolder::class, ['slugId' => 'fld_1', 'reference' => 'KYC-2026-001', 'workspace' => $this->workspace, 'client' => $this->client]);
         $this->cgp = $this->createEntityState(User::class, ['id' => Uuid::v7(), 'firstName' => 'Marie', 'lastName' => 'Curie']);
@@ -89,7 +92,10 @@ trait AdequacyReportFixturesTrait
     /**
      * @param list<ProductAdequacyCheck>|null $checks
      */
-    private function validateReport(?array $checks = null, string $rationale = 'Le contrat répond à l\'objectif de préparation de la retraite, avec un risque cohérent avec le profil équilibré.', int $version = 1): AdequacyReport
+    /**
+     * @param array<string, mixed> $cabinetOverrides
+     */
+    private function validateReport(?array $checks = null, string $rationale = 'Le contrat répond à l\'objectif de préparation de la retraite, avec un risque cohérent avec le profil équilibré.', int $version = 1, ?bool $periodicReviewRequired = true, array $cabinetOverrides = []): AdequacyReport
     {
         return AdequacyReport::validate(
             folder: $this->folder,
@@ -97,7 +103,8 @@ trait AdequacyReportFixturesTrait
             checks: $checks ?? [$this->check()],
             validatedBy: $this->cgp,
             advisorRationale: $rationale,
-            cabinet: ['name' => 'Cabinet Horizon', 'legalName' => 'Horizon Patrimoine SAS', 'address' => '1 rue de la Paix, Paris', 'siret' => '12345678900011', 'oriasNumber' => '12345678', 'professionalAssociation' => null, 'logoStoragePath' => null],
+            periodicReviewRequired: $periodicReviewRequired,
+            cabinet: [...['name' => 'Cabinet Horizon', 'legalName' => 'Horizon Patrimoine SAS', 'address' => '1 rue de la Paix, Paris', 'siret' => '12345678900011', 'oriasNumber' => '12345678', 'professionalAssociation' => null, 'logoStoragePath' => null], ...$cabinetOverrides],
             clientSituation: [
                 'situation' => ['civility' => 'Monsieur', 'birthDate' => '1979-04-12', 'maritalStatus' => 'Marié(e)', 'childrenCount' => 2, 'professionalStatus' => 'Salarié', 'profession' => 'Ingénieur'],
                 'netWorth' => ['lines' => [['label' => 'Liquidités', 'amountInCents' => 5_000_000]], 'grossWorthInCents' => 5_000_000, 'outstandingDebtInCents' => 0, 'netWorthInCents' => 5_000_000, 'annualIncomeInCents' => 9_600_000, 'annualExpensesInCents' => 3_800_000, 'investmentCapacityInCents' => 3_500_000],

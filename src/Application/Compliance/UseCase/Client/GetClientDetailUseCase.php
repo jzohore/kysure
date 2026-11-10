@@ -157,7 +157,7 @@ readonly class GetClientDetailUseCase
             type: $folder instanceof BusinessFolder ? 'business' : 'individual',
             statusValue: $folder->status->value,
             statusLabel: $folder->status->getLabel(),
-            openedAtFormatted: $folder->createdAt->format('d/m/Y'),
+            openedAt: $folder->createdAt,
             documentCount: $documentCount,
             validatedDocumentCount: $validatedCount,
             hasDer: $derDocument instanceof ComplianceDocument,

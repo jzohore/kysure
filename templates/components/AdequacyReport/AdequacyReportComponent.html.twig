@@ -28,7 +28,11 @@
                         {% if in_force.pdfAvailable %}
                             <p class="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
                                 <twig:ux:icon name="tabler:user-check" class="size-4 text-slate-400" aria-hidden="true" />
-                                Disponible dans l'espace du client.
+                                {% if in_force.madeAvailableAt %}
+                                    Mis à disposition du client le {{ in_force.madeAvailableAt|date('d/m/Y à H:i') }}, client averti par e-mail.
+                                {% else %}
+                                    Disponible dans l'espace du client.
+                                {% endif %}
                             </p>
                         {% else %}
                             <p class="mt-2 flex items-center gap-1.5 text-sm text-slate-600" role="status" aria-live="polite">
@@ -96,10 +100,12 @@
                     <p class="mt-1 text-sm text-slate-600">Leurs constats et leurs frais sont repris tels qu'ils ont été figés.</p>
                     <ul class="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200">
                         {% for check in checks %}
+                            {# Sans frais figés (vérification antérieure au lot 4), une vérification ne peut plus fonder un rapport. #}
+                            {% set citable = check.costs is not null %}
                             <li>
-                                <label for="adequacy_report_check_{{ check.slugId }}" class="flex cursor-pointer items-start gap-3 px-4 py-3 hover:bg-slate-50">
+                                <label for="adequacy_report_check_{{ check.slugId }}" class="flex items-start gap-3 px-4 py-3 {{ citable ? 'cursor-pointer hover:bg-slate-50' : 'cursor-not-allowed opacity-60' }}">
                                     <input type="checkbox" id="adequacy_report_check_{{ check.slugId }}" name="checks[]" value="{{ check.slugId }}"
-                                           data-model="selectedCheckSlugIds[]" {{ check.slugId in selectedCheckSlugIds ? 'checked' }}
+                                           data-model="selectedCheckSlugIds[]" {{ check.slugId in selectedCheckSlugIds ? 'checked' }} {{ citable ? '' : 'disabled' }}
                                            class="mt-0.5 size-4 rounded border-slate-300 text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-900">
                                     <span class="min-w-0">
                                         <span class="flex items-center gap-1.5 text-sm font-medium text-slate-900">
@@ -108,7 +114,7 @@
                                         </span>
                                         <span class="block text-sm text-slate-600">
                                             {{ check.worstSeverity.label }} · {{ check.checkedByName }}, le {{ check.checkedAt|date('d/m/Y') }}
-                                            {% if check.costs is null %}<span class="text-slate-500">· frais non figés</span>{% endif %}
+                                            {% if not citable %}<span class="text-slate-500">· frais non figés : refaites la vérification pour la citer</span>{% endif %}
                                         </span>
                                     </span>
                                 </label>
@@ -129,6 +135,25 @@
                               class="flex w-full min-h-[120px] rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                               placeholder="Ex. : le contrat répond à l'objectif de préparation de la retraite à 10 ans ; son niveau de risque est cohérent avec le profil équilibré…">{{ rationale }}</textarea>
                 </div>
+
+                <fieldset class="mt-6">
+                    <legend class="text-sm font-medium text-slate-900">
+                        Réexamen périodique <span class="font-normal text-slate-600">— mention obligatoire du rapport</span>
+                    </legend>
+                    <p class="mt-1 text-sm text-slate-600">Ce conseil impose-t-il au client de revoir régulièrement sa situation et ses placements ?</p>
+                    <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+                        <label for="adequacy_report_review_yes" class="flex cursor-pointer items-center gap-2 text-sm text-slate-900">
+                            <input type="radio" id="adequacy_report_review_yes" name="periodicReview" value="yes" data-model="norender|periodicReview"
+                                   {{ periodicReview == 'yes' ? 'checked' }} class="size-4 border-slate-300 text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-900">
+                            Oui, un réexamen périodique est nécessaire
+                        </label>
+                        <label for="adequacy_report_review_no" class="flex cursor-pointer items-center gap-2 text-sm text-slate-900">
+                            <input type="radio" id="adequacy_report_review_no" name="periodicReview" value="no" data-model="norender|periodicReview"
+                                   {{ periodicReview == 'no' ? 'checked' }} class="size-4 border-slate-300 text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-900">
+                            Non
+                        </label>
+                    </div>
+                </fieldset>
 
                 <div class="mt-6 flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <p class="text-sm text-slate-600">Une fois validé, le rapport ne se modifie plus : il se révoque et se remplace.</p>

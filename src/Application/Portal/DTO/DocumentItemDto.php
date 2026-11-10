@@ -12,7 +12,8 @@ readonly class DocumentItemDto
         public string $id,
         public string $name, // Ex: "Carte d'identité"
         public DocumentStatus $status, // Ex: PENDING, VALID, REJECTED
-        public ?string $uploadedAtFormatted = null,
+        /** Formatée par Twig (filtre `date`), qui applique le fuseau de l'application. */
+        public ?\DateTimeImmutable $uploadedAt = null,
         public ?string $rejectionReason = null,
         /** Chemin S3 de la pièce transmise, à passer à `private_url` (null tant que rien n'est déposé). */
         public ?string $storagePath = null,

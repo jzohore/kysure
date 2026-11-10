@@ -12,7 +12,8 @@ readonly class FolderDetailDto
         public string $id,
         public string $title,
         public string $reference,
-        public string $openedAtFormatted,
+        /** Formatée par Twig (filtre `date`), qui applique le fuseau de l'application. */
+        public \DateTimeImmutable $openedAt,
         public ClientPortalStatus $status,
         /** @var array<DocumentItemDto> */
         public array $documents,

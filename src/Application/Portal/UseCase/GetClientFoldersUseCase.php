@@ -31,7 +31,7 @@ readonly class GetClientFoldersUseCase
         return array_map(fn (ComplianceFolder $folder): ActiveFolderDto => new ActiveFolderDto(
             id: $folder->slugId,
             title: $folder->reference ?? 'Dossier de conformité',
-            openedAtFormatted: $folder->createdAt->format('d/m/Y'),
+            openedAt: $folder->createdAt,
             status: ClientPortalStatus::resolve($folder->status, $this->documentRepository->countPendingForFolder($folder)),
             workspaceName: $folder->workspace->name,
         ), $folders);

@@ -40,6 +40,7 @@ final readonly class OpenAdequacyReportForClientUseCase
             clientSlugId: $client->slugId,
             version: $report->version,
             contentHash: $report->contentHash,
+            pdfSha256: $report->pdfSha256,
         ));
 
         return $report->pdfStoragePath;

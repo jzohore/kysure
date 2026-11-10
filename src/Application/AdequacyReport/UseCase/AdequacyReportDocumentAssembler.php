@@ -94,6 +94,9 @@ final readonly class AdequacyReportDocumentAssembler
             profileOverridden: true === ($profile['overridden'] ?? false),
             products: $products,
             advisorRationale: $this->str($content['advisorRationale'] ?? null),
+            periodicReviewRequired: \is_bool($content['periodicReviewRequired'] ?? null) ? $content['periodicReviewRequired'] : null,
+            madeAvailableAt: $report?->madeAvailableAt,
+            pdfSha256: $report?->pdfSha256,
         );
     }
 

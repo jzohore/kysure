@@ -40,13 +40,13 @@ final readonly class ValidateAdequacyReportUseCase
      *
      * @return string le slug du rapport validé
      */
-    public function __invoke(ComplianceFolder $folder, array $checkSlugIds, string $advisorRationale): string
+    public function __invoke(ComplianceFolder $folder, array $checkSlugIds, string $advisorRationale, ?bool $periodicReviewRequired): string
     {
         if ($this->reportRepository->findInForceByFolder($folder) instanceof AdequacyReport) {
             throw new \DomainException('Un rapport d\'adéquation est déjà en vigueur pour ce dossier. Révoquez-le avant d\'en valider une nouvelle version.');
         }
 
-        $draft = $this->composer->compose($folder, $checkSlugIds, $advisorRationale);
+        $draft = $this->composer->compose($folder, $checkSlugIds, $advisorRationale, $periodicReviewRequired);
         $user = $this->userProvider->getUser();
         $version = $this->reportRepository->findLatestVersionNumber($folder) + 1;
 
@@ -56,6 +56,7 @@ final readonly class ValidateAdequacyReportUseCase
             checks: $draft->checks,
             validatedBy: $user,
             advisorRationale: $advisorRationale,
+            periodicReviewRequired: $periodicReviewRequired,
             cabinet: $draft->cabinet,
             clientSituation: $draft->clientSituation,
             version: $version,

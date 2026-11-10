@@ -44,7 +44,11 @@ final class AdequacyReportDocumentAssemblerTest extends TestCase
 
     public function testCheckWithoutFrozenCostsIsShownWithoutRecomputingAnything(): void
     {
-        $report = $this->validateReport([$this->legacyCheck()]);
+        // Contenu archivé sans frais (lecture tolérante) : rien n'est recalculé.
+        $report = $this->validateReport();
+        $content = $report->content;
+        unset($content['checks'][0]['content']['costs']);
+        new \ReflectionProperty(AdequacyReport::class, 'content')->setValue($report, $content);
 
         $product = new AdequacyReportDocumentAssembler()->fromReport($report)->products[0];
 

@@ -82,7 +82,7 @@ readonly class GetClientDashboardUseCase
         $activeFolderDto = new ActiveFolderDto(
             id: $folder->slugId ?? (string) $folder->id,
             title: $folder->reference ?? 'Dossier de Conformité (KYC)',
-            openedAtFormatted: $folder->createdAt->format('d/m/Y'),
+            openedAt: $folder->createdAt,
             status: $portalStatus,
             workspaceName: $workspace->name,
         );

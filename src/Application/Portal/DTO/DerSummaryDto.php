@@ -12,7 +12,8 @@ namespace App\Application\Portal\DTO;
 readonly class DerSummaryDto
 {
     public function __construct(
-        public string $acknowledgedAtFormatted,
+        /** Formatée par Twig (filtre `date`), qui applique le fuseau de l'application. */
+        public \DateTimeImmutable $acknowledgedAt,
         public string $pdfSha256,
         /** Chemin S3 du DER, à passer au filtre `private_url` pour un lien temporaire. */
         public string $pdfStoragePath,

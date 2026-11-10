@@ -57,7 +57,7 @@ final readonly class AdequacyReportDraftComposer
      *
      * @throws \DomainException si un prérequis manque ou si une règle du rapport n'est pas respectée
      */
-    public function compose(ComplianceFolder $folder, array $checkSlugIds, string $advisorRationale): AdequacyReportDraft
+    public function compose(ComplianceFolder $folder, array $checkSlugIds, string $advisorRationale, ?bool $periodicReviewRequired): AdequacyReportDraft
     {
         $profile = $this->inForceProfile($folder);
         if (!$profile instanceof ValidatedInvestorProfile) {
@@ -83,7 +83,7 @@ final readonly class AdequacyReportDraftComposer
             checks: $checks,
             cabinet: $cabinet,
             clientSituation: $clientSituation,
-            content: AdequacyReport::composeContent($folder, $profile, $checks, $advisorRationale, $cabinet, $clientSituation),
+            content: AdequacyReport::composeContent($folder, $profile, $checks, $advisorRationale, $periodicReviewRequired, $cabinet, $clientSituation),
         );
     }
 

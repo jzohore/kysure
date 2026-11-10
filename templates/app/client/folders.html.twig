@@ -28,7 +28,7 @@
                                             {{ folder.workspaceName }}
                                         </span>
                                     </div>
-                                    <p class="text-sm text-slate-500 mt-1">Ouvert le {{ folder.openedAtFormatted }}</p>
+                                    <p class="text-sm text-slate-500 mt-1">Ouvert le {{ folder.openedAt|date('d/m/Y') }}</p>
                                 </div>
 
                                 <div class="flex items-center gap-4">

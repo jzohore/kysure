@@ -6,6 +6,7 @@ namespace App\Tests\Infrastructure\AdequacyReport\Handler;
 
 use App\Application\AdequacyReport\UseCase\AdequacyReportDocumentAssembler;
 use App\Domain\AdequacyReport\Entity\AdequacyReport;
+use App\Domain\AdequacyReport\Event\AdequacyReportMadeAvailableEvent;
 use App\Domain\AdequacyReport\Repository\AdequacyReportRepositoryInterface;
 use App\Domain\Port\DocumentStorageInterface;
 use App\Infrastructure\AdequacyReport\Handler\GenerateAdequacyReportPdfHandler;
@@ -15,6 +16,7 @@ use App\Tests\Domain\AdequacyReport\AdequacyReportFixturesTrait;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 
 final class GenerateAdequacyReportPdfHandlerTest extends TestCase
@@ -27,6 +29,7 @@ final class GenerateAdequacyReportPdfHandlerTest extends TestCase
     private AdequacyReportRepositoryInterface&MockObject $reportRepository;
     private PdfGeneratorInterface&MockObject $pdfGenerator;
     private DocumentStorageInterface&MockObject $storage;
+    private EventDispatcherInterface&MockObject $dispatcher;
     private GenerateAdequacyReportPdfHandler $handler;
 
     protected function setUp(): void
@@ -38,6 +41,7 @@ final class GenerateAdequacyReportPdfHandlerTest extends TestCase
         $this->reportRepository->method('findBySlugId')->willReturn($this->report);
         $this->pdfGenerator = $this->createMock(PdfGeneratorInterface::class);
         $this->storage = $this->createMock(DocumentStorageInterface::class);
+        $this->dispatcher = $this->createMock(EventDispatcherInterface::class);
 
         $this->handler = new GenerateAdequacyReportPdfHandler(
             $this->reportRepository,
@@ -45,6 +49,7 @@ final class GenerateAdequacyReportPdfHandlerTest extends TestCase
             $this->pdfGenerator,
             $this->storage,
             new NullLogger(),
+            $this->dispatcher,
         );
     }
 
@@ -57,15 +62,19 @@ final class GenerateAdequacyReportPdfHandlerTest extends TestCase
             ->with(self::anything(), 'documents/adequacy-report/wrk_1/fld_1')
             ->willReturn('documents/adequacy-report/wrk_1/fld_1/rapport.pdf');
         $this->reportRepository->expects(self::once())->method('save')->with($this->report);
+        $this->dispatcher->expects(self::once())->method('dispatch')->with(self::callback(fn (AdequacyReportMadeAvailableEvent $event): bool => hash('sha256', self::PDF) === $event->pdfSha256 && $this->report->contentHash === $event->contentHash))->willReturnArgument(0);
 
         ($this->handler)(new GenerateAdequacyReportPdfMessage($this->report->slugId, $this->report->contentHash));
 
         self::assertSame('documents/adequacy-report/wrk_1/fld_1/rapport.pdf', $this->report->pdfStoragePath);
+        self::assertSame(hash('sha256', self::PDF), $this->report->pdfSha256, 'Empreinte du fichier remis, distincte de celle du contenu.');
+        self::assertNotNull($this->report->madeAvailableAt);
     }
 
     public function testReplayDoesNotRegenerateAnExistingPdf(): void
     {
-        $this->report->markPdfGenerated('documents/deja-la.pdf');
+        $this->report->markMadeAvailable('documents/deja-la.pdf', hash('sha256', 'deja'));
+        $this->dispatcher->expects(self::never())->method('dispatch');
 
         $this->pdfGenerator->expects(self::never())->method('generateFromHtml');
         $this->storage->expects(self::never())->method('store');
@@ -79,6 +88,7 @@ final class GenerateAdequacyReportPdfHandlerTest extends TestCase
         $this->pdfGenerator->expects(self::never())->method('generateFromHtml');
         $this->storage->expects(self::never())->method('store');
         $this->reportRepository->expects(self::never())->method('save');
+        $this->dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(UnrecoverableMessageHandlingException::class);
 
@@ -94,6 +104,7 @@ final class GenerateAdequacyReportPdfHandlerTest extends TestCase
         $this->pdfGenerator->expects(self::never())->method('generateFromHtml');
         $this->storage->expects(self::never())->method('store');
         $this->reportRepository->expects(self::never())->method('save');
+        $this->dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(UnrecoverableMessageHandlingException::class);
 
@@ -105,6 +116,7 @@ final class GenerateAdequacyReportPdfHandlerTest extends TestCase
         $this->pdfGenerator->expects(self::once())->method('generateFromHtml')->willReturn('<html>erreur</html>');
         $this->storage->expects(self::never())->method('store');
         $this->reportRepository->expects(self::never())->method('save');
+        $this->dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(\RuntimeException::class);
 

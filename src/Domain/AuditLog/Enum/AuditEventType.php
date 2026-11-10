@@ -113,6 +113,7 @@ enum AuditEventType: string
     case ADEQUACY_CHECK_RECORDED = 'adequacy.check_recorded';
     case ADEQUACY_BLOCKING_FINDING_JUSTIFIED = 'adequacy.blocking_finding_justified';
     case ADEQUACY_REPORT_VALIDATED = 'adequacy.report_validated';
+    case ADEQUACY_REPORT_MADE_AVAILABLE = 'adequacy.report_made_available';
     case ADEQUACY_REPORT_REVOKED = 'adequacy.report_revoked';
     case ADEQUACY_REPORT_PROFILE_REVOKED = 'adequacy.report_profile_revoked';
     case ADEQUACY_REPORT_OPENED_BY_CLIENT = 'adequacy.report_opened_by_client';
@@ -265,6 +266,7 @@ enum AuditEventType: string
             self::ADEQUACY_CHECK_RECORDED => 'Vérification d\'adéquation d\'un produit',
             self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED => 'Poursuite malgré un point bloquant d\'adéquation (justification écrite)',
             self::ADEQUACY_REPORT_VALIDATED => 'Validation du rapport d\'adéquation',
+            self::ADEQUACY_REPORT_MADE_AVAILABLE => 'Mise à disposition du rapport d\'adéquation au client',
             self::ADEQUACY_REPORT_REVOKED => 'Révocation du rapport d\'adéquation',
             self::ADEQUACY_REPORT_PROFILE_REVOKED => 'Rapport d\'adéquation fondé sur un profil investisseur révoqué',
             self::ADEQUACY_REPORT_OPENED_BY_CLIENT => 'Consultation du rapport d\'adéquation par le client',
@@ -338,6 +340,7 @@ enum AuditEventType: string
             self::ADEQUACY_CHECK_RECORDED,
             self::ADEQUACY_BLOCKING_FINDING_JUSTIFIED,
             self::ADEQUACY_REPORT_VALIDATED,
+            self::ADEQUACY_REPORT_MADE_AVAILABLE,
             self::ADEQUACY_REPORT_REVOKED,
             self::ADEQUACY_REPORT_PROFILE_REVOKED,
             self::ADEQUACY_REPORT_OPENED_BY_CLIENT => 'Adéquation produit',
@@ -462,6 +465,7 @@ enum AuditEventType: string
             self::ADVISORY_REPORT_GENERATED,
             self::ADEQUACY_CHECK_RECORDED,
             self::ADEQUACY_REPORT_OPENED_BY_CLIENT,
+            self::ADEQUACY_REPORT_MADE_AVAILABLE,
             self::SUITABILITY_ASSESSMENT_SUBMITTED => 'bg-indigo-50 text-indigo-700 border-indigo-200',
 
             default => 'bg-slate-100 text-slate-700 border-slate-200',

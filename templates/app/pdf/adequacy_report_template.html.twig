@@ -386,7 +386,8 @@
 </div>
 
 <p class="fine-print">
-    Ce rapport vous est remis avant toute souscription. Il explique en quoi le conseil fourni correspond à vos objectifs,
+    Ce rapport est mis à votre disposition dans votre espace sécurisé{% if report.validatedAt %} à compter du {{ report.validatedAt|date('d/m/Y') }}{% endif %} ;
+    prenez-en connaissance avant toute souscription. Il explique en quoi le conseil fourni correspond à vos objectifs,
     à votre situation financière, à vos connaissances et à votre expérience, et à votre profil investisseur.
 </p>
 
@@ -496,6 +497,17 @@
 
 <section class="sec">
     <h1>6. Informations importantes</h1>
+    <h2>Réexamen périodique</h2>
+    {% if report.periodicReviewRequired is same as(true) %}
+        <p>Ce conseil <strong>nécessite un réexamen périodique</strong> de votre situation et de vos placements : votre conseiller
+        vous proposera de faire le point régulièrement, et vous devez le prévenir de tout changement de situation.</p>
+    {% elseif report.periodicReviewRequired is same as(false) %}
+        <p>Ce conseil ne nécessite pas de réexamen périodique de vos placements. Prévenez toutefois votre conseiller de tout
+        changement de votre situation ou de vos objectifs.</p>
+    {% else %}
+        <p class="fine-print">Mention à préciser par le conseiller avant validation.</p>
+    {% endif %}
+    <h2>Performances et frais</h2>
     <p class="fine-print">
         Les performances et les scénarios de rendement d'un produit figurent dans son document d'informations clés (DIC),
         établi par le producteur : ce rapport n'en calcule aucun. Les performances passées ne préjugent pas des performances

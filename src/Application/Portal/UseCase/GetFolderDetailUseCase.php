@@ -46,7 +46,7 @@ readonly class GetFolderDetailUseCase
             name: $doc->type->getLabel(), // Suppose un Enum DocumentType
             // Un refus encore interne au cabinet (pas signalé) n'est pas montré au client.
             status: DocumentStatus::REJECTED === $doc->status && !$doc->isRejectionVisibleToClient() ? DocumentStatus::UPLOADED : $doc->status,
-            uploadedAtFormatted: $doc->uploadedAt?->format('d/m/Y à H:i'),
+            uploadedAt: $doc->uploadedAt,
             rejectionReason: $doc->isRejectionVisibleToClient() ? $doc->rejectionReason : null,
             storagePath: $doc->storagePath,
         ), $documents);
@@ -59,7 +59,7 @@ readonly class GetFolderDetailUseCase
             $acknowledgement = $derDocument->acknowledgementInForce();
             if ($acknowledgement instanceof DerAcknowledgement) {
                 $der = new DerSummaryDto(
-                    acknowledgedAtFormatted: $acknowledgement->acknowledgedAt->format('d/m/Y à H:i'),
+                    acknowledgedAt: $acknowledgement->acknowledgedAt,
                     pdfSha256: $acknowledgement->pdfSha256,
                     pdfStoragePath: $derDocument->storagePath,
                     certificateStoragePath: $acknowledgement->certificateStoragePath,
@@ -88,7 +88,7 @@ readonly class GetFolderDetailUseCase
             id: $folder->slugId,
             title: $folder->title ?? 'Dossier de conformité',
             reference: $folder->reference,
-            openedAtFormatted: $folder->createdAt->format('d/m/Y'),
+            openedAt: $folder->createdAt,
             status: ClientPortalStatus::resolve($folder->status, $this->documentRepository->countPendingForFolder($folder)),
             documents: $documentDtos,
             der: $der,

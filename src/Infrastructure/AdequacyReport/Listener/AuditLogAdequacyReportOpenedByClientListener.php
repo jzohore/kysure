@@ -37,6 +37,7 @@ readonly class AuditLogAdequacyReportOpenedByClientListener
                 'client_slug_id' => $event->clientSlugId,
                 'version' => $event->version,
                 'content_hash' => $event->contentHash,
+                'pdf_sha256' => $event->pdfSha256,
                 'actor_type' => 'client',
             ],
             workspace: $report->workspace,

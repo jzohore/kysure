@@ -127,12 +127,46 @@ final class AdequacyReportTest extends TestCase
         $this->validateReport([$check]);
     }
 
-    public function testCheckRecordedBeforeCostsWereFrozenCanStillBeCited(): void
+    public function testCheckRecordedBeforeCostsWereFrozenCannotFoundAReport(): void
     {
-        $report = $this->validateReport([$this->legacyCheck()]);
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageMatches('/avant le calcul des frais/');
 
-        self::assertArrayNotHasKey('costs', $report->content['checks'][0]['content']);
-        self::assertTrue($report->matchesStoredHash());
+        $this->validateReport([$this->legacyCheck()]);
+    }
+
+    public function testPeriodicReviewMentionMustBeDecided(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageMatches('/réexamen périodique/');
+
+        $this->validateReport(periodicReviewRequired: null);
+    }
+
+    public function testPeriodicReviewMentionIsFrozen(): void
+    {
+        self::assertFalse($this->validateReport(periodicReviewRequired: false)->content['periodicReviewRequired']);
+    }
+
+    public function testCabinetMustBeIdentifiedByItsOriasNumber(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageMatches('/ORIAS/');
+
+        $this->validateReport(cabinetOverrides: ['oriasNumber' => null]);
+    }
+
+    public function testMadeAvailableOnceWithTheFileFingerprint(): void
+    {
+        $report = $this->validateReport();
+        $report->markMadeAvailable('documents/rapport.pdf', hash('sha256', 'pdf'));
+
+        self::assertTrue($report->isPdfAvailable());
+        self::assertSame(hash('sha256', 'pdf'), $report->pdfSha256);
+        self::assertNotNull($report->madeAvailableAt);
+
+        $this->expectException(\DomainException::class);
+        $report->markMadeAvailable('documents/autre.pdf', hash('sha256', 'autre'));
     }
 
     public function testTamperedReportNoLongerMatchesItsHash(): void
@@ -150,7 +184,7 @@ final class AdequacyReportTest extends TestCase
         $check = $this->check();
         $report = $this->validateReport([$check]);
 
-        $draft = AdequacyReport::composeContent($this->folder, $this->profile, [$check], $report->content['advisorRationale'], $report->content['cabinet'], array_diff_key($report->content['client'], ['fullName' => true]));
+        $draft = AdequacyReport::composeContent($this->folder, $this->profile, [$check], $report->content['advisorRationale'], true, $report->content['cabinet'], array_diff_key($report->content['client'], ['fullName' => true]));
 
         self::assertSame($report->content, $draft);
     }

@@ -138,7 +138,7 @@
                                         {{ folder.reference }}
                                     </a>
                                     <p class="text-xs text-slate-500 mt-0.5">
-                                        {{ folder.type == 'business' ? 'Personne morale' : 'Personne physique' }} · ouvert le {{ folder.openedAtFormatted }}
+                                        {{ folder.type == 'business' ? 'Personne morale' : 'Personne physique' }} · ouvert le {{ folder.openedAt|date('d/m/Y') }}
                                     </p>
                                 </div>
                             </div>

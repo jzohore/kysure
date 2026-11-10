@@ -6,18 +6,24 @@ namespace App\Infrastructure\AdequacyReport\Handler;
 
 use App\Application\AdequacyReport\UseCase\AdequacyReportDocumentAssembler;
 use App\Domain\AdequacyReport\Entity\AdequacyReport;
+use App\Domain\AdequacyReport\Event\AdequacyReportMadeAvailableEvent;
 use App\Domain\AdequacyReport\Repository\AdequacyReportRepositoryInterface;
 use App\Domain\Port\DocumentStorageInterface;
 use App\Infrastructure\AdequacyReport\Message\GenerateAdequacyReportPdfMessage;
 use App\Infrastructure\Pdf\PdfGeneratorInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
+use Webmozart\Assert\Assert;
 
 /**
  * Génère le PDF d'un rapport d'adéquation validé, sur le modèle de
  * {@see \App\Infrastructure\Suitability\Handler\GenerateInvestorProfilePdfHandler}.
+ *
+ * Une fois stocké, le rapport est daté « mis à disposition » (empreinte du fichier comprise)
+ * et un événement déclenche l'audit et l'e-mail au client.
  *
  * Idempotence par empreinte : un rejeu (retry Messenger, redéploiement) ne regénère jamais un
  * PDF déjà produit, et le PDF n'est produit que si le contenu stocké correspond exactement à
@@ -34,6 +40,7 @@ readonly class GenerateAdequacyReportPdfHandler
         private PdfGeneratorInterface $pdfGenerator,
         private DocumentStorageInterface $storage,
         private LoggerInterface $logger,
+        private EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
@@ -80,7 +87,9 @@ readonly class GenerateAdequacyReportPdfHandler
             );
 
             $directory = sprintf('documents/adequacy-report/%s/%s', $report->workspace->slugId, $report->complianceFolder->slugId);
-            $report->markPdfGenerated($this->storage->store($fileToStore, $directory));
+            // Empreinte du fichier remis (distincte de celle du contenu) : prouve quel PDF
+            // exact a été mis à disposition du client.
+            $report->markMadeAvailable($this->storage->store($fileToStore, $directory), hash('sha256', $pdfContent));
             $this->reportRepository->save($report);
         } catch (\Throwable $e) {
             $this->logger->error('Échec de génération du PDF du rapport d\'adéquation.', [
@@ -94,5 +103,18 @@ readonly class GenerateAdequacyReportPdfHandler
                 @unlink($tempFilePath);
             }
         }
+
+        // Après le save, hors du try : un échec de notification ne doit pas relancer une
+        // génération (le rapport est déjà mis à disposition, un rejeu sortirait plus haut).
+        Assert::notNull($report->pdfSha256);
+        Assert::notNull($report->madeAvailableAt);
+        $this->eventDispatcher->dispatch(new AdequacyReportMadeAvailableEvent(
+            reportSlugId: $report->slugId,
+            folderSlugId: $report->complianceFolder->slugId,
+            version: $report->version,
+            contentHash: $report->contentHash,
+            pdfSha256: $report->pdfSha256,
+            madeAvailableAt: $report->madeAvailableAt,
+        ));
     }
 }

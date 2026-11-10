@@ -1,0 +1,39 @@
+{% extends 'emails/base.html.twig' %}
+
+{% block title %}Votre rapport d'adéquation est disponible{% endblock %}
+
+{% block content %}
+    <h1>Votre rapport d'adéquation est disponible</h1>
+
+    <p>Bonjour,</p>
+
+    <p>
+        Votre conseiller du cabinet <strong>{{ workspace_name }}</strong> a mis à votre disposition
+        {% if version > 1 %}une nouvelle version (version {{ version }}) de {% endif %}votre rapport d'adéquation.
+        Ce document explique en quoi le conseil qui vous est fourni correspond à vos objectifs, à votre situation
+        et à votre profil investisseur. Prenez-en connaissance avant toute souscription.
+    </p>
+
+    <p style="margin: 30px 0; text-align: center;">
+        <a href="{{ portal_url }}" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            Consulter mon rapport
+        </a>
+    </p>
+
+    <p style="font-size: 13px; color: #64748b;">
+        Le rapport est conservé dans votre espace sécurisé, où vous pouvez le télécharger à tout moment.
+        Pour votre sécurité, il n'est pas joint à cet e-mail.
+    </p>
+
+    {% if workspace_contact_email %}
+        <p style="margin-top: 20px;">
+            Une question ? Contactez votre conseiller à l'adresse
+            <a href="mailto:{{ workspace_contact_email }}">{{ workspace_contact_email }}</a>.
+        </p>
+    {% endif %}
+
+    <p style="margin-top: 30px;">
+        Cordialement,<br>
+        <strong>L'équipe {{ workspace_name }}</strong>
+    </p>
+{% endblock %}

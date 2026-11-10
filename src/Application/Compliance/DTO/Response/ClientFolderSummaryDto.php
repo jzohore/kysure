@@ -15,7 +15,8 @@ readonly class ClientFolderSummaryDto
         public string $type, // 'individual' | 'business'
         public string $statusValue,
         public string $statusLabel,
-        public string $openedAtFormatted,
+        /** Formatée par Twig (filtre `date`), qui applique le fuseau de l'application. */
+        public \DateTimeImmutable $openedAt,
         public int $documentCount,
         public int $validatedDocumentCount,
         public bool $hasDer,

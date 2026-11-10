@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\AdequacyReport\Entity;
 
+use App\Domain\AdequacyReport\ValueObject\CostBreakdown;
 use App\Domain\ClientFile\Enum\InvestmentHorizon;
 use App\Domain\ClientFile\Enum\InvestmentObjectiveType;
 use App\Domain\ClientFile\Enum\ObjectivePriority;
@@ -94,6 +95,17 @@ class AdequacyReport
     public private(set) ?string $pdfStoragePath = null;
 
     /**
+     * Mise à disposition du client sur support durable (art. 3 §2 du règlement délégué
+     * 2017/565) : horodatage et empreinte SHA-256 du fichier PDF effectivement remis, fixés
+     * une seule fois, quand le PDF est stocké et le client averti.
+     */
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public private(set) ?\DateTimeImmutable $madeAvailableAt = null;
+
+    #[ORM\Column(type: Types::STRING, length: 64, nullable: true)]
+    public private(set) ?string $pdfSha256 = null;
+
+    /**
      * @param array<string, mixed> $content contenu figé, voir {@see self::composeContent()}
      */
     private function __construct(
@@ -142,6 +154,7 @@ class AdequacyReport
         array $checks,
         User $validatedBy,
         string $advisorRationale,
+        ?bool $periodicReviewRequired,
         array $cabinet,
         array $clientSituation,
         int $version,
@@ -151,11 +164,20 @@ class AdequacyReport
             throw new \DomainException(sprintf('La justification du conseil doit expliquer en quoi la recommandation répond à la situation du client (%d caractères minimum).', self::MIN_RATIONALE_LENGTH));
         }
 
+        if (null === $periodicReviewRequired) {
+            throw new \DomainException('Indiquez si ce conseil nécessite un réexamen périodique de la situation du client : c\'est une mention obligatoire du rapport.');
+        }
+
+        // Le client doit pouvoir identifier le conseiller réglementé qui lui remet le rapport.
+        if ('' === trim(self::string($cabinet['oriasNumber'] ?? null)) || '' === trim(self::string($cabinet['legalName'] ?? null))) {
+            throw new \DomainException('Renseignez la raison sociale et le numéro ORIAS du cabinet dans les Réglages avant de valider un rapport d\'adéquation.');
+        }
+
         if ($version < 1) {
             throw new \DomainException('Numéro de version de rapport invalide.');
         }
 
-        $content = self::composeContent($folder, $investorProfile, $checks, $advisorRationale, $cabinet, $clientSituation);
+        $content = self::composeContent($folder, $investorProfile, $checks, $advisorRationale, $periodicReviewRequired, $cabinet, $clientSituation);
         $client = $folder->client;
         Assert::isInstanceOf($client, Client::class); // garanti par composeContent()
 
@@ -192,6 +214,7 @@ class AdequacyReport
         ValidatedInvestorProfile $investorProfile,
         array $checks,
         string $advisorRationale,
+        ?bool $periodicReviewRequired,
         array $cabinet,
         array $clientSituation,
     ): array {
@@ -232,6 +255,12 @@ class AdequacyReport
                 throw new \DomainException(sprintf('La vérification « %s » a été faite sur une version antérieure du profil investisseur : refaites-la sur le profil en vigueur.', $check->productNameAtCheck()));
             }
 
+            // Coûts ex ante obligatoires (art. 50 du règlement délégué 2017/565) : une vérification
+            // antérieure au lot 4 reste lisible, mais ne peut plus fonder un rapport.
+            if (!$check->costs() instanceof CostBreakdown) {
+                throw new \DomainException(sprintf('La vérification « %s » a été enregistrée avant le calcul des frais : refaites-la pour que le rapport présente les coûts et la rémunération.', $check->productNameAtCheck()));
+            }
+
             if (!$check->matchesStoredHash()) {
                 throw new \DomainException(sprintf('L\'intégrité de la vérification « %s » n\'est plus garantie (empreinte invalide) : elle ne peut pas être citée.', $check->productNameAtCheck()));
             }
@@ -245,6 +274,7 @@ class AdequacyReport
             'investorProfile' => self::profileSnapshot($investorProfile),
             'checks' => array_map(self::checkSnapshot(...), $checks),
             'advisorRationale' => trim($advisorRationale),
+            'periodicReviewRequired' => $periodicReviewRequired,
         ];
     }
 
@@ -287,9 +317,23 @@ class AdequacyReport
         return $this->investorProfile->isRevoked();
     }
 
-    public function markPdfGenerated(string $storagePath): void
+    /**
+     * Le PDF est stocké et le client va être averti : la remise est datée et l'empreinte du
+     * fichier fixée. Une seule fois : un rejeu ne déplace ni la date ni l'empreinte.
+     */
+    public function markMadeAvailable(string $storagePath, string $pdfSha256): void
     {
+        if ($this->madeAvailableAt instanceof \DateTimeImmutable) {
+            throw new \DomainException('Ce rapport d\'adéquation a déjà été mis à disposition du client.');
+        }
+
+        if (1 !== preg_match('/^[a-f0-9]{64}$/', $pdfSha256)) {
+            throw new \DomainException('Empreinte du PDF invalide.');
+        }
+
         $this->pdfStoragePath = $storagePath;
+        $this->pdfSha256 = $pdfSha256;
+        $this->madeAvailableAt = now();
     }
 
     public function isPdfAvailable(): bool

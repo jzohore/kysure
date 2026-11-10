@@ -12,7 +12,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ folder.title }}</h1>
-                <p class="text-sm text-slate-500 mt-1">Réf: {{ folder.reference }} • Ouvert le {{ folder.openedAtFormatted }}</p>
+                <p class="text-sm text-slate-500 mt-1">Réf: {{ folder.reference }} • Ouvert le {{ folder.openedAt|date('d/m/Y') }}</p>
             </div>
 
             <span class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium ring-1 ring-inset shadow-sm w-fit {{ folder.status.badgeClasses }}">
@@ -40,7 +40,7 @@
                         <h3 class="text-base font-semibold text-slate-900">Document d'Entrée en Relation</h3>
                         <p class="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
                             <twig:ux:icon name="tabler:lock" class="size-3.5 text-emerald-500" aria-hidden="true" />
-                            Accusé de réception le {{ folder.der.acknowledgedAtFormatted }}
+                            Accusé de réception le {{ folder.der.acknowledgedAt|date('d/m/Y à H:i') }}
                         </p>
                         <p class="text-[11px] text-slate-400 font-mono mt-1 truncate" title="{{ folder.der.pdfSha256 }}">
                             Empreinte : {{ folder.der.pdfSha256 }}

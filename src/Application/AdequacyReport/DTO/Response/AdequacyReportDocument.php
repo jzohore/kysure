@@ -45,6 +45,10 @@ final readonly class AdequacyReportDocument
         public bool $profileOverridden,
         public array $products,
         public string $advisorRationale,
+        /** Mention obligatoire (art. 54 §12) — `null` tant que le brouillon ne l'a pas tranchée. */
+        public ?bool $periodicReviewRequired,
+        public ?\DateTimeImmutable $madeAvailableAt,
+        public ?string $pdfSha256,
     ) {
     }
 }

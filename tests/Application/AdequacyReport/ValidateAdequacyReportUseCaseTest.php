@@ -56,7 +56,7 @@ final class ValidateAdequacyReportUseCaseTest extends TestCase
             return true;
         }))->willReturnArgument(0);
 
-        $slugId = ($this->buildUseCase($reportRepo, $dispatcher))($this->folder, [$this->check->slugId], self::RATIONALE);
+        $slugId = ($this->buildUseCase($reportRepo, $dispatcher))($this->folder, [$this->check->slugId], self::RATIONALE, true);
 
         self::assertInstanceOf(AdequacyReport::class, $saved);
         self::assertSame($slugId, $saved->slugId);
@@ -74,7 +74,7 @@ final class ValidateAdequacyReportUseCaseTest extends TestCase
         $this->expectException(\DomainException::class);
         $this->expectExceptionMessageMatches('/déjà en vigueur/');
 
-        ($this->buildUseCase($reportRepo))($this->folder, [$this->check->slugId], self::RATIONALE);
+        ($this->buildUseCase($reportRepo))($this->folder, [$this->check->slugId], self::RATIONALE, true);
     }
 
     public function testUnknownCheckIsRejected(): void
@@ -85,7 +85,7 @@ final class ValidateAdequacyReportUseCaseTest extends TestCase
 
         $this->expectException(\DomainException::class);
 
-        ($this->buildUseCase($reportRepo))($this->folder, ['adq_inconnue'], self::RATIONALE);
+        ($this->buildUseCase($reportRepo))($this->folder, ['adq_inconnue'], self::RATIONALE, true);
     }
 
     private function buildUseCase(AdequacyReportRepositoryInterface $reportRepo, ?EventDispatcherInterface $dispatcher = null): ValidateAdequacyReportUseCase

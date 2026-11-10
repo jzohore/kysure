@@ -15,6 +15,7 @@ final readonly class AdequacyReportOpenedByClientEvent
         public string $clientSlugId,
         public int $version,
         public string $contentHash,
+        public ?string $pdfSha256,
     ) {
     }
 }

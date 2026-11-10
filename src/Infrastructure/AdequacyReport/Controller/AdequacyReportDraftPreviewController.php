@@ -52,7 +52,11 @@ final class AdequacyReportDraftPreviewController extends AbstractController
         $checkSlugIds = array_values(array_filter($request->request->all('checks'), \is_string(...)));
 
         try {
-            $draft = $this->composer->compose($folder, $checkSlugIds, $request->request->getString('rationale'));
+            $draft = $this->composer->compose($folder, $checkSlugIds, $request->request->getString('rationale'), match ($request->request->getString('periodicReview')) {
+                'yes' => true,
+                'no' => false,
+                default => null,
+            });
         } catch (\DomainException $e) {
             return $this->render('@app/pdf/adequacy_report_template.html.twig', [
                 'report' => null,
