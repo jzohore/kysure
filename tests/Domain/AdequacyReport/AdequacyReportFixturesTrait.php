@@ -11,6 +11,7 @@ use App\Domain\AdequacyReport\Service\SuitabilityMatchEvaluator;
 use App\Domain\AdequacyReport\ValueObject\CifRemuneration;
 use App\Domain\Compliance\Entity\ComplianceFolder;
 use App\Domain\Compliance\Entity\IndividualFolder;
+use App\Domain\Compliance\ValueObject\DerStatement;
 use App\Domain\Firm\Entity\RegulatoryProfile;
 use App\Domain\ProductCatalogue\Entity\FinancialProduct;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
@@ -95,7 +96,7 @@ trait AdequacyReportFixturesTrait
     /**
      * @param array<string, mixed> $cabinetOverrides
      */
-    private function validateReport(?array $checks = null, string $rationale = 'Le contrat répond à l\'objectif de préparation de la retraite, avec un risque cohérent avec le profil équilibré.', int $version = 1, ?bool $periodicReviewRequired = true, array $cabinetOverrides = []): AdequacyReport
+    private function validateReport(?array $checks = null, string $rationale = 'Le contrat répond à l\'objectif de préparation de la retraite, avec un risque cohérent avec le profil équilibré.', int $version = 1, ?bool $periodicReviewRequired = true, array $cabinetOverrides = [], bool $withElectronicDeliveryConsent = true): AdequacyReport
     {
         return AdequacyReport::validate(
             folder: $this->folder,
@@ -104,6 +105,7 @@ trait AdequacyReportFixturesTrait
             validatedBy: $this->cgp,
             advisorRationale: $rationale,
             periodicReviewRequired: $periodicReviewRequired,
+            electronicDeliveryConsent: $withElectronicDeliveryConsent ? ['acknowledgementSlugId' => 'der_ack_1', 'acknowledgedAt' => '2026-11-01T10:00:00+00:00', 'statementVersion' => DerStatement::VERSION] : null,
             cabinet: [...['name' => 'Cabinet Horizon', 'legalName' => 'Horizon Patrimoine SAS', 'address' => '1 rue de la Paix, Paris', 'siret' => '12345678900011', 'oriasNumber' => '12345678', 'professionalAssociation' => null, 'logoStoragePath' => null], ...$cabinetOverrides],
             clientSituation: [
                 'situation' => ['civility' => 'Monsieur', 'birthDate' => '1979-04-12', 'maritalStatus' => 'Marié(e)', 'childrenCount' => 2, 'professionalStatus' => 'Salarié', 'profession' => 'Ingénieur'],

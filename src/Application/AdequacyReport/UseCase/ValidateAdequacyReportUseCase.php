@@ -57,6 +57,7 @@ final readonly class ValidateAdequacyReportUseCase
             validatedBy: $user,
             advisorRationale: $advisorRationale,
             periodicReviewRequired: $periodicReviewRequired,
+            electronicDeliveryConsent: $draft->electronicDeliveryConsent,
             cabinet: $draft->cabinet,
             clientSituation: $draft->clientSituation,
             version: $version,

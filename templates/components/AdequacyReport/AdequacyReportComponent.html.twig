@@ -81,7 +81,15 @@
         </div>
     {% elseif this.canDraft %}
         {% set checks = this.eligibleChecks %}
-        {% if checks is empty %}
+        {% if not this.hasElectronicDeliveryConsent %}
+            <div class="mt-6 flex gap-3 rounded-2xl border border-slate-200 border-l-2 border-l-amber-400 bg-white p-6" role="status">
+                <twig:ux:icon name="tabler:alert-triangle" class="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden="true" />
+                <p class="text-sm text-slate-600">
+                    Le client n'a pas encore accepté la remise électronique de ses documents. Cet accord est recueilli quand il accuse
+                    réception du DER : renvoyez-lui le DER, puis revenez valider le rapport.
+                </p>
+            </div>
+        {% elseif checks is empty %}
             <div class="mt-6 flex gap-3 rounded-2xl border border-slate-200 border-l-2 border-l-amber-400 bg-white p-6" role="status">
                 <twig:ux:icon name="tabler:alert-triangle" class="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden="true" />
                 <p class="text-sm text-slate-600">

@@ -49,6 +49,8 @@ final readonly class AdequacyReportDocument
         public ?bool $periodicReviewRequired,
         public ?\DateTimeImmutable $madeAvailableAt,
         public ?string $pdfSha256,
+        /** Date de l'accusé du DER valant accord pour la remise électronique, s'il existe. */
+        public ?\DateTimeImmutable $electronicDeliveryConsentAt = null,
     ) {
     }
 }

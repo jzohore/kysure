@@ -12,11 +12,16 @@ use App\Domain\AdequacyReport\Event\AdequacyReportValidatedEvent;
 use App\Domain\AdequacyReport\Repository\AdequacyReportRepositoryInterface;
 use App\Domain\AdequacyReport\Repository\ProductAdequacyCheckRepositoryInterface;
 use App\Domain\ClientFile\Repository\ClientFileRepositoryInterface;
+use App\Domain\Compliance\Entity\ComplianceDocument;
+use App\Domain\Compliance\Entity\DerAcknowledgement;
+use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
+use App\Domain\Compliance\ValueObject\DerStatement;
 use App\Domain\Database\TransactionManagerInterface;
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\Workspace\Service\CurrentUserProvider;
 use App\Tests\Domain\AdequacyReport\AdequacyReportFixturesTrait;
+use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
@@ -88,8 +93,30 @@ final class ValidateAdequacyReportUseCaseTest extends TestCase
         ($this->buildUseCase($reportRepo))($this->folder, ['adq_inconnue'], self::RATIONALE, true);
     }
 
-    private function buildUseCase(AdequacyReportRepositoryInterface $reportRepo, ?EventDispatcherInterface $dispatcher = null): ValidateAdequacyReportUseCase
+    public function testClientWhoAcknowledgedAnOlderDerHasNotConsentedToElectronicDelivery(): void
     {
+        $reportRepo = $this->createMock(AdequacyReportRepositoryInterface::class);
+        $reportRepo->method('findInForceByFolder')->willReturn(null);
+        $reportRepo->expects(self::never())->method('save');
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageMatches('/remise électronique/');
+
+        ($this->buildUseCase($reportRepo, derStatementVersion: '2026-09-01'))($this->folder, [$this->check->slugId], self::RATIONALE, true);
+    }
+
+    private function buildUseCase(AdequacyReportRepositoryInterface $reportRepo, ?EventDispatcherInterface $dispatcher = null, string $derStatementVersion = DerStatement::VERSION): ValidateAdequacyReportUseCase
+    {
+        $acknowledgement = $this->createEntityState(DerAcknowledgement::class, [
+            'slugId' => 'der_ack_1',
+            'acknowledgedAt' => new \DateTimeImmutable('2026-11-01 10:00'),
+            'statementVersion' => $derStatementVersion,
+            'revokedAt' => null,
+        ]);
+        $der = $this->createEntityState(ComplianceDocument::class, ['acknowledgements' => new ArrayCollection([$acknowledgement])]);
+        $documentRepo = $this->createStub(ComplianceDocumentRepositoryInterface::class);
+        $documentRepo->method('findDerByFolder')->willReturn($der);
+
         $profileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
         $profileRepo->method('findInForceByClient')->willReturn($this->profile);
 
@@ -103,7 +130,7 @@ final class ValidateAdequacyReportUseCaseTest extends TestCase
         $userProvider->method('getUser')->willReturn($this->cgp);
 
         return new ValidateAdequacyReportUseCase(
-            new AdequacyReportDraftComposer($profileRepo, $checkRepo, $this->createStub(ClientFileRepositoryInterface::class)),
+            new AdequacyReportDraftComposer($profileRepo, $checkRepo, $this->createStub(ClientFileRepositoryInterface::class), $documentRepo),
             $reportRepo,
             $this->createStub(ComplianceFolderRepositoryInterface::class),
             $transactionManager,

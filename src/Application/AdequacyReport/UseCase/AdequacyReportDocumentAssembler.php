@@ -97,6 +97,9 @@ final readonly class AdequacyReportDocumentAssembler
             periodicReviewRequired: \is_bool($content['periodicReviewRequired'] ?? null) ? $content['periodicReviewRequired'] : null,
             madeAvailableAt: $report?->madeAvailableAt,
             pdfSha256: $report?->pdfSha256,
+            electronicDeliveryConsentAt: \is_array($content['electronicDeliveryConsent'] ?? null) && \is_string($content['electronicDeliveryConsent']['acknowledgedAt'] ?? null)
+                ? new \DateTimeImmutable($content['electronicDeliveryConsent']['acknowledgedAt'])
+                : null,
         );
     }
 

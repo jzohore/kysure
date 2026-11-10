@@ -148,6 +148,19 @@ final class AdequacyReportTest extends TestCase
         self::assertFalse($this->validateReport(periodicReviewRequired: false)->content['periodicReviewRequired']);
     }
 
+    public function testElectronicDeliveryRequiresTheClientConsentFromTheDer(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageMatches('/remise électronique/');
+
+        $this->validateReport(withElectronicDeliveryConsent: false);
+    }
+
+    public function testConsentProofIsFrozenWithTheReport(): void
+    {
+        self::assertSame('der_ack_1', $this->validateReport()->content['electronicDeliveryConsent']['acknowledgementSlugId']);
+    }
+
     public function testCabinetMustBeIdentifiedByItsOriasNumber(): void
     {
         $this->expectException(\DomainException::class);
@@ -184,7 +197,7 @@ final class AdequacyReportTest extends TestCase
         $check = $this->check();
         $report = $this->validateReport([$check]);
 
-        $draft = AdequacyReport::composeContent($this->folder, $this->profile, [$check], $report->content['advisorRationale'], true, $report->content['cabinet'], array_diff_key($report->content['client'], ['fullName' => true]));
+        $draft = AdequacyReport::composeContent($this->folder, $this->profile, [$check], $report->content['advisorRationale'], true, $report->content['electronicDeliveryConsent'], $report->content['cabinet'], array_diff_key($report->content['client'], ['fullName' => true]));
 
         self::assertSame($report->content, $draft);
     }

@@ -142,9 +142,10 @@ class AdequacyReport
      * Valide et fige le rapport. Mêmes règles que le brouillon ({@see self::composeContent()}),
      * plus une justification du conseil rédigée.
      *
-     * @param list<ProductAdequacyCheck> $checks
-     * @param array<string, mixed>       $cabinet         identité du cabinet au moment de la validation
-     * @param array<string, mixed>       $clientSituation situation du client (fiche patrimoniale) au moment de la validation
+     * @param list<ProductAdequacyCheck>                                                                  $checks
+     * @param array{acknowledgementSlugId: string, acknowledgedAt: string, statementVersion: string}|null $electronicDeliveryConsent accord du client pour la remise électronique (accusé du DER)
+     * @param array<string, mixed>                                                                        $cabinet                   identité du cabinet au moment de la validation
+     * @param array<string, mixed>                                                                        $clientSituation           situation du client (fiche patrimoniale) au moment de la validation
      *
      * @throws \DomainException si une règle métier n'est pas respectée
      */
@@ -155,6 +156,7 @@ class AdequacyReport
         User $validatedBy,
         string $advisorRationale,
         ?bool $periodicReviewRequired,
+        ?array $electronicDeliveryConsent,
         array $cabinet,
         array $clientSituation,
         int $version,
@@ -168,6 +170,13 @@ class AdequacyReport
             throw new \DomainException('Indiquez si ce conseil nécessite un réexamen périodique de la situation du client : c\'est une mention obligatoire du rapport.');
         }
 
+        // Remise sur support électronique : le client doit l'avoir acceptée (accusé de réception
+        // du DER, attestation version 2026-11-10 ou suivante), sinon l'espace client ne vaut pas
+        // support durable (art. 3 du règlement délégué 2017/565).
+        if (null === $electronicDeliveryConsent) {
+            throw new \DomainException('Le client n\'a pas accepté la remise électronique de ses documents : renvoyez-lui le DER pour qu\'il en accuse réception, puis validez le rapport.');
+        }
+
         // Le client doit pouvoir identifier le conseiller réglementé qui lui remet le rapport.
         if ('' === trim(self::string($cabinet['oriasNumber'] ?? null)) || '' === trim(self::string($cabinet['legalName'] ?? null))) {
             throw new \DomainException('Renseignez la raison sociale et le numéro ORIAS du cabinet dans les Réglages avant de valider un rapport d\'adéquation.');
@@ -177,7 +186,7 @@ class AdequacyReport
             throw new \DomainException('Numéro de version de rapport invalide.');
         }
 
-        $content = self::composeContent($folder, $investorProfile, $checks, $advisorRationale, $periodicReviewRequired, $cabinet, $clientSituation);
+        $content = self::composeContent($folder, $investorProfile, $checks, $advisorRationale, $periodicReviewRequired, $electronicDeliveryConsent, $cabinet, $clientSituation);
         $client = $folder->client;
         Assert::isInstanceOf($client, Client::class); // garanti par composeContent()
 
@@ -201,9 +210,10 @@ class AdequacyReport
      * (une vérification sur une version antérieure du profil ne peut pas fonder le rapport) et
      * intactes (empreinte vérifiée).
      *
-     * @param list<ProductAdequacyCheck> $checks
-     * @param array<string, mixed>       $cabinet
-     * @param array<string, mixed>       $clientSituation
+     * @param list<ProductAdequacyCheck>                                                                  $checks
+     * @param array{acknowledgementSlugId: string, acknowledgedAt: string, statementVersion: string}|null $electronicDeliveryConsent accord du client pour la remise électronique (accusé du DER)
+     * @param array<string, mixed>                                                                        $cabinet
+     * @param array<string, mixed>                                                                        $clientSituation
      *
      * @return array<string, mixed>
      *
@@ -215,6 +225,7 @@ class AdequacyReport
         array $checks,
         string $advisorRationale,
         ?bool $periodicReviewRequired,
+        ?array $electronicDeliveryConsent,
         array $cabinet,
         array $clientSituation,
     ): array {
@@ -275,6 +286,8 @@ class AdequacyReport
             'checks' => array_map(self::checkSnapshot(...), $checks),
             'advisorRationale' => trim($advisorRationale),
             'periodicReviewRequired' => $periodicReviewRequired,
+            // Preuve de l'accord du client pour le support électronique (accusé du DER).
+            'electronicDeliveryConsent' => $electronicDeliveryConsent,
         ];
     }
 

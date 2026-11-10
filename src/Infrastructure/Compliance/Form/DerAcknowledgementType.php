@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Compliance\Form;
 
 use App\Application\Compliance\DTO\Request\AcknowledgeDerRequest;
+use App\Domain\Compliance\ValueObject\DerStatement;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -22,8 +23,8 @@ class DerAcknowledgementType extends AbstractType
                 'empty_data' => '',
             ])
             ->add('accepted', CheckboxType::class, [
-                'label' => 'Je reconnais avoir reçu ce jour le Document d\'Entrée en Relation (DER), '
-                    . 'en avoir pris connaissance, et en conserver une copie sur support durable.',
+                // Même libellé que celui figé sur l'accusé : ce que le client coche est ce qui est prouvé.
+                'label' => DerStatement::TEXT,
                 'required' => false,
             ]);
     }

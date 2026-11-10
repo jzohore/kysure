@@ -140,6 +140,12 @@ class AdequacyReportComponent extends AbstractController
             && $this->isGranted(AdequacyReportVoter::VALIDATE, $this->getFolder());
     }
 
+    /** Le client a-t-il accepté la remise électronique (accusé du DER à jour) ? */
+    public function hasElectronicDeliveryConsent(): bool
+    {
+        return null !== $this->composer->electronicDeliveryConsent($this->getFolder());
+    }
+
     public function canRevoke(AdequacyReport $report): bool
     {
         return $report->isInForce() && $this->isGranted(AdequacyReportVoter::REVOKE, $report);
