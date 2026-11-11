@@ -1,7 +1,12 @@
 {# Checklist de pilotage (lot 8) : dérivée de l'état du dossier, en lecture seule. #}
 {% set checklist = this.checklist %}
 {% set next = checklist.nextItem %}
+{% set can_act = this.canAct %}
 <section {{ attributes }} aria-labelledby="heading-folder-checklist">
+    {% include 'components/partials/_live_alerts.html.twig' with {
+        message: this.actionMessage|default(null),
+        type: this.actionMessageType|default('error')
+    } %}
     <details class="group/checklist rounded-2xl border border-slate-200 bg-white" {{ next ? 'open' }}>
         <summary class="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-6 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
             <span class="min-w-0">
@@ -38,6 +43,12 @@
                         </p>
                         <p class="text-sm text-slate-600">{{ item.detail }}</p>
                     </div>
+                    {% if item.action and can_act %}
+                        <twig:Button type="button" variant="outline" size="sm" class="ml-auto shrink-0 self-center" data-action="live#action" data-live-action-param="{{ item.action }}">
+                            <twig:ux:icon name="tabler:mail" class="size-4" aria-hidden="true" />
+                            {{ item.actionLabel }}
+                        </twig:Button>
+                    {% endif %}
                 </li>
             {% endfor %}
         </ol>

@@ -6,6 +6,7 @@ namespace App\Tests\Application\AdequacyReport;
 
 use App\Application\AdequacyReport\UseCase\AdequacyReportDraftComposer;
 use App\Application\AdequacyReport\UseCase\ValidateAdequacyReportUseCase;
+use App\Application\Compliance\UseCase\ElectronicDelivery\ElectronicDeliveryConsentResolver;
 use App\Domain\AdequacyReport\Entity\AdequacyReport;
 use App\Domain\AdequacyReport\Entity\ProductAdequacyCheck;
 use App\Domain\AdequacyReport\Event\AdequacyReportValidatedEvent;
@@ -14,9 +15,12 @@ use App\Domain\AdequacyReport\Repository\ProductAdequacyCheckRepositoryInterface
 use App\Domain\ClientFile\Repository\ClientFileRepositoryInterface;
 use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Entity\DerAcknowledgement;
+use App\Domain\Compliance\Entity\ElectronicDeliveryConsent;
 use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
+use App\Domain\Compliance\Repository\ElectronicDeliveryConsentRepositoryInterface;
 use App\Domain\Compliance\ValueObject\DerStatement;
+use App\Domain\Compliance\ValueObject\ElectronicDeliveryConsentStatement;
 use App\Domain\Database\TransactionManagerInterface;
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\Workspace\Service\CurrentUserProvider;
@@ -105,7 +109,24 @@ final class ValidateAdequacyReportUseCaseTest extends TestCase
         ($this->buildUseCase($reportRepo, derStatementVersion: '2026-09-01'))($this->folder, [$this->check->slugId], self::RATIONALE, true);
     }
 
-    private function buildUseCase(AdequacyReportRepositoryInterface $reportRepo, ?EventDispatcherInterface $dispatcher = null, string $derStatementVersion = DerStatement::VERSION): ValidateAdequacyReportUseCase
+    public function testConsentGivenByAmendmentAllowsTheReport(): void
+    {
+        $reportRepo = $this->createStub(AdequacyReportRepositoryInterface::class);
+        $reportRepo->method('findInForceByFolder')->willReturn(null);
+        $saved = null;
+        $reportRepo->method('save')->willReturnCallback(static function (AdequacyReport $report) use (&$saved): void {
+            $saved = $report;
+        });
+
+        $amendment = ElectronicDeliveryConsent::give($this->folder, $this->client, ElectronicDeliveryConsentStatement::current());
+        ($this->buildUseCase($reportRepo, derStatementVersion: '2026-09-01', amendment: $amendment))($this->folder, [$this->check->slugId], self::RATIONALE, true);
+
+        self::assertInstanceOf(AdequacyReport::class, $saved);
+        self::assertSame('avenant', $saved->content['electronicDeliveryConsent']['source']);
+        self::assertSame($amendment->slugId, $saved->content['electronicDeliveryConsent']['acknowledgementSlugId']);
+    }
+
+    private function buildUseCase(AdequacyReportRepositoryInterface $reportRepo, ?EventDispatcherInterface $dispatcher = null, string $derStatementVersion = DerStatement::VERSION, ?ElectronicDeliveryConsent $amendment = null): ValidateAdequacyReportUseCase
     {
         $acknowledgement = $this->createEntityState(DerAcknowledgement::class, [
             'slugId' => 'der_ack_1',
@@ -116,6 +137,8 @@ final class ValidateAdequacyReportUseCaseTest extends TestCase
         $der = $this->createEntityState(ComplianceDocument::class, ['acknowledgements' => new ArrayCollection([$acknowledgement])]);
         $documentRepo = $this->createStub(ComplianceDocumentRepositoryInterface::class);
         $documentRepo->method('findDerByFolder')->willReturn($der);
+        $consentRepo = $this->createStub(ElectronicDeliveryConsentRepositoryInterface::class);
+        $consentRepo->method('findLatestByFolder')->willReturn($amendment);
 
         $profileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
         $profileRepo->method('findInForceByClient')->willReturn($this->profile);
@@ -130,7 +153,7 @@ final class ValidateAdequacyReportUseCaseTest extends TestCase
         $userProvider->method('getUser')->willReturn($this->cgp);
 
         return new ValidateAdequacyReportUseCase(
-            new AdequacyReportDraftComposer($profileRepo, $checkRepo, $this->createStub(ClientFileRepositoryInterface::class), $documentRepo),
+            new AdequacyReportDraftComposer($profileRepo, $checkRepo, $this->createStub(ClientFileRepositoryInterface::class), new ElectronicDeliveryConsentResolver($documentRepo, $consentRepo)),
             $reportRepo,
             $this->createStub(ComplianceFolderRepositoryInterface::class),
             $transactionManager,

@@ -100,6 +100,7 @@ final readonly class AdequacyReportDocumentAssembler
             electronicDeliveryConsentAt: \is_array($content['electronicDeliveryConsent'] ?? null) && \is_string($content['electronicDeliveryConsent']['acknowledgedAt'] ?? null)
                 ? new \DateTimeImmutable($content['electronicDeliveryConsent']['acknowledgedAt'])
                 : null,
+            electronicDeliveryConsentByAmendment: \is_array($content['electronicDeliveryConsent'] ?? null) && 'avenant' === ($content['electronicDeliveryConsent']['source'] ?? null),
         );
     }
 

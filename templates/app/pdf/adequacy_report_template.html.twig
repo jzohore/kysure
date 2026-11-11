@@ -523,7 +523,7 @@
         <strong>Rapport validé par {{ report.validatedByName }}</strong> le {{ report.validatedAt|date('d/m/Y à H:i') }} (version {{ report.version }}).<br>
         Empreinte d'intégrité (SHA-256) du contenu validé :<br>
         <span class="hash">{{ report.contentHash }}</span>
-        {% if report.electronicDeliveryConsentAt %}<br>Remise sur support électronique acceptée par le client lors de l'accusé de réception du DER du {{ report.electronicDeliveryConsentAt|date('d/m/Y') }}.{% endif %}
+        {% if report.electronicDeliveryConsentAt %}<br>Remise sur support électronique acceptée par le client {{ report.electronicDeliveryConsentByAmendment ? 'par avenant au DER' : 'lors de l\'accusé de réception du DER' }} le {{ report.electronicDeliveryConsentAt|date('d/m/Y') }}.{% endif %}
     {% endif %}
 </div>
 

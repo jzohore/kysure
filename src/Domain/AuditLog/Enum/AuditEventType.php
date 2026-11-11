@@ -92,6 +92,8 @@ enum AuditEventType: string
     case DER_ACKNOWLEDGED = 'der.acknowledged';
     case DER_ACKNOWLEDGEMENT_REVOKED = 'der.acknowledgement_revoked';
     case DER_DECLINED = 'der.declined';
+    case ELECTRONIC_DELIVERY_CONSENT_REQUESTED = 'der.electronic_delivery_consent_requested';
+    case ELECTRONIC_DELIVERY_CONSENT_GIVEN = 'der.electronic_delivery_consent_given';
     case SIGNATURE_UPDATED = 'der.signature_updated';
 
     case ACCEPTED_RECORDING = 'ac.recording';
@@ -247,6 +249,8 @@ enum AuditEventType: string
             self::DER_OPENED => 'Consultation du DER par le client',
             self::DER_SIGNED => 'Signature électronique du DER',
             self::DER_ACKNOWLEDGED => 'Accusé de réception du DER par le client',
+            self::ELECTRONIC_DELIVERY_CONSENT_REQUESTED => 'Demande d\'accord de remise électronique (avenant au DER)',
+            self::ELECTRONIC_DELIVERY_CONSENT_GIVEN => 'Accord de remise électronique donné par le client (avenant au DER)',
             self::DER_ACKNOWLEDGEMENT_REVOKED => 'Révocation de l\'accusé de réception du DER',
             self::DER_DECLINED => 'Refus du DER par le client',
             self::SIGNATURE_UPDATED => 'Mise à jour des paramètres de signature',
@@ -382,6 +386,8 @@ enum AuditEventType: string
             self::DER_ACKNOWLEDGED,
             self::DER_ACKNOWLEDGEMENT_REVOKED,
             self::DER_DECLINED,
+            self::ELECTRONIC_DELIVERY_CONSENT_REQUESTED,
+            self::ELECTRONIC_DELIVERY_CONSENT_GIVEN,
             self::ACCEPTED_RECORDING,
             self::MEETING_REPORT_VALIDATED,
             self::MEETING_REPORT_REVOKED,
@@ -426,6 +432,7 @@ enum AuditEventType: string
             self::KYC_DOCUMENT_VALIDATED,
             self::DER_SIGNED,
             self::DER_ACKNOWLEDGED,
+            self::ELECTRONIC_DELIVERY_CONSENT_GIVEN,
             self::MEETING_REPORT_VALIDATED,
             self::SUITABILITY_PROFILE_VALIDATED,
             self::ADEQUACY_REPORT_VALIDATED,

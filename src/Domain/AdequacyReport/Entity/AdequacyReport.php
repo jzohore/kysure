@@ -142,10 +142,10 @@ class AdequacyReport
      * Valide et fige le rapport. Mêmes règles que le brouillon ({@see self::composeContent()}),
      * plus une justification du conseil rédigée.
      *
-     * @param list<ProductAdequacyCheck>                                                                  $checks
-     * @param array{acknowledgementSlugId: string, acknowledgedAt: string, statementVersion: string}|null $electronicDeliveryConsent accord du client pour la remise électronique (accusé du DER)
-     * @param array<string, mixed>                                                                        $cabinet                   identité du cabinet au moment de la validation
-     * @param array<string, mixed>                                                                        $clientSituation           situation du client (fiche patrimoniale) au moment de la validation
+     * @param list<ProductAdequacyCheck>                                                                                   $checks
+     * @param array{acknowledgementSlugId: string, acknowledgedAt: string, statementVersion: string, source?: string}|null $electronicDeliveryConsent accord du client pour la remise électronique (accusé du DER)
+     * @param array<string, mixed>                                                                                         $cabinet                   identité du cabinet au moment de la validation
+     * @param array<string, mixed>                                                                                         $clientSituation           situation du client (fiche patrimoniale) au moment de la validation
      *
      * @throws \DomainException si une règle métier n'est pas respectée
      */
@@ -174,7 +174,7 @@ class AdequacyReport
         // du DER, attestation version 2026-11-10 ou suivante), sinon l'espace client ne vaut pas
         // support durable (art. 3 du règlement délégué 2017/565).
         if (null === $electronicDeliveryConsent) {
-            throw new \DomainException('Le client n\'a pas accepté la remise électronique de ses documents : renvoyez-lui le DER pour qu\'il en accuse réception, puis validez le rapport.');
+            throw new \DomainException('Le client n\'a pas accepté la remise électronique de ses documents : demandez-lui son accord (avec le DER, ou par avenant s\'il l\'a déjà accusé), puis validez le rapport.');
         }
 
         // Le client doit pouvoir identifier le conseiller réglementé qui lui remet le rapport.
@@ -210,10 +210,10 @@ class AdequacyReport
      * (une vérification sur une version antérieure du profil ne peut pas fonder le rapport) et
      * intactes (empreinte vérifiée).
      *
-     * @param list<ProductAdequacyCheck>                                                                  $checks
-     * @param array{acknowledgementSlugId: string, acknowledgedAt: string, statementVersion: string}|null $electronicDeliveryConsent accord du client pour la remise électronique (accusé du DER)
-     * @param array<string, mixed>                                                                        $cabinet
-     * @param array<string, mixed>                                                                        $clientSituation
+     * @param list<ProductAdequacyCheck>                                                                                   $checks
+     * @param array{acknowledgementSlugId: string, acknowledgedAt: string, statementVersion: string, source?: string}|null $electronicDeliveryConsent accord du client pour la remise électronique (accusé du DER)
+     * @param array<string, mixed>                                                                                         $cabinet
+     * @param array<string, mixed>                                                                                         $clientSituation
      *
      * @return array<string, mixed>
      *

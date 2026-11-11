@@ -15,11 +15,11 @@ use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 final readonly class AdequacyReportDraft
 {
     /**
-     * @param list<ProductAdequacyCheck>                                                                  $checks
-     * @param array{acknowledgementSlugId: string, acknowledgedAt: string, statementVersion: string}|null $electronicDeliveryConsent
-     * @param array<string, mixed>                                                                        $cabinet
-     * @param array<string, mixed>                                                                        $clientSituation
-     * @param array<string, mixed>                                                                        $content
+     * @param list<ProductAdequacyCheck>                                                                                   $checks
+     * @param array{acknowledgementSlugId: string, acknowledgedAt: string, statementVersion: string, source?: string}|null $electronicDeliveryConsent
+     * @param array<string, mixed>                                                                                         $cabinet
+     * @param array<string, mixed>                                                                                         $clientSituation
+     * @param array<string, mixed>                                                                                         $content
      */
     public function __construct(
         public ComplianceFolder $folder,

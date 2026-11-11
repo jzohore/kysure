@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Portal\UseCase;
 
+use App\Application\Compliance\UseCase\ElectronicDelivery\ElectronicDeliveryConsentResolver;
 use App\Application\Portal\DTO\AdequacyReportSummaryDto;
 use App\Application\Portal\DTO\DerSummaryDto;
 use App\Application\Portal\DTO\DocumentItemDto;
@@ -15,6 +16,7 @@ use App\Domain\Compliance\Entity\DerAcknowledgement;
 use App\Domain\Compliance\Exception\ComplianceFolderNotFoundException;
 use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
+use App\Domain\Compliance\ValueObject\ElectronicDeliveryConsentStatement;
 use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Domain\User\Entity\Client;
 use App\Domain\User\Enum\ClientPortalStatus;
@@ -25,6 +27,7 @@ readonly class GetFolderDetailUseCase
         private ComplianceFolderRepositoryInterface $folderRepository,
         private ComplianceDocumentRepositoryInterface $documentRepository,
         private AdequacyReportRepositoryInterface $adequacyReportRepository,
+        private ElectronicDeliveryConsentResolver $consentResolver,
     ) {
     }
 
@@ -93,6 +96,8 @@ readonly class GetFolderDetailUseCase
             documents: $documentDtos,
             der: $der,
             adequacyReports: $adequacyReports,
+            // Avenant au DER : seulement si le client a accusé un ancien DER sans avoir encore donné l'accord.
+            electronicDeliveryConsentToGive: $this->consentResolver->needsAmendment($folder) ? ElectronicDeliveryConsentStatement::TEXT : null,
         );
     }
 }

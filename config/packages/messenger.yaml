@@ -55,6 +55,8 @@ framework:
             'App\Infrastructure\Compliance\Message\SendClientRelationshipEndedMessage': async_priority
             # Avis de mise à disposition du rapport d'adéquation (lot 5) : preuve de remise sur support durable.
             'App\Infrastructure\AdequacyReport\Message\SendAdequacyReportAvailableMessage': async_priority
+            # Demande d'accord pour la remise électronique (avenant au DER).
+            'App\Infrastructure\Compliance\Message\SendElectronicDeliveryConsentRequestMessage': async_priority
             # Invitation collaborateur : même exigence que les autres e-mails
             # transactionnels (départ immédiat + retries), et l'audit ne doit pas
             # dépendre de la réussite de l'envoi.

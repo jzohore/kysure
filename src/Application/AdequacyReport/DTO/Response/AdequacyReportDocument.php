@@ -51,6 +51,8 @@ final readonly class AdequacyReportDocument
         public ?string $pdfSha256,
         /** Date de l'accusé du DER valant accord pour la remise électronique, s'il existe. */
         public ?\DateTimeImmutable $electronicDeliveryConsentAt = null,
+        /** Accord donné par avenant au DER (et non dans l'accusé du DER lui-même). */
+        public bool $electronicDeliveryConsentByAmendment = false,
     ) {
     }
 }

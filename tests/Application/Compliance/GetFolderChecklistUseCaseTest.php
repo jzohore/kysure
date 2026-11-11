@@ -6,6 +6,7 @@ namespace App\Tests\Application\Compliance;
 
 use App\Application\Compliance\DTO\Response\FolderChecklistItem;
 use App\Application\Compliance\UseCase\ComplianceFolder\GetFolderChecklistUseCase;
+use App\Application\Compliance\UseCase\ElectronicDelivery\ElectronicDeliveryConsentResolver;
 use App\Domain\AdequacyReport\Entity\AdequacyReport;
 use App\Domain\AdequacyReport\Repository\AdequacyReportRepositoryInterface;
 use App\Domain\AdequacyReport\Repository\ProductAdequacyCheckRepositoryInterface;
@@ -14,10 +15,13 @@ use App\Domain\Compliance\Entity\BusinessFolder;
 use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Entity\ComplianceFolder;
 use App\Domain\Compliance\Entity\DerAcknowledgement;
+use App\Domain\Compliance\Entity\ElectronicDeliveryConsent;
 use App\Domain\Compliance\Enum\ComplianceFolderStatus;
 use App\Domain\Compliance\Enum\DocumentType;
 use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
+use App\Domain\Compliance\Repository\ElectronicDeliveryConsentRepositoryInterface;
 use App\Domain\Compliance\ValueObject\DerStatement;
+use App\Domain\Compliance\ValueObject\ElectronicDeliveryConsentStatement;
 use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Tests\Domain\AdequacyReport\AdequacyReportFixturesTrait;
@@ -40,6 +44,7 @@ final class GetFolderChecklistUseCaseTest extends TestCase
         self::assertSame([
             'DER accusé par le client',
             'Pièces justificatives validées',
+            'Accord de remise électronique',
             'Fiche patrimoniale complète',
             'Profil investisseur validé',
             'Produit vérifié',
@@ -47,11 +52,13 @@ final class GetFolderChecklistUseCaseTest extends TestCase
             'Décision de conformité',
         ], array_map(static fn (FolderChecklistItem $item): string => $item->label, $checklist->items));
 
-        self::assertTrue($checklist->items[0]->done, 'DER accusé sur l\'attestation actuelle.');
-        self::assertTrue($checklist->items[3]->done, 'Profil en vigueur.');
-        self::assertTrue($checklist->items[4]->done, 'Une vérification avec frais sur le profil en vigueur.');
-        self::assertFalse($checklist->items[5]->done);
-        self::assertTrue($checklist->items[5]->requiredForApproval);
+        self::assertTrue($checklist->items[0]->done, 'DER accusé.');
+        self::assertTrue($checklist->items[2]->done, 'Accord donné avec l\'accusé du DER à jour.');
+        self::assertNull($checklist->items[2]->action);
+        self::assertTrue($checklist->items[4]->done, 'Profil en vigueur.');
+        self::assertTrue($checklist->items[5]->done, 'Une vérification avec frais sur le profil en vigueur.');
+        self::assertFalse($checklist->items[6]->done);
+        self::assertTrue($checklist->items[6]->requiredForApproval);
         self::assertSame('Pièces justificatives validées', $checklist->nextItem()?->label);
     }
 
@@ -69,12 +76,37 @@ final class GetFolderChecklistUseCaseTest extends TestCase
         self::assertTrue($this->useCase(DerStatement::VERSION, null)($this->folder)->items[1]->done);
     }
 
-    public function testDerAcknowledgedOnAnOlderStatementIsNotDone(): void
+    public function testOlderDerIsAcknowledgedButTheConsentMustBeAskedByAmendment(): void
     {
-        $item = $this->useCase(derVersion: '2026-09-01', report: null)($this->folder)->items[0];
+        $checklist = $this->useCase(derVersion: '2026-09-01', report: null)($this->folder);
 
-        self::assertFalse($item->done);
-        self::assertStringContainsString('renvoyez le DER', $item->detail);
+        self::assertTrue($checklist->items[0]->done, 'Le DER est bien accusé, quelle que soit sa version.');
+        $consent = $checklist->items[2];
+        self::assertFalse($consent->done);
+        self::assertSame('requestElectronicDeliveryConsent', $consent->action);
+        self::assertSame('Demander l\'accord au client', $consent->actionLabel);
+        self::assertStringContainsString('sans renvoyer le DER', $consent->detail);
+    }
+
+    public function testPendingAmendmentRequestOffersAReminder(): void
+    {
+        $this->folder->requestElectronicDeliveryConsent('Marie CURIE');
+
+        $consent = $this->useCase(derVersion: '2026-09-01', report: null)($this->folder)->items[2];
+
+        self::assertFalse($consent->done);
+        self::assertSame('Relancer le client', $consent->actionLabel);
+        self::assertStringContainsString('Demandé au client le', $consent->detail);
+    }
+
+    public function testConsentGivenByAmendmentIsDone(): void
+    {
+        $amendment = ElectronicDeliveryConsent::give($this->folder, $this->client, ElectronicDeliveryConsentStatement::current());
+
+        $consent = $this->useCase(derVersion: '2026-09-01', report: null, amendment: $amendment)($this->folder)->items[2];
+
+        self::assertTrue($consent->done);
+        self::assertStringContainsString('avenant', $consent->detail);
     }
 
     public function testReportBasedOnARevokedProfileIsNotDone(): void
@@ -82,11 +114,11 @@ final class GetFolderChecklistUseCaseTest extends TestCase
         $report = $this->validateReport();
         $report->markMadeAvailable('documents/rapport.pdf', hash('sha256', 'pdf'));
 
-        self::assertTrue($this->useCase(DerStatement::VERSION, $report)($this->folder)->items[5]->done);
+        self::assertTrue($this->useCase(DerStatement::VERSION, $report)($this->folder)->items[6]->done);
 
         new \ReflectionProperty($this->profile::class, 'revokedAt')->setValue($this->profile, new \DateTimeImmutable());
 
-        $item = $this->useCase(DerStatement::VERSION, $report)($this->folder)->items[5];
+        $item = $this->useCase(DerStatement::VERSION, $report)($this->folder)->items[6];
         self::assertFalse($item->done);
         self::assertStringContainsString('profil investisseur révoqué', $item->detail);
     }
@@ -101,9 +133,10 @@ final class GetFolderChecklistUseCaseTest extends TestCase
         self::assertTrue($checklist->items[2]->done);
     }
 
-    private function useCase(string $derVersion, ?AdequacyReport $report): GetFolderChecklistUseCase
+    private function useCase(string $derVersion, ?AdequacyReport $report, ?ElectronicDeliveryConsent $amendment = null): GetFolderChecklistUseCase
     {
         $acknowledgement = $this->createEntityState(DerAcknowledgement::class, [
+            'slugId' => 'der_ack_1',
             'acknowledgedAt' => new \DateTimeImmutable('2026-11-01'),
             'statementVersion' => $derVersion,
             'revokedAt' => null,
@@ -122,8 +155,11 @@ final class GetFolderChecklistUseCaseTest extends TestCase
         $reportRepo = $this->createStub(AdequacyReportRepositoryInterface::class);
         $reportRepo->method('findInForceByFolder')->willReturn($report);
 
+        $consentRepo = $this->createStub(ElectronicDeliveryConsentRepositoryInterface::class);
+        $consentRepo->method('findLatestByFolder')->willReturn($amendment);
+
         return new GetFolderChecklistUseCase(
-            $documentRepo,
+            new ElectronicDeliveryConsentResolver($documentRepo, $consentRepo),
             $this->createStub(ClientFileRepositoryInterface::class),
             $profileRepo,
             $checkRepo,

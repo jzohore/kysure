@@ -6,6 +6,7 @@ namespace App\Application\Compliance\UseCase\ComplianceFolder;
 
 use App\Application\Compliance\DTO\Response\FolderChecklistItem;
 use App\Application\Compliance\DTO\Response\FolderChecklistResponse;
+use App\Application\Compliance\UseCase\ElectronicDelivery\ElectronicDeliveryConsentResolver;
 use App\Domain\AdequacyReport\Entity\AdequacyReport;
 use App\Domain\AdequacyReport\Entity\ProductAdequacyCheck;
 use App\Domain\AdequacyReport\Repository\AdequacyReportRepositoryInterface;
@@ -17,8 +18,6 @@ use App\Domain\Compliance\Entity\ComplianceFolder;
 use App\Domain\Compliance\Entity\DerAcknowledgement;
 use App\Domain\Compliance\Entity\IndividualFolder;
 use App\Domain\Compliance\Enum\ComplianceFolderStatus;
-use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
-use App\Domain\Compliance\ValueObject\DerStatement;
 use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
@@ -35,7 +34,7 @@ use App\Domain\User\Entity\Client;
 final readonly class GetFolderChecklistUseCase
 {
     public function __construct(
-        private ComplianceDocumentRepositoryInterface $documentRepository,
+        private ElectronicDeliveryConsentResolver $consentResolver,
         private ClientFileRepositoryInterface $clientFileRepository,
         private ValidatedInvestorProfileRepositoryInterface $profileRepository,
         private ProductAdequacyCheckRepositoryInterface $checkRepository,
@@ -52,6 +51,7 @@ final readonly class GetFolderChecklistUseCase
                 ? $this->profileRepository->findInForceByClient($folder->client, $folder->workspace)
                 : null;
 
+            $items[] = $this->electronicDeliveryItem($folder);
             $items[] = $this->clientFileItem($folder);
             $items[] = $this->profileItem($profile);
             $items[] = $this->checksItem($folder, $profile);
@@ -65,19 +65,49 @@ final readonly class GetFolderChecklistUseCase
 
     private function derItem(ComplianceFolder $folder): FolderChecklistItem
     {
-        $der = $this->documentRepository->findDerByFolder($folder);
-        $acknowledgement = $der instanceof ComplianceDocument ? $der->acknowledgementInForce() : null;
+        $acknowledgement = $this->consentResolver->derAcknowledgement($folder);
 
         if (!$acknowledgement instanceof DerAcknowledgement) {
             return new FolderChecklistItem('DER accusé par le client', false, 'Le client n\'a pas encore accusé réception du document d\'entrée en relation.');
         }
 
-        // Un accusé antérieur à l'attestation 2026-11-10 ne vaut pas accord pour la remise électronique.
-        if (!DerStatement::coversElectronicDelivery($acknowledgement->statementVersion)) {
-            return new FolderChecklistItem('DER accusé par le client', false, sprintf('Accusé le %s sur une ancienne version : renvoyez le DER pour recueillir l\'accord de remise électronique.', $acknowledgement->acknowledgedAt->format('d/m/Y')));
+        return new FolderChecklistItem('DER accusé par le client', true, sprintf('Accusé le %s.', $acknowledgement->acknowledgedAt->format('d/m/Y')));
+    }
+
+    /**
+     * Accord pour la remise électronique : dans l'accusé du DER (attestation à jour) ou par
+     * avenant. Pour un client qui a accusé un ancien DER, l'étape propose de lui demander
+     * l'avenant — le DER accusé, figé, ne peut pas être renvoyé.
+     */
+    private function electronicDeliveryItem(ComplianceFolder $folder): FolderChecklistItem
+    {
+        $label = 'Accord de remise électronique';
+        $consent = $this->consentResolver->resolve($folder);
+
+        if (null !== $consent) {
+            $date = new \DateTimeImmutable($consent['acknowledgedAt'])->format('d/m/Y');
+
+            return new FolderChecklistItem($label, true, ElectronicDeliveryConsentResolver::SOURCE_AMENDMENT === $consent['source']
+                ? sprintf('Donné par avenant au DER le %s.', $date)
+                : sprintf('Donné avec l\'accusé du DER le %s.', $date), requiredForApproval: true);
         }
 
-        return new FolderChecklistItem('DER accusé par le client', true, sprintf('Accusé le %s, remise électronique acceptée.', $acknowledgement->acknowledgedAt->format('d/m/Y')));
+        if (!$this->consentResolver->needsAmendment($folder)) {
+            return new FolderChecklistItem($label, false, 'Recueilli quand le client accusera réception du DER.', requiredForApproval: true);
+        }
+
+        $requestedAt = $folder->electronicDeliveryConsentRequestedAt;
+
+        return new FolderChecklistItem(
+            $label,
+            false,
+            $requestedAt instanceof \DateTimeImmutable
+                ? sprintf('Demandé au client le %s, en attente de sa réponse dans son espace.', $requestedAt->format('d/m/Y à H:i'))
+                : 'Le client a accusé une version du DER antérieure à cet accord : demandez-le-lui par avenant, sans renvoyer le DER.',
+            requiredForApproval: true,
+            action: 'requestElectronicDeliveryConsent',
+            actionLabel: $requestedAt instanceof \DateTimeImmutable ? 'Relancer le client' : 'Demander l\'accord au client',
+        );
     }
 
     private function documentsItem(ComplianceFolder $folder): FolderChecklistItem

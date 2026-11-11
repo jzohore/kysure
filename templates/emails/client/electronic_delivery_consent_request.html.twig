@@ -1,0 +1,37 @@
+{% extends 'emails/base.html.twig' %}
+
+{% block title %}Recevoir vos documents dans votre espace sécurisé{% endblock %}
+
+{% block content %}
+    <h1>Recevoir vos documents dans votre espace sécurisé</h1>
+
+    <p>Bonjour,</p>
+
+    <p>
+        Le cabinet <strong>{{ workspace_name }}</strong> souhaite vous remettre ses documents réglementaires,
+        notamment vos rapports d'adéquation, directement dans votre espace sécurisé, avec un e-mail à chaque nouveau document.
+        Votre accord est nécessaire : il se donne en un clic depuis votre espace.
+    </p>
+
+    <p style="margin: 30px 0; text-align: center;">
+        <a href="{{ portal_url }}" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            Donner mon accord
+        </a>
+    </p>
+
+    <p style="font-size: 13px; color: #64748b;">
+        Vous pouvez aussi demander à recevoir ces documents sur papier, sans frais, en contactant votre conseiller.
+    </p>
+
+    {% if workspace_contact_email %}
+        <p style="margin-top: 20px;">
+            Une question ? Contactez votre conseiller à l'adresse
+            <a href="mailto:{{ workspace_contact_email }}">{{ workspace_contact_email }}</a>.
+        </p>
+    {% endif %}
+
+    <p style="margin-top: 30px;">
+        Cordialement,<br>
+        <strong>L'équipe {{ workspace_name }}</strong>
+    </p>
+{% endblock %}

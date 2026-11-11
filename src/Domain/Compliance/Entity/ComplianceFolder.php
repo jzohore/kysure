@@ -121,6 +121,13 @@ abstract class ComplianceFolder
     public private(set) bool $isConfidential = false;
 
     /**
+     * Dernière demande d'accord pour la remise électronique (avenant au DER), envoyée au client
+     * par e-mail. Sert à afficher la demande en cours et à éviter les renvois en rafale.
+     */
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public private(set) ?\DateTimeImmutable $electronicDeliveryConsentRequestedAt = null;
+
+    /**
      * Liste blanche d'accès (dossier confidentiel). Relation unidirectionnelle :
      * `User#folders` est l'inverse de {@see self::$assignedReviewer}, pas de
      * celle-ci.
@@ -612,6 +619,29 @@ abstract class ComplianceFolder
     public function isArchived(): bool
     {
         return ComplianceFolderStatus::ARCHIVED === $this->status;
+    }
+
+    /** Délai minimal entre deux demandes d'accord au client : pas de relance en rafale. */
+    public const int ELECTRONIC_DELIVERY_CONSENT_RESEND_DELAY_HOURS = 24;
+
+    /**
+     * Le CGP demande au client son accord pour la remise électronique (avenant au DER).
+     *
+     * @throws \DomainException si une demande a déjà été envoyée il y a moins de 24 h
+     */
+    public function requestElectronicDeliveryConsent(string $requestedByName): void
+    {
+        if ($this->isArchived()) {
+            throw new \DomainException('Ce dossier est archivé : il est en lecture seule.');
+        }
+
+        $last = $this->electronicDeliveryConsentRequestedAt;
+        if ($last instanceof \DateTimeImmutable && $last > now()->modify(sprintf('-%d hours', self::ELECTRONIC_DELIVERY_CONSENT_RESEND_DELAY_HOURS))) {
+            throw new \DomainException(sprintf('Une demande a déjà été envoyée au client le %s : attendez 24 h avant de la renvoyer.', $last->format('d/m/Y à H:i')));
+        }
+
+        $this->electronicDeliveryConsentRequestedAt = now();
+        $this->saveHistory('Accord de remise électronique demandé', sprintf('Demande envoyée au client par %s (avenant au DER).', $requestedByName));
     }
 
     public function markAsDerGenerated(): void

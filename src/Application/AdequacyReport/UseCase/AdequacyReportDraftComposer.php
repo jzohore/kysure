@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\AdequacyReport\UseCase;
 
 use App\Application\AdequacyReport\DTO\AdequacyReportDraft;
+use App\Application\Compliance\UseCase\ElectronicDelivery\ElectronicDeliveryConsentResolver;
 use App\Domain\AdequacyReport\Entity\AdequacyReport;
 use App\Domain\AdequacyReport\Entity\ProductAdequacyCheck;
 use App\Domain\AdequacyReport\Repository\ProductAdequacyCheckRepositoryInterface;
@@ -13,11 +14,7 @@ use App\Domain\ClientFile\Repository\ClientFileRepositoryInterface;
 use App\Domain\ClientFile\ValueObject\InvestmentObjective;
 use App\Domain\ClientFile\ValueObject\NetWorthLine;
 use App\Domain\ClientFile\ValueObject\NetWorthStatement;
-use App\Domain\Compliance\Entity\ComplianceDocument;
 use App\Domain\Compliance\Entity\ComplianceFolder;
-use App\Domain\Compliance\Entity\DerAcknowledgement;
-use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
-use App\Domain\Compliance\ValueObject\DerStatement;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 use App\Domain\Suitability\Repository\ValidatedInvestorProfileRepositoryInterface;
 use App\Domain\User\Entity\Client;
@@ -34,7 +31,7 @@ final readonly class AdequacyReportDraftComposer
         private ValidatedInvestorProfileRepositoryInterface $profileRepository,
         private ProductAdequacyCheckRepositoryInterface $checkRepository,
         private ClientFileRepositoryInterface $clientFileRepository,
-        private ComplianceDocumentRepositoryInterface $documentRepository,
+        private ElectronicDeliveryConsentResolver $consentResolver,
     ) {
     }
 
@@ -95,24 +92,14 @@ final readonly class AdequacyReportDraftComposer
     }
 
     /**
-     * Accord du client pour la remise électronique : l'accusé de réception du DER en vigueur,
-     * si son attestation l'inclut (version 2026-11-10 ou suivante). `null` sinon.
+     * Accord du client pour la remise électronique : DER accusé sur l'attestation à jour, ou
+     * avenant au DER. `null` sinon.
      *
-     * @return array{acknowledgementSlugId: string, acknowledgedAt: string, statementVersion: string}|null
+     * @return array{acknowledgementSlugId: string, acknowledgedAt: string, statementVersion: string, source: string}|null
      */
     public function electronicDeliveryConsent(ComplianceFolder $folder): ?array
     {
-        $der = $this->documentRepository->findDerByFolder($folder);
-        $acknowledgement = $der instanceof ComplianceDocument ? $der->acknowledgementInForce() : null;
-        if (!$acknowledgement instanceof DerAcknowledgement || !DerStatement::coversElectronicDelivery($acknowledgement->statementVersion)) {
-            return null;
-        }
-
-        return [
-            'acknowledgementSlugId' => $acknowledgement->slugId,
-            'acknowledgedAt' => $acknowledgement->acknowledgedAt->format(\DateTimeInterface::ATOM),
-            'statementVersion' => $acknowledgement->statementVersion,
-        ];
+        return $this->consentResolver->resolve($folder);
     }
 
     private function inForceProfile(ComplianceFolder $folder): ?ValidatedInvestorProfile

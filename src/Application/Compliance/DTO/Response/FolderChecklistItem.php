@@ -17,6 +17,9 @@ final readonly class FolderChecklistItem
         public ?string $anchor = null,
         /** Étape exigée pour approuver le dossier (règle de blocage). */
         public bool $requiredForApproval = false,
+        /** Action proposée au CGP sur cette étape (nom de LiveAction du composant), le cas échéant. */
+        public ?string $action = null,
+        public ?string $actionLabel = null,
     ) {
     }
 }
