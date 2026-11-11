@@ -64,6 +64,20 @@ class FolderStateException extends AbstractDomainException
     }
 
     /**
+     * Toutes les pièces attendues du client doivent être validées avant de déclarer le dossier
+     * conforme : une pièce reçue mais non vérifiée ne prouve rien.
+     */
+    public static function documentsNotValidated(string $reference): self
+    {
+        return new self(
+            message: sprintf('Le dossier "%s" ne peut pas être approuvé : toutes les pièces justificatives doivent d\'abord être validées.', $reference),
+            errorCode: ErrorCode::KYC_DOCUMENTS_NOT_VALIDATED,
+            statusCode: Response::HTTP_UNPROCESSABLE_ENTITY,
+            payload: ['folder_reference' => $reference],
+        );
+    }
+
+    /**
      * Lot 8 (issue #35) : un dossier de personne physique ne peut être validé sans un rapport
      * d'adéquation validé, en vigueur, et fondé sur le profil investisseur actuel (un rapport
      * signalé parce que son profil a été révoqué depuis ne suffit pas).

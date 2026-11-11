@@ -109,9 +109,15 @@ class ComplianceFolderApprovalComponent extends AbstractController
         return $report instanceof AdequacyReport && !$report->isBasedOnRevokedProfile();
     }
 
+    /** Toutes les pièces attendues ont été vérifiées et validées par le cabinet. */
+    public function hasAllDocumentsValidated(): bool
+    {
+        return $this->getFolder()->hasAllExpectedDocumentsValidated();
+    }
+
     public function canApprove(): bool
     {
-        return $this->hasValidatedInvestorProfileInForce() && $this->hasValidatedAdequacyReport();
+        return $this->hasAllDocumentsValidated() && $this->hasValidatedInvestorProfileInForce() && $this->hasValidatedAdequacyReport();
     }
 
     /** Un rapport validé ou révoqué plus bas sur la page change ce qui est possible ici. */

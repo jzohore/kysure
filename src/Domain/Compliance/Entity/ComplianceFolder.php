@@ -10,6 +10,7 @@ use App\Domain\Compliance\Enum\DocumentType;
 use App\Domain\Compliance\Enum\MeetingProcessingStatus;
 use App\Domain\Compliance\Enum\RiskLevel;
 use App\Domain\Compliance\Exception\FolderStateException;
+use App\Domain\Kyc\Enum\DocumentStatus;
 use App\Domain\User\Entity\Client;
 use App\Domain\User\Entity\User;
 use App\Domain\Workspace\Entity\Workspace;
@@ -252,6 +253,11 @@ abstract class ComplianceFolder
             throw FolderStateException::cannotApproveIfNotInReview($this->reference, $this->status->value); // ✅ Corrigé
         }
 
+        // On ne déclare pas conforme un dossier dont les pièces n'ont pas toutes été vérifiées.
+        if (!$this->hasAllExpectedDocumentsValidated()) {
+            throw FolderStateException::documentsNotValidated($this->reference);
+        }
+
         $this->status = ComplianceFolderStatus::APPROVED;
         $this->riskLevel = $riskLevel;
         $this->isCertified = true;
@@ -269,6 +275,21 @@ abstract class ComplianceFolder
 
         $this->addMetadata('approval_comments', $comments);
         $this->saveHistory('Dossier validé', "Risque {$riskLevel->value} - Par {$approvedBy->getFullName()}"); // ✅ Corrigé
+    }
+
+    /**
+     * Toutes les pièces attendues du client (obligatoires ou demandées, hors DER) ont été
+     * validées par le cabinet. Un dossier sans aucune pièce attendue est réputé complet.
+     */
+    public function hasAllExpectedDocumentsValidated(): bool
+    {
+        foreach ($this->documents as $doc) {
+            if ($doc->isRequestedFromClient() && DocumentStatus::VALID !== $doc->status) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function reject(string $reason, User $rejectedBy): void

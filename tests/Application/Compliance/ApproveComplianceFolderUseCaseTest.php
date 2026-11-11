@@ -22,6 +22,7 @@ use App\Domain\User\Entity\User;
 use App\Domain\Workspace\Entity\Workspace;
 use App\Domain\Workspace\Service\CurrentUserProvider;
 use App\Tests\Application\ReflectionHelperTrait;
+use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -69,6 +70,7 @@ final class ApproveComplianceFolderUseCaseTest extends TestCase
             'status' => ComplianceFolderStatus::IN_REVIEW,
             'history' => [],
             'createdAt' => new \DateTimeImmutable('2026-01-01'),
+            'documents' => new ArrayCollection(),
         ]);
     }
 
@@ -111,6 +113,7 @@ final class ApproveComplianceFolderUseCaseTest extends TestCase
             'status' => ComplianceFolderStatus::IN_REVIEW,
             'history' => [],
             'createdAt' => new \DateTimeImmutable('2026-01-01'),
+            'documents' => new ArrayCollection(),
         ]);
 
         $useCase = $this->buildUseCase();
@@ -181,6 +184,7 @@ final class ApproveComplianceFolderUseCaseTest extends TestCase
             'status' => ComplianceFolderStatus::IN_REVIEW,
             'history' => [],
             'createdAt' => new \DateTimeImmutable('2026-01-01'),
+            'documents' => new ArrayCollection(),
         ]);
         $this->folderRepository->expects($this->once())->method('save')->with($folder);
 
