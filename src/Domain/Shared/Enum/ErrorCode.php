@@ -39,6 +39,7 @@ enum ErrorCode: string
     case KYC_FOLDER_NOT_IN_REVIEW = 'KYC_FOLDER_NOT_IN_REVIEW';
     case KYC_MISSING_DOCUMENTS = 'KYC_MISSING_DOCUMENTS';
     case KYC_MISSING_VALIDATED_INVESTOR_PROFILE = 'KYC_MISSING_VALIDATED_INVESTOR_PROFILE';
+    case KYC_MISSING_VALIDATED_ADEQUACY_REPORT = 'KYC_MISSING_VALIDATED_ADEQUACY_REPORT';
     case UNSUPPORTED_FOLDER_TYPE = 'UNSUPPORTED_FOLDER_TYPE';
     case CANNOT_DELETE_ACTIVE_FOLDER = 'CANNOT_DELETE_ACTIVE_FOLDER';
     case DER_ALREADY_SENT = 'DER_ALREADY_SENT';
@@ -99,6 +100,7 @@ enum ErrorCode: string
             self::KYC_FOLDER_NOT_IN_REVIEW => 'Ce dossier ne peut pas être approuvé car il n\'est pas actuellement en cours d\'analyse.',
             self::KYC_MISSING_DOCUMENTS => 'Soumission impossible : des pièces justificatives obligatoires sont manquantes.',
             self::KYC_MISSING_VALIDATED_INVESTOR_PROFILE => 'Ce dossier ne peut pas être approuvé : aucun profil investisseur validé n\'est en vigueur pour ce client auprès de ce cabinet.',
+            self::KYC_MISSING_VALIDATED_ADEQUACY_REPORT => 'Ce dossier ne peut pas être approuvé : aucun rapport d\'adéquation validé n\'est en vigueur sur le profil investisseur actuel.',
             self::UNSUPPORTED_FOLDER_TYPE => 'Le type de dossier sélectionné ne respecte pas les modèles de conformité supportés.',
             self::CANNOT_DELETE_ACTIVE_FOLDER => 'Impossible de supprimer un dossier de conformité en cours d\'instruction.',
             self::DER_ALREADY_SENT => 'Le document d\'entrée en relation (DER) a déjà été transmis à l\'investisseur.',

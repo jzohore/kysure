@@ -6,7 +6,10 @@ namespace App\Infrastructure\Compliance\Twig\Components;
 
 use App\Application\Compliance\UseCase\ComplianceFolder\ApproveComplianceFolderUseCase;
 use App\Application\Compliance\UseCase\ComplianceFolder\RejectComplianceFolderUseCase;
+use App\Domain\AdequacyReport\Entity\AdequacyReport;
+use App\Domain\AdequacyReport\Repository\AdequacyReportRepositoryInterface;
 use App\Domain\Compliance\Entity\ComplianceFolder;
+use App\Domain\Compliance\Entity\IndividualFolder;
 use App\Domain\Compliance\Enum\ComplianceFolderStatus;
 use App\Domain\Compliance\Enum\RiskLevel;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
@@ -19,6 +22,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
+use Symfony\UX\LiveComponent\Attribute\LiveListener;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Webmozart\Assert\Assert;
@@ -58,6 +62,7 @@ class ComplianceFolderApprovalComponent extends AbstractController
     public function __construct(
         private readonly ComplianceFolderRepositoryInterface $folderRepository,
         private readonly ValidatedInvestorProfileRepositoryInterface $profileRepository,
+        private readonly AdequacyReportRepositoryInterface $adequacyReportRepository,
         private readonly ApproveComplianceFolderUseCase $approveUseCase,
         private readonly RejectComplianceFolderUseCase $rejectUseCase,
         private readonly LoggerInterface $logger,
@@ -85,6 +90,33 @@ class ComplianceFolderApprovalComponent extends AbstractController
 
         return $folder->client instanceof Client
             && $this->profileRepository->findInForceByClient($folder->client, $folder->workspace) instanceof ValidatedInvestorProfile;
+    }
+
+    /**
+     * Lot 8 : une personne physique doit avoir un rapport d'adéquation en vigueur, fondé sur le
+     * profil actuel. Sans objet pour une personne morale.
+     */
+    public function hasValidatedAdequacyReport(): bool
+    {
+        $folder = $this->getFolder();
+        if (!$folder instanceof IndividualFolder) {
+            return true;
+        }
+
+        $report = $this->adequacyReportRepository->findInForceByFolder($folder);
+
+        return $report instanceof AdequacyReport && !$report->isBasedOnRevokedProfile();
+    }
+
+    public function canApprove(): bool
+    {
+        return $this->hasValidatedInvestorProfileInForce() && $this->hasValidatedAdequacyReport();
+    }
+
+    /** Un rapport validé ou révoqué plus bas sur la page change ce qui est possible ici. */
+    #[LiveListener('adequacyReport:changed')]
+    public function refreshPrerequisites(): void
+    {
     }
 
     /**

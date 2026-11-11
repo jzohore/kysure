@@ -19,6 +19,7 @@ use App\Domain\User\Entity\Client;
 use App\Domain\User\Entity\User;
 use App\Domain\Workspace\Entity\Workspace;
 use App\Tests\Application\ReflectionHelperTrait;
+use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -41,7 +42,7 @@ trait AdequacyReportFixturesTrait
         $this->workspace->legalName = 'Horizon Patrimoine SAS';
         new \ReflectionProperty(Workspace::class, 'regulatoryProfile')->setValue($this->workspace, $this->createEntityState(RegulatoryProfile::class, ['workspace' => $this->workspace, 'oriasNumber' => '12345678']));
         $this->client = $this->createEntityState(Client::class, ['id' => Uuid::v7(), 'slugId' => 'cli_1', 'email' => 'jean@example.com', 'firstName' => 'Jean', 'lastName' => 'Dupont']);
-        $this->folder = $this->createEntityState(IndividualFolder::class, ['slugId' => 'fld_1', 'reference' => 'KYC-2026-001', 'workspace' => $this->workspace, 'client' => $this->client]);
+        $this->folder = $this->createEntityState(IndividualFolder::class, ['slugId' => 'fld_1', 'reference' => 'KYC-2026-001', 'workspace' => $this->workspace, 'client' => $this->client, 'documents' => new ArrayCollection()]);
         $this->cgp = $this->createEntityState(User::class, ['id' => Uuid::v7(), 'firstName' => 'Marie', 'lastName' => 'Curie']);
         $this->profile = $this->profileState(version: 1);
     }

@@ -62,4 +62,19 @@ class FolderStateException extends AbstractDomainException
             payload: ['folder_reference' => $reference],
         );
     }
+
+    /**
+     * Lot 8 (issue #35) : un dossier de personne physique ne peut être validé sans un rapport
+     * d'adéquation validé, en vigueur, et fondé sur le profil investisseur actuel (un rapport
+     * signalé parce que son profil a été révoqué depuis ne suffit pas).
+     */
+    public static function missingValidatedAdequacyReport(string $reference): self
+    {
+        return new self(
+            message: sprintf('Le dossier "%s" ne peut pas être approuvé : aucun rapport d\'adéquation validé n\'est en vigueur sur le profil investisseur actuel du client.', $reference),
+            errorCode: ErrorCode::KYC_MISSING_VALIDATED_ADEQUACY_REPORT,
+            statusCode: Response::HTTP_UNPROCESSABLE_ENTITY,
+            payload: ['folder_reference' => $reference],
+        );
+    }
 }

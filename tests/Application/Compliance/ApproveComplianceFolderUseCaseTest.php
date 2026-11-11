@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Application\Compliance;
 
 use App\Application\Compliance\UseCase\ComplianceFolder\ApproveComplianceFolderUseCase;
+use App\Domain\AdequacyReport\Entity\AdequacyReport;
+use App\Domain\AdequacyReport\Repository\AdequacyReportRepositoryInterface;
+use App\Domain\Compliance\Entity\BusinessFolder;
 use App\Domain\Compliance\Entity\IndividualFolder;
 use App\Domain\Compliance\Enum\ComplianceFolderStatus;
 use App\Domain\Compliance\Enum\RiskLevel;
@@ -35,6 +38,7 @@ final class ApproveComplianceFolderUseCaseTest extends TestCase
     private User $reviewer;
     private ComplianceFolderRepositoryInterface&MockObject $folderRepository;
     private ValidatedInvestorProfileRepositoryInterface&Stub $profileRepository;
+    private AdequacyReportRepositoryInterface&Stub $reportRepository;
 
     protected function setUp(): void
     {
@@ -43,6 +47,16 @@ final class ApproveComplianceFolderUseCaseTest extends TestCase
         $this->reviewer = $this->createEntityState(User::class, ['id' => Uuid::v7(), 'firstName' => 'Marie', 'lastName' => 'Curie']);
         $this->folderRepository = $this->createMock(ComplianceFolderRepositoryInterface::class);
         $this->profileRepository = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
+        $this->reportRepository = $this->createStub(AdequacyReportRepositoryInterface::class);
+    }
+
+    /** Rapport en vigueur ; `$profileRevoked` simule un profil révoqué après sa validation. */
+    private function report(bool $profileRevoked = false): AdequacyReport
+    {
+        return $this->createEntityState(AdequacyReport::class, [
+            'revokedAt' => null,
+            'investorProfile' => $this->createEntityState(ValidatedInvestorProfile::class, ['revokedAt' => $profileRevoked ? new \DateTimeImmutable() : null]),
+        ]);
     }
 
     private function folder(): IndividualFolder
@@ -69,6 +83,7 @@ final class ApproveComplianceFolderUseCaseTest extends TestCase
         return new ApproveComplianceFolderUseCase(
             $this->folderRepository,
             $this->profileRepository,
+            $this->reportRepository,
             $transactionManager,
             $userProvider,
             $dispatcher ?? $this->createStub(EventDispatcherInterface::class),
@@ -108,6 +123,7 @@ final class ApproveComplianceFolderUseCaseTest extends TestCase
     {
         $profile = $this->createStub(ValidatedInvestorProfile::class);
         $this->profileRepository->method('findInForceByClient')->willReturn($profile);
+        $this->reportRepository->method('findInForceByFolder')->willReturn($this->report());
 
         $folder = $this->folder();
         $this->folderRepository->expects($this->once())->method('save')->with($folder);
@@ -125,6 +141,50 @@ final class ApproveComplianceFolderUseCaseTest extends TestCase
 
         $useCase = $this->buildUseCase($dispatcher);
         ($useCase)($folder, RiskLevel::HIGH, 'Dossier complet.');
+
+        self::assertSame(ComplianceFolderStatus::APPROVED, $folder->status);
+    }
+
+    public function testRefusesToApproveAnIndividualFolderWithoutAValidatedAdequacyReport(): void
+    {
+        $this->profileRepository->method('findInForceByClient')->willReturn($this->createStub(ValidatedInvestorProfile::class));
+        $this->reportRepository->method('findInForceByFolder')->willReturn(null);
+        $this->folderRepository->expects($this->never())->method('save');
+
+        $this->expectException(FolderStateException::class);
+        $this->expectExceptionMessageMatches('/rapport d\'adéquation/');
+
+        ($this->buildUseCase())($this->folder(), RiskLevel::MEDIUM);
+    }
+
+    public function testRefusesAReportWhoseInvestorProfileWasRevokedSince(): void
+    {
+        $this->profileRepository->method('findInForceByClient')->willReturn($this->createStub(ValidatedInvestorProfile::class));
+        $this->reportRepository->method('findInForceByFolder')->willReturn($this->report(profileRevoked: true));
+        $this->folderRepository->expects($this->never())->method('save');
+
+        $this->expectException(FolderStateException::class);
+
+        ($this->buildUseCase())($this->folder(), RiskLevel::MEDIUM);
+    }
+
+    public function testBusinessFolderDoesNotNeedAnAdequacyReport(): void
+    {
+        $this->profileRepository->method('findInForceByClient')->willReturn($this->createStub(ValidatedInvestorProfile::class));
+        $this->reportRepository->method('findInForceByFolder')->willReturn(null);
+
+        $folder = $this->createEntityState(BusinessFolder::class, [
+            'workspace' => $this->workspace,
+            'client' => $this->client,
+            'slugId' => 'comp_fol_2',
+            'reference' => 'KYB-2026-001',
+            'status' => ComplianceFolderStatus::IN_REVIEW,
+            'history' => [],
+            'createdAt' => new \DateTimeImmutable('2026-01-01'),
+        ]);
+        $this->folderRepository->expects($this->once())->method('save')->with($folder);
+
+        ($this->buildUseCase())($folder, RiskLevel::LOW);
 
         self::assertSame(ComplianceFolderStatus::APPROVED, $folder->status);
     }

@@ -23,6 +23,7 @@ use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveListener;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Webmozart\Assert\Assert;
 
@@ -38,6 +39,7 @@ use Webmozart\Assert\Assert;
 )]
 class AdequacyReportComponent extends AbstractController
 {
+    use ComponentToolsTrait;
     use DefaultActionTrait;
     use LiveFlashTrait;
 
@@ -208,6 +210,8 @@ class AdequacyReportComponent extends AbstractController
             $this->rationale = '';
             $this->periodicReview = '';
             $this->reportsCache = null;
+            // Checklist et bloc de décision (lot 8) se recalculent.
+            $this->emit('adequacyReport:changed');
             $this->addLiveFlash('success', 'Rapport d\'adéquation validé et figé. Son PDF est en cours de génération, puis il sera disponible dans l\'espace du client.');
         } catch (\DomainException $e) {
             $this->addLiveFlash('error', $e->getMessage());
@@ -244,6 +248,7 @@ class AdequacyReportComponent extends AbstractController
             $this->revokeReason = '';
             $this->reportsCache = null;
             $this->prefillFromRevokedReport($report);
+            $this->emit('adequacyReport:changed');
             $this->addLiveFlash('success', 'Rapport révoqué. Il reste archivé ; la nouvelle version est préremplie avec la précédente, corrigez puis validez.');
         } catch (\DomainException $e) {
             $this->addLiveFlash('error', $e->getMessage());

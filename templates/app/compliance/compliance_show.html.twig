@@ -454,6 +454,9 @@
                 </div>
             {% endif %}
 
+            {# AVANCEMENT (lot 8) : checklist dérivée, en lecture seule #}
+            <twig:FolderChecklistComponent folderSlugId="{{ dto.slugId }}" />
+
             {% if not dto.isArchived %}
                 <twig:ComplianceFolderApprovalComponent folderSlugId="{{ dto.slugId }}" />
             {% endif %}

@@ -1,0 +1,45 @@
+{# Checklist de pilotage (lot 8) : dérivée de l'état du dossier, en lecture seule. #}
+{% set checklist = this.checklist %}
+{% set next = checklist.nextItem %}
+<section {{ attributes }} aria-labelledby="heading-folder-checklist">
+    <details class="group/checklist rounded-2xl border border-slate-200 bg-white" {{ next ? 'open' }}>
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-6 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+            <span class="min-w-0">
+                <span id="heading-folder-checklist" class="block text-sm font-medium text-slate-900">
+                    Avancement du dossier
+                    <span class="font-normal text-slate-600 tabular-nums">· {{ checklist.doneCount }} / {{ checklist.totalCount }}</span>
+                </span>
+                <span class="block truncate text-sm text-slate-600">
+                    {% if next %}Prochaine étape : {{ next.label }}{% else %}Toutes les étapes sont faites.{% endif %}
+                </span>
+            </span>
+            <twig:ux:icon name="tabler:chevron-down" class="size-4 shrink-0 text-slate-400 transition-transform group-open/checklist:rotate-180" aria-hidden="true" />
+        </summary>
+
+        <ol class="divide-y divide-slate-100 border-t border-slate-100">
+            {% for item in checklist.items %}
+                <li class="flex gap-3 px-6 py-3">
+                    {% if item.done %}
+                        <twig:ux:icon name="tabler:circle-check" class="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                    {% else %}
+                        <twig:ux:icon name="tabler:circle-dashed" class="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden="true" />
+                    {% endif %}
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium {{ item.done ? 'text-slate-900' : 'text-slate-700' }}">
+                            {% if item.anchor and not item.done %}
+                                <a href="{{ item.anchor }}" class="rounded-sm underline decoration-slate-300 underline-offset-2 hover:decoration-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">{{ item.label }}</a>
+                            {% else %}
+                                {{ item.label }}
+                            {% endif %}
+                            <span class="sr-only">— {{ item.done ? 'fait' : 'à faire' }}</span>
+                            {% if item.requiredForApproval and not item.done %}
+                                <span class="ml-1 text-xs font-normal text-slate-500">· requis pour approuver</span>
+                            {% endif %}
+                        </p>
+                        <p class="text-sm text-slate-600">{{ item.detail }}</p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ol>
+    </details>
+</section>
