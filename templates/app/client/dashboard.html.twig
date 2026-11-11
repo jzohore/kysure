@@ -23,6 +23,7 @@
     <div class="space-y-14">
         {% for relationship in dashboard.cabinetRelationships %}
             {% set status = relationship.activeFolder.status %}
+            {% set next_action = relationship.nextAction %}
             {% set profile = relationship.investorProfileStatus %}
             {% set cabinet_name = relationship.activeFolder.workspaceName %}
             {% set folder_url = path('portal_folders_show', {id: relationship.activeFolder.id}) %}
@@ -58,8 +59,13 @@
                                     <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ status.badgeClasses }}">{{ status.label }}</span>
                                 </div>
                                 <p class="mt-1 max-w-xl text-sm leading-relaxed text-slate-600">
-                                    {% if status.value == 'action_required' and relationship.pendingDocumentsCount > 0 %}
+                                    {# L'action réellement attendue (nextAction), pas seulement le statut du dossier. #}
+                                    {% if next_action == 'documents' %}
                                         Votre cabinet requiert <strong class="font-semibold text-slate-900">{{ relationship.pendingDocumentsCount }} pièce(s) justificative(s)</strong> pour finaliser votre dossier.
+                                    {% elseif next_action == 'submit' %}
+                                        Toutes vos pièces sont déposées. <strong class="font-semibold text-slate-900">Soumettez votre dossier</strong> pour que votre cabinet puisse l'analyser.
+                                    {% elseif next_action == 'consent' %}
+                                        Votre conseiller vous demande votre accord pour recevoir vos documents dans cet espace sécurisé.
                                     {% elseif status.value == 'action_required' %}
                                         Votre cabinet attend des informations de votre part pour finaliser votre dossier.
                                     {% elseif status.value == 'under_review' and relationship.allDocumentsValid %}
@@ -73,10 +79,10 @@
                             </div>
                         </div>
                         <div class="shrink-0">
-                            {% if status.value == 'action_required' %}
+                            {% if next_action %}
                                 <a href="{{ folder_url }}"
                                    class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:w-auto">
-                                    Transmettre mes pièces
+                                    {{ {documents: 'Transmettre mes pièces', submit: 'Soumettre mon dossier', consent: 'Donner mon accord'}[next_action] }}
                                     <twig:ux:icon name="lucide:arrow-right" class="size-4 opacity-70" aria-hidden="true" />
                                 </a>
                             {% else %}

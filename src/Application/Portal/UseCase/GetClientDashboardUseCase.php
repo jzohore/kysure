@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Portal\UseCase;
 
+use App\Application\Compliance\UseCase\ElectronicDelivery\ElectronicDeliveryConsentResolver;
 use App\Application\Portal\DTO\ActiveFolderDto;
 use App\Application\Portal\DTO\ClientCabinetRelationshipDto;
 use App\Application\Portal\DTO\ClientDashboardDto;
@@ -36,6 +37,7 @@ readonly class GetClientDashboardUseCase
         private InvestorProfileAssessmentRepositoryInterface $assessmentRepository,
         private ValidatedInvestorProfileRepositoryInterface $validatedProfileRepository,
         private LoggerInterface $logger,
+        private ElectronicDeliveryConsentResolver $consentResolver,
     ) {
     }
 
@@ -70,7 +72,12 @@ readonly class GetClientDashboardUseCase
 
         // Compteur de pièces en attente scopé à CE dossier : sinon un cabinet afficherait
         // aussi les pièces demandées par un autre cabinet du même client.
-        $pendingDocs = $this->documentRepository->countPendingForFolder($folder);
+        // Le dépôt ne compte que les pièces envoyées au client (et les refus) ; une pièce
+        // obligatoire jamais marquée « demandée » reste attendue : on garde le plus grand des deux.
+        $pendingDocs = max(
+            $this->documentRepository->countPendingForFolder($folder),
+            \count($folder->documentsAwaitingClient()),
+        );
         $portalStatus = ClientPortalStatus::resolve($folder->status, $pendingDocs);
 
         // Toutes les pièces demandées sont déjà conformes : le client doit le savoir, même si
@@ -102,6 +109,21 @@ readonly class GetClientDashboardUseCase
             pendingDocumentsCount: $pendingDocs,
             investorProfileStatus: $investorProfileStatus,
             allDocumentsValid: $allDocumentsValid,
+            nextAction: $this->nextAction($folder, $pendingDocs),
         );
+    }
+
+    /**
+     * L'action réellement attendue du client : le statut du dossier seul (« en attente du
+     * client ») ne dit pas s'il manque des pièces, s'il reste à soumettre ou à donner un accord.
+     */
+    private function nextAction(ComplianceFolder $folder, int $pendingDocs): ?string
+    {
+        return match (true) {
+            $pendingDocs > 0 => ClientCabinetRelationshipDto::ACTION_DOCUMENTS,
+            $folder->canBeSubmitted() => ClientCabinetRelationshipDto::ACTION_SUBMIT,
+            $this->consentResolver->needsAmendment($folder) => ClientCabinetRelationshipDto::ACTION_CONSENT,
+            default => null,
+        };
     }
 }

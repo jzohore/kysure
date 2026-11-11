@@ -1,0 +1,20 @@
+{% extends 'emails/base.html.twig' %}
+
+{% block title %}Dossier {{ folder_reference }} soumis par {{ client_name }}{% endblock %}
+
+{% block content %}
+    <h1>Un dossier attend votre décision</h1>
+
+    <p>Bonjour,</p>
+
+    <p><strong>{{ client_name }}</strong> a déposé toutes les pièces demandées et soumis son dossier <strong>{{ folder_reference }}</strong> depuis son espace client. Il attend votre revue et votre décision de conformité.</p>
+
+    <div class="btn-container">
+        <a href="{{ review_url }}" class="btn">Ouvrir le dossier</a>
+    </div>
+
+    <p style="font-size: 12px; color: #94a3b8; word-break: break-all; margin-top: 20px;">
+        Si le bouton ne fonctionne pas, copiez et collez cette adresse dans votre navigateur :<br>
+        <a href="{{ review_url }}" style="color: #64748b;">{{ review_url }}</a>
+    </p>
+{% endblock %}

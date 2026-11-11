@@ -15,7 +15,7 @@ enum ClientPortalStatus: string
     /**
      * Statut vu par le client : source unique pour le tableau de bord, « Mes dossiers » et le détail.
      *
-     * Le statut du dossier ne bascule en analyse que lorsque le conseiller le soumet : tant qu'il
+     * Le statut du dossier ne bascule en analyse que lorsque le client le soumet : tant qu'il
      * ne l'a pas fait, un client qui a tout transmis verrait « pièces requises (0) ». Plus aucune
      * pièce à fournir ni à corriger ($pendingDocuments inclut les refus) = il n'a plus rien à
      * faire. AWAITING_CLIENT est exclu : il peut attendre autre chose que des pièces.
@@ -53,7 +53,8 @@ enum ClientPortalStatus: string
     {
         return match ($this) {
             self::UP_TO_DATE => 'Dossier complet et validé',
-            self::ACTION_REQUIRED => 'Pièces justificatives requises',
+            // Générique : le client peut avoir à déposer des pièces, soumettre son dossier ou donner un accord.
+            self::ACTION_REQUIRED => 'Action requise',
             self::UNDER_REVIEW => 'En cours d\'analyse par le cabinet',
         };
     }

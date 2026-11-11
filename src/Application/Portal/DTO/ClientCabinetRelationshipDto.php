@@ -13,12 +13,21 @@ use App\Domain\Suitability\Enum\InvestorProfileDashboardStatus;
  */
 readonly class ClientCabinetRelationshipDto
 {
+    public const string ACTION_DOCUMENTS = 'documents';
+    public const string ACTION_SUBMIT = 'submit';
+    public const string ACTION_CONSENT = 'consent';
+
     public function __construct(
         public ActiveFolderDto $activeFolder,
         public ?string $cabinetContactEmail,
         public int $pendingDocumentsCount,
         public InvestorProfileDashboardStatus $investorProfileStatus,
         public bool $allDocumentsValid = false,
+        /**
+         * Ce que le client doit faire maintenant, dans l'ordre : déposer des pièces, soumettre
+         * son dossier, donner son accord de remise électronique — `null` s'il n'a rien à faire.
+         */
+        public ?string $nextAction = null,
     ) {
     }
 }

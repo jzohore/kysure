@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Tests\Application\Portal;
 
+use App\Application\Compliance\UseCase\ElectronicDelivery\ElectronicDeliveryConsentResolver;
+use App\Application\Portal\DTO\ClientCabinetRelationshipDto;
 use App\Application\Portal\DTO\ClientDashboardDto;
 use App\Application\Portal\UseCase\GetClientDashboardUseCase;
+use App\Domain\Compliance\Entity\ComplianceDocument;
+use App\Domain\Compliance\Entity\DerAcknowledgement;
 use App\Domain\Compliance\Entity\IndividualFolder;
 use App\Domain\Compliance\Enum\ComplianceFolderStatus;
 use App\Domain\Compliance\Repository\ComplianceDocumentRepositoryInterface;
 use App\Domain\Compliance\Repository\ComplianceFolderRepositoryInterface;
+use App\Domain\Compliance\Repository\ElectronicDeliveryConsentRepositoryInterface;
 use App\Domain\Suitability\Entity\InvestorProfileAssessment;
 use App\Domain\Suitability\Entity\ValidatedInvestorProfile;
 use App\Domain\Suitability\Enum\InvestorProfileDashboardStatus;
@@ -44,6 +49,7 @@ final class GetClientDashboardUseCaseTest extends TestCase
             'workspaces' => new ArrayCollection([$this->workspace]),
         ]);
         $this->folder = $this->createEntityState(IndividualFolder::class, [
+            'documents' => new ArrayCollection(),
             'workspace' => $this->workspace,
             'status' => ComplianceFolderStatus::APPROVED,
             'slugId' => 'fld_1',
@@ -63,7 +69,7 @@ final class GetClientDashboardUseCaseTest extends TestCase
         $validatedProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
         $logger = $this->createStub(LoggerInterface::class);
 
-        $useCase = new GetClientDashboardUseCase($documentRepo, $folderRepo, $assessmentRepo, $validatedProfileRepo, $logger);
+        $useCase = new GetClientDashboardUseCase($documentRepo, $folderRepo, $assessmentRepo, $validatedProfileRepo, $logger, $this->consentResolver());
 
         $this->expectException(\LogicException::class);
 
@@ -124,6 +130,7 @@ final class GetClientDashboardUseCaseTest extends TestCase
     {
         $otherWorkspace = $this->createEntityState(Workspace::class, ['slugId' => 'wrk_2', 'name' => 'Cabinet B', 'email' => 'contact@cabinet-b.fr']);
         $otherFolder = $this->createEntityState(IndividualFolder::class, [
+            'documents' => new ArrayCollection(),
             'workspace' => $otherWorkspace,
             'status' => ComplianceFolderStatus::AWAITING_CLIENT,
             'slugId' => 'fld_2',
@@ -141,7 +148,7 @@ final class GetClientDashboardUseCaseTest extends TestCase
         $validatedProfileRepo = $this->createStub(ValidatedInvestorProfileRepositoryInterface::class);
         $logger = $this->createStub(LoggerInterface::class);
 
-        $useCase = new GetClientDashboardUseCase($documentRepo, $folderRepo, $assessmentRepo, $validatedProfileRepo, $logger);
+        $useCase = new GetClientDashboardUseCase($documentRepo, $folderRepo, $assessmentRepo, $validatedProfileRepo, $logger, $this->consentResolver());
         $dashboard = ($useCase)($this->client);
 
         self::assertCount(2, $dashboard->cabinetRelationships);
@@ -189,6 +196,7 @@ final class GetClientDashboardUseCaseTest extends TestCase
     private function folderWithStatus(ComplianceFolderStatus $status): IndividualFolder
     {
         return $this->createEntityState(IndividualFolder::class, [
+            'documents' => new ArrayCollection(),
             'workspace' => $this->workspace,
             'status' => $status,
             'slugId' => 'fld_1',
@@ -218,8 +226,58 @@ final class GetClientDashboardUseCaseTest extends TestCase
 
         $logger = $this->createStub(LoggerInterface::class);
 
-        $useCase = new GetClientDashboardUseCase($documentRepo, $folderRepo, $assessmentRepo, $validatedProfileRepo, $logger);
+        $useCase = new GetClientDashboardUseCase($documentRepo, $folderRepo, $assessmentRepo, $validatedProfileRepo, $logger, $this->consentResolver());
 
         return ($useCase)($this->client);
+    }
+
+    public function testFolderWithEveryPieceReceivedAsksTheClientToSubmit(): void
+    {
+        $this->folder = $this->folderWithStatus(ComplianceFolderStatus::AWAITING_CLIENT);
+
+        $relationship = $this->buildAndInvoke(pendingDocs: 0)->cabinetRelationships[0];
+
+        self::assertSame(ClientCabinetRelationshipDto::ACTION_SUBMIT, $relationship->nextAction);
+    }
+
+    public function testPendingPiecesComeBeforeAnythingElse(): void
+    {
+        $this->folder = $this->folderWithStatus(ComplianceFolderStatus::AWAITING_CLIENT);
+
+        $relationship = $this->buildAndInvoke(pendingDocs: 2)->cabinetRelationships[0];
+
+        self::assertSame(ClientCabinetRelationshipDto::ACTION_DOCUMENTS, $relationship->nextAction);
+    }
+
+    public function testElectronicDeliveryAmendmentIsShownOnceTheFolderIsSubmitted(): void
+    {
+        $this->folder = $this->folderWithStatus(ComplianceFolderStatus::IN_REVIEW);
+        $this->derStatementVersion = '2026-09-01';
+
+        $relationship = $this->buildAndInvoke(pendingDocs: 0)->cabinetRelationships[0];
+
+        self::assertSame(ClientCabinetRelationshipDto::ACTION_CONSENT, $relationship->nextAction);
+    }
+
+    /** Version de l'attestation du DER accusé ; `null` = aucun DER accusé. */
+    private ?string $derStatementVersion = null;
+
+    private function consentResolver(): ElectronicDeliveryConsentResolver
+    {
+        $documentRepo = $this->createStub(ComplianceDocumentRepositoryInterface::class);
+        if (null !== $this->derStatementVersion) {
+            $acknowledgement = $this->createEntityState(DerAcknowledgement::class, [
+                'slugId' => 'der_ack_1',
+                'acknowledgedAt' => new \DateTimeImmutable('2026-09-17'),
+                'statementVersion' => $this->derStatementVersion,
+                'revokedAt' => null,
+            ]);
+            $documentRepo->method('findDerByFolder')->willReturn($this->createEntityState(ComplianceDocument::class, ['acknowledgements' => new ArrayCollection([$acknowledgement])]));
+        }
+
+        $consentRepo = $this->createStub(ElectronicDeliveryConsentRepositoryInterface::class);
+        $consentRepo->method('findLatestByFolder')->willReturn(null);
+
+        return new ElectronicDeliveryConsentResolver($documentRepo, $consentRepo);
     }
 }
