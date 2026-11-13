@@ -20,6 +20,7 @@ use App\Infrastructure\Compliance\Voter\ComplianceFolderVoter;
 use App\Infrastructure\Shared\Component\LiveFlashTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveListener;
@@ -108,9 +109,15 @@ class ComplianceFolderApprovalComponent extends AbstractController
         return $report instanceof AdequacyReport && !$report->isBasedOnRevokedProfile();
     }
 
+    /** Toutes les pièces attendues ont été vérifiées et validées par le cabinet. */
+    public function hasAllDocumentsValidated(): bool
+    {
+        return $this->getFolder()->hasAllExpectedDocumentsValidated();
+    }
+
     public function canApprove(): bool
     {
-        return $this->hasValidatedInvestorProfileInForce() && $this->hasValidatedAdequacyReport();
+        return $this->hasAllDocumentsValidated() && $this->hasValidatedInvestorProfileInForce() && $this->hasValidatedAdequacyReport();
     }
 
     /** Un rapport validé ou révoqué plus bas sur la page change ce qui est possible ici. */
@@ -139,8 +146,13 @@ class ComplianceFolderApprovalComponent extends AbstractController
         $this->isRejecting = !$this->isRejecting;
     }
 
+    /**
+     * Après la décision, le bloc disparaît (le dossier n'est plus « en revue ») et emporterait
+     * son message avec lui : on recharge la page avec un message flash, ce qui remet aussi à
+     * jour l'en-tête, la checklist et le reste du dossier.
+     */
     #[LiveAction]
-    public function approve(): void
+    public function approve(): ?RedirectResponse
     {
         $this->clearLiveFlash();
         $this->denyAccessUnlessGranted(ComplianceFolderVoter::APPROVE, $this->getFolder());
@@ -148,23 +160,26 @@ class ComplianceFolderApprovalComponent extends AbstractController
         if ('' === $this->selectedRiskLevel) {
             $this->addLiveFlash('error', 'Merci de sélectionner un niveau de risque.');
 
-            return;
+            return null;
         }
 
         try {
             ($this->approveUseCase)($this->getFolder(), RiskLevel::from($this->selectedRiskLevel), $this->comments);
-            $this->folderCache = null;
-            $this->addLiveFlash('success', 'Dossier déclaré conforme.');
+            $this->addFlash('success', 'Dossier déclaré conforme. Le client en est informé par e-mail.');
+
+            return $this->redirectToRoute('app_compliance_show', ['slugId' => $this->folderSlugId]);
         } catch (\DomainException $e) {
             $this->addLiveFlash('error', $e->getMessage());
         } catch (\Throwable) {
             $this->logger->error('Crash lors de l\'approbation du dossier.', ['folder_slug_id' => $this->folderSlugId]);
             $this->addLiveFlash('error', 'Erreur système lors de l\'approbation.');
         }
+
+        return null;
     }
 
     #[LiveAction]
-    public function reject(): void
+    public function reject(): ?RedirectResponse
     {
         $this->clearLiveFlash();
         $this->denyAccessUnlessGranted(ComplianceFolderVoter::REJECT, $this->getFolder());
@@ -172,20 +187,23 @@ class ComplianceFolderApprovalComponent extends AbstractController
         if ('' === trim($this->rejectReason)) {
             $this->addLiveFlash('error', 'Un motif est obligatoire pour rejeter un dossier.');
 
-            return;
+            return null;
         }
 
         try {
             ($this->rejectUseCase)($this->getFolder(), $this->rejectReason);
-            $this->folderCache = null;
-            $this->isRejecting = false;
-            $this->rejectReason = '';
-            $this->addLiveFlash('success', 'Dossier déclaré non conforme.');
+            // Pas d'e-mail au client sur un rejet : en LCB-FT, signaler un refus peut révéler un
+            // soupçon (risque de divulgation) — c'est au CGP de choisir comment l'en informer.
+            $this->addFlash('success', 'Dossier déclaré non conforme. Le client n\'est pas notifié automatiquement.');
+
+            return $this->redirectToRoute('app_compliance_show', ['slugId' => $this->folderSlugId]);
         } catch (\DomainException $e) {
             $this->addLiveFlash('error', $e->getMessage());
         } catch (\Throwable) {
             $this->logger->error('Crash lors du rejet du dossier.', ['folder_slug_id' => $this->folderSlugId]);
             $this->addLiveFlash('error', 'Erreur système lors du rejet.');
         }
+
+        return null;
     }
 }

@@ -1,0 +1,37 @@
+{% extends 'emails/base.html.twig' %}
+
+{% block title %}Votre dossier {{ folder_reference }} est validé{% endblock %}
+
+{% block content %}
+    <h1>Votre dossier est validé</h1>
+
+    <p>Bonjour,</p>
+
+    <p>
+        Le cabinet <strong>{{ workspace_name }}</strong> a terminé l'examen de votre dossier <strong>{{ folder_reference }}</strong>
+        et l'a validé. Aucune action n'est requise de votre part.
+    </p>
+
+    <p style="margin: 30px 0; text-align: center;">
+        <a href="{{ portal_url }}" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            Accéder à mon espace
+        </a>
+    </p>
+
+    <p style="font-size: 13px; color: #64748b;">
+        Vos documents restent consultables à tout moment dans votre espace sécurisé. Pensez à prévenir votre conseiller
+        de tout changement de votre situation.
+    </p>
+
+    {% if workspace_contact_email %}
+        <p style="margin-top: 20px;">
+            Une question ? Contactez votre conseiller à l'adresse
+            <a href="mailto:{{ workspace_contact_email }}">{{ workspace_contact_email }}</a>.
+        </p>
+    {% endif %}
+
+    <p style="margin-top: 30px;">
+        Cordialement,<br>
+        <strong>L'équipe {{ workspace_name }}</strong>
+    </p>
+{% endblock %}

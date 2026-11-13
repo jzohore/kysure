@@ -122,10 +122,11 @@ final readonly class GetFolderChecklistUseCase
         $total = \count($requested);
 
         if (0 === $total) {
-            return new FolderChecklistItem('Pièces justificatives validées', false, 'Aucune pièce n\'est encore attendue dans ce dossier.');
+            // Aucune pièce attendue : rien ne bloque l'approbation de ce côté.
+            return new FolderChecklistItem('Pièces justificatives validées', true, 'Aucune pièce n\'est attendue dans ce dossier.', requiredForApproval: true);
         }
 
-        return new FolderChecklistItem('Pièces justificatives validées', $valid === $total, sprintf('%d pièce%s validée%s sur %d.', $valid, $valid > 1 ? 's' : '', $valid > 1 ? 's' : '', $total));
+        return new FolderChecklistItem('Pièces justificatives validées', $valid === $total, sprintf('%d pièce%s validée%s sur %d.', $valid, $valid > 1 ? 's' : '', $valid > 1 ? 's' : '', $total), requiredForApproval: true);
     }
 
     private function clientFileItem(ComplianceFolder $folder): FolderChecklistItem

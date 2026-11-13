@@ -59,7 +59,10 @@ final class GetFolderChecklistUseCaseTest extends TestCase
         self::assertTrue($checklist->items[5]->done, 'Une vérification avec frais sur le profil en vigueur.');
         self::assertFalse($checklist->items[6]->done);
         self::assertTrue($checklist->items[6]->requiredForApproval);
-        self::assertSame('Pièces justificatives validées', $checklist->nextItem()?->label);
+        self::assertTrue($checklist->items[1]->done, 'Aucune pièce attendue : rien ne bloque.');
+        self::assertTrue($checklist->items[1]->requiredForApproval);
+        // La fiche patrimoniale simulée n'existe pas : c'est la première étape restante.
+        self::assertSame('Fiche patrimoniale complète', $checklist->nextItem()?->label);
     }
 
     public function testDocumentsAreDoneOnceEveryExpectedPieceIsValid(): void
