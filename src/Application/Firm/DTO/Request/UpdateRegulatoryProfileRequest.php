@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Firm\DTO\Request;
 
+use App\Domain\Firm\Entity\RegulatoryProfile;
 use Symfony\Component\Validator\Constraints as Assert;
 
 class UpdateRegulatoryProfileRequest
@@ -38,6 +39,13 @@ class UpdateRegulatoryProfileRequest
 
     #[Assert\Length(max: 120)]
     public ?string $signatoryCity = null;
+
+    /** Précisions du cabinet imprimées dans le DER (services, rémunération, conflits d'intérêts). */
+    #[Assert\Length(
+        max: RegulatoryProfile::DER_ADDITIONAL_INFORMATION_MAX_LENGTH,
+        maxMessage: 'Ce texte ne peut dépasser {{ limit }} caractères.',
+    )]
+    public ?string $derAdditionalInformation = null;
 
     /**
      * @var PartnerDTO[]

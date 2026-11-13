@@ -313,6 +313,7 @@
     <h1>4. Traitement des Conflits d'intérêts et Rémunération</h1>
     <p>
         La rémunération du cabinet peut être structurée sous forme d'honoraires de conseil (selon une lettre de mission préalable) et/ou de rétrocessions de commissions versées par les établissements promoteurs des produits conseillés. Le cabinet s'engage à agir de manière honnête, loyale et professionnelle, au mieux des intérêts du client.
+        {% if profile.derAdditionalInformation %}Les services, modalités de rémunération et règles de gestion des conflits d'intérêts propres au cabinet sont précisés en section 8.{% endif %}
     </p>
 </section>
 
@@ -356,6 +357,16 @@
         Vous pouvez à tout moment demander à recevoir ces documents sur papier, sans frais, auprès du cabinet.
     </p>
 </section>
+
+{# Section 8 (lot 7) : précisions rédigées par le cabinet dans ses Réglages, imprimées seulement si
+   renseignées. Texte brut : l'autoescape neutralise tout HTML, nl2br ne fait que rendre les sauts de
+   ligne. Pas de contrainte de hauteur : le texte peut être long, la coupe de page reste possible. #}
+{% if profile.derAdditionalInformation %}
+<section>
+    <h1>8. Services, rémunération et conflits d'intérêts : précisions du cabinet</h1>
+    <p>{{ profile.derAdditionalInformation|nl2br }}</p>
+</section>
+{% endif %}
 
 <div class="signatures">
 

@@ -57,6 +57,7 @@ readonly class UpdateRegulatoryProfileUseCase
             partners: $partnersAsArray,
             signatoryName: $request->signatoryName,
             signatoryCity: $request->signatoryCity,
+            derAdditionalInformation: $request->derAdditionalInformation,
         );
 
         $this->repository->save($profile);

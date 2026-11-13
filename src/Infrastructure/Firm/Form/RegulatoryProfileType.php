@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Infrastructure\Firm\Form;
 
 use App\Application\Firm\DTO\Request\UpdateRegulatoryProfileRequest;
+use App\Domain\Firm\Entity\RegulatoryProfile;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -64,6 +66,17 @@ class RegulatoryProfileType extends AbstractType
                 'label' => 'Je déclare que le capital du cabinet est indépendant',
                 'required' => false, // false car une case non cochée est valide en HTML
                 'help' => 'Cochez cette case si aucune banque ou compagnie d\'assurance ne détient de parts dans votre cabinet.',
+            ])
+            // Texte brut multiligne : échappé puis mis en forme par nl2br dans le PDF (aucun HTML).
+            ->add('derAdditionalInformation', TextareaType::class, [
+                'label' => 'Précisions du cabinet pour le DER',
+                'required' => false,
+                'attr' => [
+                    'rows' => 8,
+                    'maxlength' => RegulatoryProfile::DER_ADDITIONAL_INFORMATION_MAX_LENGTH,
+                    'placeholder' => "ex : Le cabinet fournit un conseil non indépendant…\nRémunération : honoraires selon lettre de mission et/ou commissions…\nConflits d'intérêts : …",
+                ],
+                'help' => 'Imprimé tel quel dans une section dédiée de votre DER, remis à chaque client. Décrivez les services fournis, le mode de rémunération du cabinet et la façon dont vous prévenez et gérez les conflits d\'intérêts. Les sauts de ligne sont conservés ; laissez vide pour ne pas ajouter de section.',
             ])
             // 🪄 LA MAGIE : La collection de partenaires
             ->add('partners', CollectionType::class, [

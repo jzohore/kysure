@@ -12,11 +12,15 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use function Symfony\Component\Clock\now;
 
 use Symfony\Component\Uid\Uuid;
+use Webmozart\Assert\Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'regulatory_profiles')]
 class RegulatoryProfile
 {
+    /** Environ deux pages de DER : au-delà, le document perd sa lisibilité pour le client. */
+    public const int DER_ADDITIONAL_INFORMATION_MAX_LENGTH = 5000;
+
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -64,6 +68,14 @@ class RegulatoryProfile
     public private(set) ?string $signatureBase64 = null;
 
     /**
+     * Précisions propres au cabinet imprimées dans une section dédiée du DER : services fournis,
+     * modalités de rémunération, gestion des conflits d'intérêts. Texte brut multiligne (jamais de
+     * HTML) : il est échappé puis mis en forme par `nl2br` dans le gabarit PDF.
+     */
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    public private(set) ?string $derAdditionalInformation = null;
+
+    /**
      * @var array<int, array{name: string|null, address: string|null, email: string|null, phone: string|null}>
      */
     #[ORM\Column(type: Types::JSON)]
@@ -99,7 +111,18 @@ class RegulatoryProfile
         array $partners,
         ?string $signatoryName = null,
         ?string $signatoryCity = null,
+        ?string $derAdditionalInformation = null,
     ): void {
+        // Fins de ligne normalisées : un texte collé depuis Word arrive en \r\n.
+        $derAdditionalInformation = null !== $derAdditionalInformation
+            ? trim(str_replace(["\r\n", "\r"], "\n", $derAdditionalInformation)) ?: null
+            : null;
+        Assert::nullOrMaxLength(
+            $derAdditionalInformation,
+            self::DER_ADDITIONAL_INFORMATION_MAX_LENGTH,
+            'Les précisions du DER ne peuvent dépasser %2$s caractères.',
+        );
+
         $this->oriasNumber = $oriasNumber;
         $this->professionalAssociation = $professionalAssociation;
         $this->rcProInsurer = $rcProInsurer;
@@ -108,6 +131,7 @@ class RegulatoryProfile
         $this->partners = $partners;
         $this->signatoryName = null !== $signatoryName ? trim($signatoryName) ?: null : null;
         $this->signatoryCity = null !== $signatoryCity ? trim($signatoryCity) ?: null : null;
+        $this->derAdditionalInformation = $derAdditionalInformation;
         $this->lastCheckOrias = now();
     }
 
